@@ -8,7 +8,7 @@ pub mod context;
 
 pub mod lexer;
 
-fn fetch_args() -> (String, String, String) {
+fn fetch_args() -> (String, String, Option<String>) {
     let mut args = env::args();
 
     let name = args
@@ -23,8 +23,7 @@ fn fetch_args() -> (String, String, String) {
         });
 
     let dst = args
-        .next()
-        .unwrap_or_else(|| "a.out".to_string());
+        .next();
 
     (name, src, dst)
 }
@@ -45,7 +44,7 @@ fn main() {
 
     let lexer = Lexer::new(&mut ctx, &target);
 
-    let consumer = LexerConsumer::new(lexer, &dst)
+    let consumer = LexerConsumer::new(lexer, dst.as_deref())
         .unwrap_or_else(|err| {
             eprintln!("{name}: {}", err.msg());
             process::exit(1);

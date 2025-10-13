@@ -1,4 +1,4 @@
-use std::{fs::{File, OpenOptions}, io::Write};
+use std::{fs::OpenOptions, io::{self, Write}};
 
 use crate::lexer::Lexer;
 
@@ -18,17 +18,23 @@ impl LexerConsumerErr {
 }
 
 pub struct LexerConsumer<'t, 'c> {
-    dump: File,
+    dump: Box<dyn Write>,
     lexer: Lexer<'t, 'c>
 }
 
 impl<'t, 'c> LexerConsumer<'t, 'c> {
-    pub fn new(lexer: Lexer<'t, 'c>, dump_path: &str) -> Result<Self, LexerConsumerErr> {
-        let dump = OpenOptions::new()
-            .create(true)
-            .write(true)
-            .open(dump_path)
-            .map_err(|e| LexerConsumerErr::FailedOpen(e.to_string()))?;
+    pub fn new(lexer: Lexer<'t, 'c>, dump_path: Option<&str>) -> Result<Self, LexerConsumerErr> {
+        let dump: Box<dyn Write> = if let Some(dump_path) = dump_path {
+            Box::new(
+                OpenOptions::new()
+                .create(true)
+                .write(true)
+                .open(dump_path)
+                .map_err(|e| LexerConsumerErr::FailedOpen(e.to_string()))?
+            )
+        } else {
+            Box::new(io::stdout())
+        };
 
         Ok(Self {
             lexer,

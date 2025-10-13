@@ -142,18 +142,18 @@ impl<'t> DiagManager<'t> {
             let context = self.target.nth_line(diag.row - 1)
                 .unwrap_or_else(|| unreachable!("diagnostic <{}> with invalid line {}", diag.kind.msg(), diag.row));
 
-            println!("{}{}:{}:{}: {}{}: {}{}",
+            eprintln!("{}{}:{}:{}: {}{}: {}{}",
                 DiagColor::HIGHLIGHT, self.target.path(), diag.row, diag.col,
                 diag.kind.sever().color(), diag.kind.sever().str(), DiagColor::RESET, diag.kind.msg()
             );
 
-            println!("{}{} | {}{}{}{}{}",
+            eprintln!("{}{} | {}{}{}{}{}",
                 &padding_row[DiagManager::row_len(diag.row)..], diag.row, &context[..padding_ctx.len()],
                 diag.kind.sever().color(), &context[padding_ctx.len()..padding_ctx.len()+underline.len()+1], DiagColor::RESET,
                 &context[padding_ctx.len()+underline.len()+1..]
             );
 
-            println!("{} | {}{}^{}{}",
+            eprintln!("{} | {}{}^{}{}",
                 padding_row, padding_ctx,
                 diag.kind.sever().color(), underline, DiagColor::RESET
             );
