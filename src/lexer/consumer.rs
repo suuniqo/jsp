@@ -27,8 +27,9 @@ impl<'t, 'c> LexerConsumer<'t, 'c> {
         let dump: Box<dyn Write> = if let Some(dump_path) = dump_path {
             Box::new(
                 OpenOptions::new()
-                .create(true)
                 .write(true)
+                .create(true)
+                .truncate(true)
                 .open(dump_path)
                 .map_err(|e| LexerConsumerErr::FailedOpen(e.to_string()))?
             )
