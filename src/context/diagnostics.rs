@@ -1,5 +1,15 @@
 use crate::{token::TokenKind, target::Target};
 
+struct DiagColor;
+
+impl DiagColor {
+    pub const RESET: &'static str = "\x1b[0m";
+    pub const HIGHLIGHT: &'static str = "\x1b[1;38;5;189m";
+    pub const NOTE: &'static str = "\x1b[1;38;5;74m";
+    pub const WARNING: &'static str = "\x1b[1;38;5;217m";
+    pub const ERROR: &'static str =  "\x1b[1;38;5;211m";
+}
+
 pub enum DiagSever {
     Info,
     Warning,
@@ -7,11 +17,19 @@ pub enum DiagSever {
 }
 
 impl DiagSever {
-    fn as_str(&self) -> &'static str {
+    fn str(&self) -> &'static str {
         match self {
-            DiagSever::Info => "info",
+            DiagSever::Info => "note",
             DiagSever::Warning => "warning",
             DiagSever::Error => "error",
+        }
+    }
+
+    fn color(&self) -> &'static str {
+        match self {
+            DiagSever::Info => DiagColor::NOTE,
+            DiagSever::Warning => DiagColor::WARNING,
+            DiagSever::Error => DiagColor::ERROR,
         }
     }
 }
@@ -30,14 +48,14 @@ pub enum DiagKind {
 impl DiagKind {
     fn msg(&self) -> String {
         match self {
-            DiagKind::StrayChar(c) => format!("stray '{c}' in program"),
+            DiagKind::StrayChar(c) => format!("stray '{}{c}{}' in program", DiagColor::HIGHLIGHT, DiagColor::RESET),
             DiagKind::UnterminatedComment => "unterminated comment".to_string(),
-            DiagKind::UnterminatedStr(_) => format!("missing terminating character \" on string literal"),
+            DiagKind::UnterminatedStr(_) => format!("missing terminating character '{}\"{}' on string literal", DiagColor::HIGHLIGHT, DiagColor::RESET),
             DiagKind::StrOverflow((len, _)) => format!("string literal is too long, length is {len} but the maximum is {}", TokenKind::MAX_STR_LEN),
-            DiagKind::InvEscSeq(c) => format!("unknown escape sequence '\\{c}'"),
+            DiagKind::InvEscSeq(c) => format!("unknown escape sequence '{}\\{c}{}'", DiagColor::HIGHLIGHT, DiagColor::RESET),
             DiagKind::IntOverflow(_) => format!("integer literal out of range for 16-byte type"),
             DiagKind::FloatOverflow(_) => format!("float literal  out of range for 32-byte type"),
-            DiagKind::FloatInvFmt(_) => format!("expected digit after . in float literal"),
+            DiagKind::FloatInvFmt(_) => format!("expected digit after '{}.{}' in float literal", DiagColor::HIGHLIGHT, DiagColor::RESET),
         }
     }
 
@@ -98,6 +116,7 @@ impl<'t> DiagManager<'t> {
             max_row_len: 1,
         }
     }
+
     pub fn push(&mut self, kind: DiagKind, row: usize, col: usize) {
         let diag = Diag::new(kind, row, col);
 
@@ -123,9 +142,21 @@ impl<'t> DiagManager<'t> {
             let context = self.target.nth_line(diag.row - 1)
                 .unwrap_or_else(|| unreachable!("diagnostic <{}> with invalid line {}", diag.kind.msg(), diag.row));
 
-            println!("{}:{}:{}: {}: {}", self.target.path(), diag.row, diag.col, diag.kind.sever().as_str(), diag.kind.msg());
-            println!("{}{} | {}", &padding_row[DiagManager::row_len(diag.row)..], diag.row, context);
-            println!("{} | {}^{}", padding_row, padding_ctx, underline);
+            println!("{}{}:{}:{}: {}{}: {}{}",
+                DiagColor::HIGHLIGHT, self.target.path(), diag.row, diag.col,
+                diag.kind.sever().color(), diag.kind.sever().str(), DiagColor::RESET, diag.kind.msg()
+            );
+
+            println!("{}{} | {}{}{}{}{}",
+                &padding_row[DiagManager::row_len(diag.row)..], diag.row, &context[..padding_ctx.len()],
+                diag.kind.sever().color(), &context[padding_ctx.len()..padding_ctx.len()+underline.len()+1], DiagColor::RESET,
+                &context[padding_ctx.len()+underline.len()+1..]
+            );
+
+            println!("{} | {}{}^{}{}",
+                padding_row, padding_ctx,
+                diag.kind.sever().color(), underline, DiagColor::RESET
+            );
         }
     }
 
