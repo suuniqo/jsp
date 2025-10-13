@@ -294,13 +294,11 @@ impl<'t, 'c> Lexer<'t, 'c> {
             }
 
             if next == b'"' {
-                println!("finished string");
                 self.read();
                 break;
             }
 
             if next == b'\\' {
-                println!("start esc seq");
                 self.read();
 
                 let Some(next) = self.peek() else {
@@ -308,12 +306,9 @@ impl<'t, 'c> Lexer<'t, 'c> {
                     return None;
                 };
 
-                println!("type is {}", next as char);
-
                 if let Some(esc_seq) = Lexer::esc_seq(next) {
                     str.push(esc_seq as char);
                     added_len += 1;
-                    println!("summed len");
                 } else {
                     self.ctx.diags.push(DiagKind::InvEscSeq(next as char), self.row, self.col);
                     str.push('\\');
@@ -329,7 +324,6 @@ impl<'t, 'c> Lexer<'t, 'c> {
         added_len += 1;
 
         if str.len() > TokenKind::MAX_STR_LEN {
-            println!("str is {str} wiht added len {added_len}");
             self.ctx.diags.push(DiagKind::StrOverflow((str.len(), added_len)), self.row, col);
 
             return None;

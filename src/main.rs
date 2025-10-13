@@ -18,7 +18,7 @@ fn fetch_args() -> (String, String, String) {
     let src = args
         .next()
         .unwrap_or_else(|| {
-            eprintln!("{name}: usage: myjsc source_file [destination_file]");
+            eprintln!("{name}: usage: {name} source_file [destination_file]");
             process::exit(1);
         });
 
