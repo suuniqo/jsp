@@ -10,7 +10,7 @@ pub enum TargetErr {
 impl TargetErr {
     pub fn msg(&self) -> String {
         match self {
-            TargetErr::OpenFailed(s) => format!("error openening target file: {s}"),
+            TargetErr::OpenFailed(s) => format!("error opening target file: {s}"),
             TargetErr::QueryFailed(s) => format!("error querying target file: {s}"),
             TargetErr::ReadFailed(s) => format!("error reading target file: {s}"),
             TargetErr::AllocFailed(s) => format!("error storing target file contents: {s}"),
