@@ -1,7 +1,6 @@
 use crate::context::{diagnostics::DiagManager, id_pool::IdPool};
 
 pub mod id_pool;
-pub mod symtable;
 pub mod diagnostics;
 
 pub struct Context<'t> {
