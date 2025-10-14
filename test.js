@@ -6,7 +6,7 @@ let e = 23847982734982739872948792837983427987423.8
 let f = "lkasjdflkajsfdlk
 let g = "hello there";
 
-&===&&|||&>=<=<>!if while do read write let function {} lol
+&===&&|||&>=<=<>!if{while|do&read write let function {} lol
 
 let h = "hola\n\s";
 let i = "hola\;
