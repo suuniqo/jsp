@@ -1,16 +1,16 @@
 use super::diag::DiagManager;
-use super::sym_table::SymTable;
+use super::symtable::SymTable;
 
 
 pub struct Context<'t> {
-    pub strpool: SymTable,
+    pub symtable: SymTable,
     pub diags: DiagManager<'t>,
 }
 
 impl<'t> Context<'t> {
-    pub fn new(strpool: SymTable, diags: DiagManager<'t>) -> Self {
+    pub fn new(symtable: SymTable, diags: DiagManager<'t>) -> Self {
         Self {
-            strpool,
+            symtable,
             diags,
         }
     }

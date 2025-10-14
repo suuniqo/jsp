@@ -1,19 +1,19 @@
 use std::fmt;
 
-
+#[derive(Clone)]
 pub enum TokenKind {
-    Bool,
-    Do,
-    Float,
-    Func,
     If,
-    Int,
-    Let,
-    Read,
-    Ret,
-    Str,
-    Void,
+    Do,
     While,
+    Int,
+    Float,
+    Str,
+    Bool,
+    Void,
+    Let,
+    Func,
+    Ret,
+    Read,
     Write,
     True,
     False,
@@ -49,6 +49,24 @@ pub enum TokenKind {
     Ne,
     Eq,
 }
+
+pub static KEYWORDS: [TokenKind; TokenKind::KEYWORDS_LEN] = [
+    TokenKind::If,
+    TokenKind::Do,
+    TokenKind::While,
+    TokenKind::Int,
+    TokenKind::Float,
+    TokenKind::Str,
+    TokenKind::Bool,
+    TokenKind::Void,
+    TokenKind::Let,
+    TokenKind::Func,
+    TokenKind::Ret,
+    TokenKind::Read,
+    TokenKind::Write,
+    TokenKind::True,
+    TokenKind::False,
+];
 
 impl fmt::Display for TokenKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -106,70 +124,56 @@ impl fmt::Display for TokenKind {
 
 impl TokenKind {
     pub const MAX_STR_LEN: usize = 64;
-    pub const KEYWORDS_LEN: usize = 12;
+    pub const KEYWORDS_LEN: usize = 15;
 
-    pub const KEYWORDS: [&[u8]; TokenKind::KEYWORDS_LEN] = [
-        b"let",
-        b"int",
-        b"float",
-        b"boolean",
-        b"string",
-        b"void",
-        b"write",
-        b"read",
-        b"function",
-        b"return",
-        b"do",
-        b"while"
-    ];
 
-    pub fn lexeme(&self) -> Option<&'static str> {
+    pub fn lexeme(&self) -> Option<&'static [u8]> {
         match self {
-            TokenKind::Bool => Some("boolean"),
-            TokenKind::Do => Some("do"),
-            TokenKind::Float => Some("float"),
-            TokenKind::Func => Some("function"),
-            TokenKind::If => Some("if"),
-            TokenKind::Int => Some("int"),
-            TokenKind::Let => Some("let"),
-            TokenKind::Read => Some("read"),
-            TokenKind::Ret => Some("return"),
-            TokenKind::Str => Some("string"),
-            TokenKind::Void => Some("void"),
-            TokenKind::While => Some("while"),
-            TokenKind::Write => Some("write"),
-            TokenKind::True => Some("true"),
-            TokenKind::False => Some("false"),
+            TokenKind::Bool => Some(b"boolean"),
+            TokenKind::Do => Some(b"do"),
+            TokenKind::Float => Some(b"float"),
+            TokenKind::Func => Some(b"function"),
+            TokenKind::If => Some(b"if"),
+            TokenKind::Int => Some(b"int"),
+            TokenKind::Let => Some(b"let"),
+            TokenKind::Read => Some(b"read"),
+            TokenKind::Ret => Some(b"return"),
+            TokenKind::Str => Some(b"string"),
+            TokenKind::Void => Some(b"void"),
+            TokenKind::While => Some(b"while"),
+            TokenKind::Write => Some(b"write"),
+            TokenKind::True => Some(b"true"),
+            TokenKind::False => Some(b"false"),
 
             TokenKind::FloatConst(_) => None,
             TokenKind::IntConst(_) => None,
             TokenKind::StrConst(_) => None,
             TokenKind::Id(_) => None,
 
-            TokenKind::Assign => Some("="),
-            TokenKind::AndAssign => Some("&="),
-            TokenKind::Comma => Some(","),
-            TokenKind::Semi => Some(";"),
-            TokenKind::LParen => Some("("),
-            TokenKind::RParen => Some(")"),
-            TokenKind::LBrack => Some("{"),
-            TokenKind::RBrack => Some("}"),
+            TokenKind::Assign => Some(b"="),
+            TokenKind::AndAssign => Some(b"&="),
+            TokenKind::Comma => Some(b","),
+            TokenKind::Semi => Some(b";"),
+            TokenKind::LParen => Some(b"("),
+            TokenKind::RParen => Some(b")"),
+            TokenKind::LBrack => Some(b"{"),
+            TokenKind::RBrack => Some(b"}"),
 
-            TokenKind::Sum => Some("+"),
-            TokenKind::Mul => Some("*"),
-            TokenKind::Sub => Some("-"),
-            TokenKind::Div => Some("/"),
-            TokenKind::Mod => Some("%"),
+            TokenKind::Sum => Some(b"+"),
+            TokenKind::Mul => Some(b"*"),
+            TokenKind::Sub => Some(b"-"),
+            TokenKind::Div => Some(b"/"),
+            TokenKind::Mod => Some(b"%"),
 
-            TokenKind::And => Some("&&"),
-            TokenKind::Or => Some("||"),
-            TokenKind::Not => Some("!"),
-            TokenKind::Lt => Some("<"),
-            TokenKind::Le => Some("<="),
-            TokenKind::Gt => Some(">"),
-            TokenKind::Ge => Some(">="),
-            TokenKind::Ne => Some("!="),
-            TokenKind::Eq => Some("=="),
+            TokenKind::And => Some(b"&&"),
+            TokenKind::Or => Some(b"||"),
+            TokenKind::Not => Some(b"!"),
+            TokenKind::Lt => Some(b"<"),
+            TokenKind::Le => Some(b"<="),
+            TokenKind::Gt => Some(b">"),
+            TokenKind::Ge => Some(b">="),
+            TokenKind::Ne => Some(b"!="),
+            TokenKind::Eq => Some(b"=="),
         }
     }
 }

@@ -1,7 +1,6 @@
 use std::{env, process};
 
-use crate::{context::{diag::DiagManager, sym_table::SymTable, Context}, lexer::{LexerTracer, LexerCore}, target::Target, token::TokenKind};
-
+use crate::{context::{diag::DiagManager, symtable::SymTable, Context}, lexer::{LexerTracer, LexerCore}, target::Target};
 
 mod token;
 mod target;
@@ -40,7 +39,7 @@ fn main() {
         });
 
     let mut ctx = Context::new(
-        SymTable::new(&TokenKind::KEYWORDS),
+        SymTable::new(),
         DiagManager::new(&target),
     );
 

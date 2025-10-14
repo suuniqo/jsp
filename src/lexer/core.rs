@@ -225,8 +225,14 @@ impl<'t, 'c> LexerCore<'t, 'c> {
         while self.peek().is_some_and(|next| next.is_ascii_alphanumeric() || next == b'_') {
             self.read();
         }
+
+        let pos = self.ctx.symtable.intern(&self.bytes[start..self.rpos]);
         
-        TokenKind::Id(self.ctx.strpool.intern(&self.bytes[start..self.rpos]))
+        if let Some(keyword) = self.ctx.symtable.as_keyword(pos) {
+            keyword
+        } else {
+            TokenKind::Id(pos)
+        }
     }
 
     fn esc_seq(byte: u8) -> Option<u8> {

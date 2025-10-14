@@ -1,4 +1,4 @@
-pub mod sym_table;
+pub mod symtable;
 pub mod diag;
 pub mod context;
 
