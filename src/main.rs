@@ -1,12 +1,14 @@
-use crate::{context::{diagnostics::DiagManager, id_pool::IdPool, Context}, lexer::{consumer::LexerConsumer, Lexer}, target::Target, token::TokenKind};
-
 use std::{env, process};
 
-pub mod token;
-pub mod target;
-pub mod context;
+use crate::{context::{diag::DiagManager, sym_table::SymTable, Context}, lexer::{LexerTracer, LexerCore}, target::Target, token::TokenKind};
 
-pub mod lexer;
+
+mod token;
+mod target;
+mod context;
+mod tracer;
+mod lexer;
+
 
 fn fetch_args() -> (String, String, Option<String>) {
     let mut args = env::args();
@@ -22,39 +24,35 @@ fn fetch_args() -> (String, String, Option<String>) {
             process::exit(1);
         });
 
-    let dst = args
+    let dst_tok = args
         .next();
 
-    (name, src, dst)
+    (name, src, dst_tok)
 }
 
 fn main() {
-    let (name, src, dst) = fetch_args();
+    let (name, src, dst_tok) = fetch_args();
 
     let target = Target::from_path(src)
         .unwrap_or_else(|err| {
-            eprintln!("{name}: {}", err.msg());
+            eprintln!("{}: {}", name, err);
             process::exit(1);
         });
 
     let mut ctx = Context::new(
-        IdPool::new(&TokenKind::KEYWORDS),
+        SymTable::new(&TokenKind::KEYWORDS),
         DiagManager::new(&target),
     );
 
-    let lexer = Lexer::new(&mut ctx, &target);
+    let lexer = LexerCore::new(&mut ctx, &target);
 
-    let consumer = LexerConsumer::new(lexer, dst.as_deref())
+    let consumer = LexerTracer::new(lexer, dst_tok.as_deref())
         .unwrap_or_else(|err| {
-            eprintln!("{name}: {}", err.msg());
+            eprintln!("{}: {}", name, err);
             process::exit(1);
         });
 
-    consumer.dump()
-        .unwrap_or_else(|err| {
-            eprintln!("{name}: {}", err.msg());
-            process::exit(1);
-        });
+    consumer.for_each(|_| {});
 
     ctx.diags.dump();
 }

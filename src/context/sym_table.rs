@@ -1,11 +1,12 @@
 use std::{collections::HashMap, rc::Rc};
 
-pub struct IdPool {
+
+pub struct SymTable {
     vec: Vec<Rc<[u8]>>,
     map: HashMap<Rc<[u8]>, usize>,
 }
 
-impl IdPool {
+impl SymTable {
     pub fn new(kws: &[&[u8]]) -> Self {
         let mut pool = Self {
             vec: Vec::with_capacity(kws.len()),

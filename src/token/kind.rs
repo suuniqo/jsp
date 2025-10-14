@@ -1,4 +1,5 @@
-use std::fmt::Display;
+use std::fmt;
+
 
 pub enum TokenKind {
     Bool,
@@ -49,8 +50,8 @@ pub enum TokenKind {
     Eq,
 }
 
-impl Display for TokenKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for TokenKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let (code, value) = match self {
             TokenKind::Bool => ("Bool", None),
             TokenKind::Do => ("Do", None),
@@ -169,22 +170,6 @@ impl TokenKind {
             TokenKind::Ge => Some(">="),
             TokenKind::Ne => Some("!="),
             TokenKind::Eq => Some("=="),
-        }
-    }
-}
-
-pub struct Token {
-    pub kind: TokenKind,
-    pub row: usize,
-    pub col: usize,
-}
-
-impl Token {
-    pub fn new(kind: TokenKind, row: usize, col: usize) -> Self {
-        Self {
-            kind,
-            row,
-            col,
         }
     }
 }
