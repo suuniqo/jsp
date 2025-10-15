@@ -1,6 +1,6 @@
 use std::{env, process};
 
-use crate::{context::{diag::DiagManager, symtable::SymTable, Context}, lexer::{LexerTracer, Lexer}, target::Target};
+use crate::{context::{diag::DiagManager, symtable::{SymTableCore, SymTableTracer}, Context}, lexer::{LexerTracer, LexerCore}, target::Target};
 
 mod token;
 mod target;
@@ -9,7 +9,7 @@ mod tracer;
 mod lexer;
 
 
-fn fetch_args() -> (String, String, Option<String>) {
+fn fetch_args() -> (String, String, Option<String>, Option<String>) {
     let mut args = env::args();
 
     let name = args
@@ -23,14 +23,18 @@ fn fetch_args() -> (String, String, Option<String>) {
             process::exit(1);
         });
 
+    let dst_sym = args
+        .next();
+
+
     let dst_tok = args
         .next();
 
-    (name, src, dst_tok)
+    (name, src, dst_sym, dst_tok)
 }
 
 fn main() {
-    let (name, src, dst_tok) = fetch_args();
+    let (name, src, dst_sym, dst_tok) = fetch_args();
 
     let target = Target::from_path(src)
         .unwrap_or_else(|err| {
@@ -38,20 +42,25 @@ fn main() {
             process::exit(1);
         });
 
-    let mut ctx = Context::new(
-        SymTable::with_keywords(),
-        DiagManager::new(&target),
-    );
-
-    let lexer = Lexer::new(&mut ctx, &target);
-
-    let consumer = LexerTracer::new(lexer, dst_tok.as_deref())
+    let symtable = SymTableTracer::new(SymTableCore::with_keywords(), dst_sym.as_deref())
         .unwrap_or_else(|err| {
             eprintln!("{}: {}", name, err);
             process::exit(1);
         });
 
-    consumer.for_each(|_| {});
+
+    let mut ctx = Context::new(
+        symtable,
+        DiagManager::new(&target),
+    );
+
+    let lexer = LexerTracer::new(LexerCore::new(&mut ctx, &target), dst_tok.as_deref())
+        .unwrap_or_else(|err| {
+            eprintln!("{}: {}", name, err);
+            process::exit(1);
+        });
+
+    lexer.for_each(|_| {});
 
     ctx.diags.dump();
 }

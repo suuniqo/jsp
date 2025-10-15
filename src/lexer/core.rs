@@ -1,19 +1,21 @@
-use crate::context::{Context, diag::{Diag, DiagKind}};
+use crate::context::{diag::{Diag, DiagKind}, symtable::SymTable, Context};
 use crate::target::Target;
 use crate::token::{Token, TokenKind};
 
+use super::Lexer;
 
-pub struct Lexer<'t, 'c> {
+
+pub struct LexerCore<'t, 'c, T: SymTable> {
     bytes: &'t [u8],
     curr: Option<u8>,
     rpos: usize,
     row: usize,
     col: usize,
-    ctx: &'c mut Context<'t>,
+    ctx: &'c mut Context<'t, T>,
 }
 
-impl<'t, 'c> Lexer<'t, 'c> {
-    pub fn new(ctx: &'c mut Context<'t>, target: &'t Target) -> Self {
+impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
+    pub fn new(ctx: &'c mut Context<'t, T>, target: &'t Target) -> Self {
         Self {
             bytes: target.bytes(),
             curr: None,
@@ -170,7 +172,7 @@ impl<'t, 'c> Lexer<'t, 'c> {
                     return Err(DiagKind::UnterminatedStr(string.len() + added_len));
                 };
 
-                if let Some(esc_seq) = Lexer::esc_seq(next) {
+                if let Some(esc_seq) = Self::esc_seq(next) {
                     string.push(esc_seq as char);
                     added_len += 1;
                 } else {
@@ -320,7 +322,7 @@ impl<'t, 'c> Lexer<'t, 'c> {
     }
 }
 
-impl<'t, 'c> Iterator for Lexer<'t, 'c> {
+impl<'t, 'c, T: SymTable> Iterator for LexerCore<'t, 'c, T> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -336,3 +338,5 @@ impl<'t, 'c> Iterator for Lexer<'t, 'c> {
         }
     }
 }
+
+impl<T: SymTable> Lexer for LexerCore<'_, '_, T> {}

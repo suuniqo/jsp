@@ -1,15 +1,18 @@
 use std::{collections::{HashMap, hash_map::Entry}, rc::Rc};
 
-use crate::token::{TokenKind, KEYWORDS};
+use crate::{context::symtable::traits::SymTable, token::{TokenKind, KEYWORDS}};
+
+use super::symbol::Symbol;
 
 
-pub struct SymTable {
-    vec: Vec<Rc<[u8]>>,
-    map: HashMap<Rc<[u8]>, usize>,
+pub struct SymTableCore {
+    vec: Vec<Symbol>,
+    map: HashMap<Symbol, usize>,
     kws: HashMap<usize, &'static TokenKind>,
+
 }
 
-impl SymTable {
+impl SymTableCore {
     pub fn with_keywords() -> Self {
         let mut symtable = Self {
             vec: Vec::with_capacity(TokenKind::KEYWORDS_LEN),
@@ -29,8 +32,26 @@ impl SymTable {
         symtable
     }
 
-    pub fn intern(&mut self, bytes: &[u8]) -> usize {
-        match self.map.entry(Rc::from(bytes)) {
+    pub fn intern_ref(&mut self, bytes: &[u8]) -> ((Symbol, usize), bool) {
+        match self.map.entry(Symbol::from_bytes(bytes)) {
+            Entry::Occupied(entry) => ((entry.key().clone(), *entry.get()), false),
+            Entry::Vacant(entry) => {
+                let pos = self.vec.len();
+                let ptr = entry.key().clone();
+                let ret = (ptr.clone(), pos);
+
+                self.vec.push(ptr);
+                entry.insert(pos);
+
+                (ret, true)
+            },
+        }
+    }
+}
+
+impl SymTable for SymTableCore {
+    fn intern(&mut self, bytes: &[u8]) -> usize {
+        match self.map.entry(Symbol::from_bytes(bytes)) {
             Entry::Occupied(entry) => *entry.get(),
             Entry::Vacant(entry) => {
                 let pos = self.vec.len();
@@ -44,7 +65,7 @@ impl SymTable {
         }
     }
 
-    pub fn as_keyword(&self, pos: usize) -> Option<TokenKind> {
+    fn as_keyword(&self, pos: usize) -> Option<TokenKind> {
         self.kws
             .get(&pos)
             .map(|kw| *kw)

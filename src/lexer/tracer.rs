@@ -1,15 +1,15 @@
-use crate::{token::Token, tracer::{Tracer, TracerErr}};
+use crate::{context::symtable::SymTable, token::Token, tracer::{Tracer, TracerErr}};
 
-use super::Lexer;
+use super::{LexerCore, Lexer};
 
 
-pub struct LexerTracer<'t, 'c> {
+pub struct LexerTracer<'t, 'c, T: SymTable> {
     tracer: Tracer,
-    inner: Lexer<'t, 'c>,
+    inner: LexerCore<'t, 'c, T>,
 }
 
-impl<'t, 'c> LexerTracer<'t, 'c> {
-    pub fn new(inner: Lexer<'t, 'c>, dump_path: Option<&str>) -> Result<Self, TracerErr> {
+impl<'t, 'c, T: SymTable> LexerTracer<'t, 'c, T> {
+    pub fn new(inner: LexerCore<'t, 'c, T>, dump_path: Option<&str>) -> Result<Self, TracerErr> {
         let tracer = Tracer::new(dump_path)?;
 
         Ok(Self {
@@ -19,7 +19,7 @@ impl<'t, 'c> LexerTracer<'t, 'c> {
     }
 }
 
-impl<'t, 'c> Iterator for LexerTracer<'t, 'c> {
+impl<'t, 'c, T: SymTable> Iterator for LexerTracer<'t, 'c, T> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -34,3 +34,5 @@ impl<'t, 'c> Iterator for LexerTracer<'t, 'c> {
         Some(token)
     }
 }
+
+impl<T: SymTable> Lexer for LexerTracer<'_, '_, T> {}
