@@ -14,7 +14,7 @@ fn fetch_args() -> (String, String, Option<String>) {
 
     let name = args
         .next()
-        .unwrap_or_else(|| unreachable!("couldn't fetch program name"));
+        .expect("couldn't fetch program name");
 
     let src = args
         .next()
