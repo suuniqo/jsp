@@ -55,7 +55,7 @@ impl fmt::Display for DiagKind {
             DiagKind::StrOverflow((len, _)) => write!(f, "string literal is too long, length is {len} but the maximum is {}", TokenKind::MAX_STR_LEN),
             DiagKind::InvEscSeq(c) => write!(f, "unknown escape sequence '{}\\{c}{}'", DiagColor::HIGHLIGHT, DiagColor::RESET),
             DiagKind::IntOverflow(_) => write!(f, "integer literal out of range for 16-byte type"),
-            DiagKind::FloatOverflow(_) => write!(f, "float literal  out of range for 32-byte type"),
+            DiagKind::FloatOverflow(_) => write!(f, "float literal out of range for 32-byte type"),
             DiagKind::FloatInvFmt(_) => write!(f, "expected digit after '{}.{}' in float literal", DiagColor::HIGHLIGHT, DiagColor::RESET),
         }
     }
