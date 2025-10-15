@@ -32,7 +32,7 @@ impl SymTableCore {
         symtable
     }
 
-    pub fn intern_ref(&mut self, bytes: &[u8]) -> ((Symbol, usize), bool) {
+    pub(super) fn intern_ref(&mut self, bytes: &[u8]) -> ((Symbol, usize), bool) {
         match self.map.entry(Symbol::from_bytes(bytes)) {
             Entry::Occupied(entry) => ((entry.key().clone(), *entry.get()), false),
             Entry::Vacant(entry) => {

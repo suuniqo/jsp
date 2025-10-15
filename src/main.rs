@@ -5,7 +5,7 @@ use crate::{context::{diag::DiagManager, symtable::{SymTableCore, SymTableTracer
 mod token;
 mod target;
 mod context;
-mod tracer;
+mod writer;
 mod lexer;
 
 
@@ -61,6 +61,4 @@ fn main() {
         });
 
     lexer.for_each(|_| {});
-
-    ctx.diags.dump();
 }

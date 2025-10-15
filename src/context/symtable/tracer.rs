@@ -1,19 +1,22 @@
-use crate::tracer::{Tracer, TracerErr};
+use crate::writer::{Writer, WriterErr};
 
-use super::{SymTable, SymTableCore};
+use super::{SymTable, SymTableCore, symbol::Symbol};
 
 
 pub struct SymTableTracer {
-    tracer: Tracer,
+    writer: Writer,
+    trace: Vec<Symbol>,
     inner: SymTableCore,
 }
 
 impl SymTableTracer {
-    pub fn new(inner: SymTableCore, dump_path: Option<&str>) -> Result<SymTableTracer, TracerErr> {
-        let tracer = Tracer::new(dump_path)?;
+    pub fn new(inner: SymTableCore, dump_path: Option<&str>) -> Result<SymTableTracer, WriterErr> {
+        let writer = Writer::new(dump_path)?;
+        let trace = Vec::new();
 
         Ok(Self {
-            tracer,
+            writer,
+            trace,
             inner,
         })
     }
@@ -24,9 +27,7 @@ impl SymTable for SymTableTracer {
         let ((sym, pos), new) = self.inner.intern_ref(bytes);
 
         if new {
-            if let Err(err) = self.tracer.trace(&sym) {
-                eprintln!("error tracing symbol {}: {}", sym, err);
-            }
+            self.trace.push(sym);
         }
 
         pos
@@ -34,5 +35,19 @@ impl SymTable for SymTableTracer {
 
     fn as_keyword(&self, pos: usize) -> Option<crate::token::TokenKind> {
         self.inner.as_keyword(pos)
+    }
+}
+
+impl Drop for SymTableTracer {
+    fn drop(&mut self) {
+        self.writer
+            .write(&String::from("table #0:"))
+            .expect("error writing symtable output");
+
+        for sym in self.trace.iter() {
+            self.writer
+                .write(sym)
+                .expect("error writing symtable output")
+        }
     }
 }

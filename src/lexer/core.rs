@@ -213,7 +213,7 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
         }
     }
 
-    fn next_kind(&mut self) -> Result<Token, Diag> {
+    fn next_token(&mut self) -> Result<Token, Diag> {
         loop {
             self.read();
             self.skip_whitespace();
@@ -327,7 +327,7 @@ impl<'t, 'c, T: SymTable> Iterator for LexerCore<'t, 'c, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            match self.next_kind() {
+            match self.next_token() {
                 Ok(token) => return if token.kind == TokenKind::Eof {
                     None
                 } else {

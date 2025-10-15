@@ -1,12 +1,13 @@
 use std::fmt;
 
 
-pub enum TracerErr {
+#[derive(Debug)]
+pub enum WriterErr {
     Io((std::io::Error, String)),
     Format(std::io::Error),
 }
 
-impl fmt::Display for TracerErr {
+impl fmt::Display for WriterErr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Io((e, path)) => write!(f, "{}: I/O error: {}", path, e),

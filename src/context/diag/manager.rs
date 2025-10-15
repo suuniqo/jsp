@@ -29,7 +29,13 @@ impl<'t> DiagManager<'t> {
         self.diags.push(diag);
     }
     
-    pub fn dump(&self) {
+    fn row_len(row: usize) -> usize {
+        (row as f64).log10() as usize + 1
+    }
+}
+
+impl Drop for DiagManager<'_> {
+    fn drop(&mut self) {
         let padding_len = self.max_row_len - (self.max_row_len % 4) + 4;
 
         for diag in self.diags.iter() {
@@ -58,9 +64,5 @@ impl<'t> DiagManager<'t> {
                 diag.kind.sever().color(), underline, DiagColor::RESET
             );
         }
-    }
-
-    fn row_len(row: usize) -> usize {
-        (row as f64).log10() as usize + 1
     }
 }
