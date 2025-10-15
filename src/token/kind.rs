@@ -90,9 +90,9 @@ impl fmt::Display for TokenKind {
             TokenKind::True => ("True", None),
             TokenKind::False => ("False", None),
 
-            TokenKind::FloatLit(value) => ("FloatCons", Some(value.to_string())),
-            TokenKind::IntLit(value) => ("IntCons", Some(value.to_string())),
-            TokenKind::StrLit(value) => ("StrCons", Some(format!("\"{value}\""))),
+            TokenKind::FloatLit(value) => ("FloatLit", Some(value.to_string())),
+            TokenKind::IntLit(value) => ("IntLit", Some(value.to_string())),
+            TokenKind::StrLit(value) => ("StrLit", Some(format!("\"{value}\""))),
             TokenKind::Id(value) => ("Id", Some(value.to_string())),
 
             TokenKind::Assign => ("Assign", None),
