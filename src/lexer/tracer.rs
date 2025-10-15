@@ -1,15 +1,15 @@
 use crate::{token::Token, tracer::{Tracer, TracerErr}};
 
-use super::LexerCore;
+use super::Lexer;
 
 
 pub struct LexerTracer<'t, 'c> {
     tracer: Tracer,
-    inner: LexerCore<'t, 'c>,
+    inner: Lexer<'t, 'c>,
 }
 
 impl<'t, 'c> LexerTracer<'t, 'c> {
-    pub fn new(inner: LexerCore<'t, 'c>, dump_path: Option<&str>) -> Result<Self, TracerErr> {
+    pub fn new(inner: Lexer<'t, 'c>, dump_path: Option<&str>) -> Result<Self, TracerErr> {
         let tracer = Tracer::new(dump_path)?;
 
         Ok(Self {

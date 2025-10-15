@@ -1,5 +1,5 @@
-mod core;
+mod lexer;
 mod tracer;
 
-pub use core::LexerCore;
+pub use lexer::Lexer;
 pub use tracer::LexerTracer;

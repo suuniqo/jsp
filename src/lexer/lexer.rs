@@ -3,7 +3,7 @@ use crate::target::Target;
 use crate::token::{Token, TokenKind};
 
 
-pub struct LexerCore<'t, 'c> {
+pub struct Lexer<'t, 'c> {
     bytes: &'t [u8],
     curr: Option<u8>,
     rpos: usize,
@@ -12,7 +12,7 @@ pub struct LexerCore<'t, 'c> {
     ctx: &'c mut Context<'t>,
 }
 
-impl<'t, 'c> LexerCore<'t, 'c> {
+impl<'t, 'c> Lexer<'t, 'c> {
     pub fn new(ctx: &'c mut Context<'t>, target: &'t Target) -> Self {
         Self {
             bytes: target.bytes(),
@@ -170,7 +170,7 @@ impl<'t, 'c> LexerCore<'t, 'c> {
                     return Err(DiagKind::UnterminatedStr(string.len() + added_len));
                 };
 
-                if let Some(esc_seq) = LexerCore::esc_seq(next) {
+                if let Some(esc_seq) = Lexer::esc_seq(next) {
                     string.push(esc_seq as char);
                     added_len += 1;
                 } else {
@@ -320,7 +320,7 @@ impl<'t, 'c> LexerCore<'t, 'c> {
     }
 }
 
-impl<'t, 'c> Iterator for LexerCore<'t, 'c> {
+impl<'t, 'c> Iterator for Lexer<'t, 'c> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {

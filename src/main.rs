@@ -1,6 +1,6 @@
 use std::{env, process};
 
-use crate::{context::{diag::DiagManager, symtable::SymTable, Context}, lexer::{LexerTracer, LexerCore}, target::Target};
+use crate::{context::{diag::DiagManager, symtable::SymTable, Context}, lexer::{LexerTracer, Lexer}, target::Target};
 
 mod token;
 mod target;
@@ -43,7 +43,7 @@ fn main() {
         DiagManager::new(&target),
     );
 
-    let lexer = LexerCore::new(&mut ctx, &target);
+    let lexer = Lexer::new(&mut ctx, &target);
 
     let consumer = LexerTracer::new(lexer, dst_tok.as_deref())
         .unwrap_or_else(|err| {
