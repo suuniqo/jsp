@@ -103,7 +103,7 @@ impl<'t, 'c> Lexer<'t, 'c> {
                 }
             }
 
-            return Ok(TokenKind::IntConst(val as i16));
+            return Ok(TokenKind::IntLit(val as i16));
         };
 
         let mut val = 0f64;
@@ -136,7 +136,7 @@ impl<'t, 'c> Lexer<'t, 'c> {
         if !(val.is_finite()) {
             Err(DiagKind::FloatOverflow(self.rpos - start))
         } else {
-            Ok(TokenKind::FloatConst(val))
+            Ok(TokenKind::FloatLit(val))
         }
 
     }
@@ -192,7 +192,7 @@ impl<'t, 'c> Lexer<'t, 'c> {
             return Err(DiagKind::StrOverflow((string.len(), added_len)));
         }
 
-        Ok(TokenKind::StrConst(string))
+        Ok(TokenKind::StrLit(string))
     }
 
     fn read_id(&mut self) -> TokenKind {

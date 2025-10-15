@@ -19,9 +19,9 @@ pub enum TokenKind {
     True,
     False,
 
-    FloatConst(f32),
-    IntConst(i16),
-    StrConst(String),
+    FloatLit(f32),
+    IntLit(i16),
+    StrLit(String),
     Id(usize),
 
     Assign,
@@ -90,9 +90,9 @@ impl fmt::Display for TokenKind {
             TokenKind::True => ("True", None),
             TokenKind::False => ("False", None),
 
-            TokenKind::FloatConst(value) => ("FloatCons", Some(value.to_string())),
-            TokenKind::IntConst(value) => ("IntCons", Some(value.to_string())),
-            TokenKind::StrConst(value) => ("StrCons", Some(format!("\"{value}\""))),
+            TokenKind::FloatLit(value) => ("FloatCons", Some(value.to_string())),
+            TokenKind::IntLit(value) => ("IntCons", Some(value.to_string())),
+            TokenKind::StrLit(value) => ("StrCons", Some(format!("\"{value}\""))),
             TokenKind::Id(value) => ("Id", Some(value.to_string())),
 
             TokenKind::Assign => ("Assign", None),
@@ -123,7 +123,7 @@ impl fmt::Display for TokenKind {
             TokenKind::Eof => ("Eof", None),
         };
 
-        write!(f, "<{}, {}>", code, value.unwrap_or("-".to_string()))
+        write!(f, "<{}, {}>", code, value.unwrap_or("".to_string()))
     }
 }
 
@@ -150,9 +150,9 @@ impl TokenKind {
             TokenKind::True => Some(b"true"),
             TokenKind::False => Some(b"false"),
 
-            TokenKind::FloatConst(_) => None,
-            TokenKind::IntConst(_) => None,
-            TokenKind::StrConst(_) => None,
+            TokenKind::FloatLit(_) => None,
+            TokenKind::IntLit(_) => None,
+            TokenKind::StrLit(_) => None,
             TokenKind::Id(_) => None,
 
             TokenKind::Assign => Some(b"="),
