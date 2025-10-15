@@ -3,8 +3,6 @@ use crate::target::Target;
 use super::diag::Diag;
 use super::color::DiagColor;
 
-use super::DiagKind;
-
 
 pub struct DiagManager<'t> {
     target: &'t Target,
@@ -21,9 +19,7 @@ impl<'t> DiagManager<'t> {
         }
     }
 
-    pub fn push(&mut self, kind: DiagKind, row: usize, col: usize) {
-        let diag = Diag::new(kind, row, col);
-
+    pub fn push(&mut self, diag: Diag) {
         let row_len = Self::row_len(diag.row);
 
         if row_len > self.max_row_len {

@@ -6,6 +6,7 @@ use super::color::DiagColor;
 use super::sever::DiagSever;
 
 
+#[derive(Clone, Copy)]
 pub enum DiagKind {
     StrayChar(char),
     UnterminatedComment,
@@ -48,7 +49,7 @@ impl DiagKind {
 impl fmt::Display for DiagKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            DiagKind::StrayChar(c) => write!(f, "stray '{}{c}{}' in program", DiagColor::HIGHLIGHT, DiagColor::RESET),
+            DiagKind::StrayChar(c) => write!(f, "illegal character '{}{c}{}' in program", DiagColor::HIGHLIGHT, DiagColor::RESET),
             DiagKind::UnterminatedComment => write!(f, "unterminated comment"),
             DiagKind::UnterminatedStr(_) => write!(f, "missing terminating character '{}\"{}' on string literal", DiagColor::HIGHLIGHT, DiagColor::RESET),
             DiagKind::StrOverflow((len, _)) => write!(f, "string literal is too long, length is {len} but the maximum is {}", TokenKind::MAX_STR_LEN),

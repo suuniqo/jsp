@@ -1,6 +1,7 @@
 use std::fmt;
 
-#[derive(Clone)]
+
+#[derive(Clone, PartialEq)]
 pub enum TokenKind {
     If,
     Do,
@@ -48,6 +49,8 @@ pub enum TokenKind {
     Ge,
     Ne,
     Eq,
+
+    Eof,
 }
 
 pub static KEYWORDS: [TokenKind; TokenKind::KEYWORDS_LEN] = [
@@ -116,6 +119,8 @@ impl fmt::Display for TokenKind {
             TokenKind::Ge => ("Ge", None),
             TokenKind::Ne => ("Ne", None),
             TokenKind::Eq => ("Eq", None),
+
+            TokenKind::Eof => ("Eof", None),
         };
 
         write!(f, "<{}, {}>", code, value.unwrap_or("-".to_string()))
@@ -174,6 +179,8 @@ impl TokenKind {
             TokenKind::Ge => Some(b">="),
             TokenKind::Ne => Some(b"!="),
             TokenKind::Eq => Some(b"=="),
+
+            TokenKind::Eof => None,
         }
     }
 }

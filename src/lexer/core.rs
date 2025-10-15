@@ -1,4 +1,4 @@
-use crate::context::{Context, diag::DiagKind};
+use crate::context::{Context, diag::{Diag, DiagKind}};
 use crate::target::Target;
 use crate::token::{Token, TokenKind};
 
@@ -16,36 +16,31 @@ impl<'t, 'c> LexerCore<'t, 'c> {
     pub fn new(ctx: &'c mut Context<'t>, target: &'t Target) -> Self {
         Self {
             bytes: target.bytes(),
-            curr: Some(0),
+            curr: None,
             rpos: 0,
             row: 1,
-            col: 0,
+            col: 1,
             ctx,
         }
     }
 
+    #[inline]
     fn peek(&mut self) -> Option<u8> {
-        if self.rpos >= self.bytes.len() {
-            None
-        } else {
-            Some(self.bytes[self.rpos])
-        }
+        self.bytes.get(self.rpos).copied()
     }
 
     fn read(&mut self) {
-        let Some(curr) = self.curr else {
-            return;
-        };
-
-        if curr == b'\n' {
-            self.row += 1;
-            self.col = 1;
-        } else {
-            self.col += 1;
+        if let Some(curr) = self.curr {
+            if curr == b'\n' {
+                self.row += 1;
+                self.col = 1;
+            } else {
+                self.col += 1;
+            }
         }
 
         self.curr = self.peek();
-        self.rpos += 1;
+        self.rpos = usize::min(self.rpos + 1, self.bytes.len());
     }
 
 
@@ -55,7 +50,7 @@ impl<'t, 'c> LexerCore<'t, 'c> {
         }
     }
 
-    fn skip_comment(&mut self) {
+    fn skip_comment(&mut self) -> Result<(), Diag> {
         let coords = (self.row, self.col);
 
         self.read();
@@ -64,19 +59,17 @@ impl<'t, 'c> LexerCore<'t, 'c> {
             self.read();
 
             let Some(curr) = self.curr else {
-                self.ctx.diags.push(DiagKind::UnterminatedComment, coords.0, coords.1);
-                break;
+                return Err(Diag::new(DiagKind::UnterminatedComment, coords.0, coords.1));
             };
 
             if curr == b'*' && self.peek().is_some_and(|next| next == b'/') {
                 self.read();
-                break;
+                return Ok(())
             }
         }
     }
 
-    fn read_num(&mut self) -> Option<TokenKind> {
-        let col = self.col;
+    fn read_num(&mut self) -> Result<TokenKind, DiagKind> {
         let start = self.rpos - 1;
 
         let mut dot = None;
@@ -90,8 +83,7 @@ impl<'t, 'c> LexerCore<'t, 'c> {
                 self.read();
 
                 if self.peek().is_none_or(|next| !next.is_ascii_digit()) {
-                    self.ctx.diags.push(DiagKind::FloatInvFmt(self.rpos - start), self.row, col);
-                    return None;
+                    return Err(DiagKind::FloatInvFmt(self.rpos - start));
                 }
             } else if next.is_none_or(|next| !next.is_ascii_digit()) {
                 break;
@@ -107,12 +99,11 @@ impl<'t, 'c> LexerCore<'t, 'c> {
                 val = val * 10 + (byte - b'0') as i32;
 
                 if val > i16::MAX as i32 {
-                    self.ctx.diags.push(DiagKind::IntOverflow(self.rpos - start), self.row, col);
-                    return None;
+                    return Err(DiagKind::IntOverflow(self.rpos - start));
                 }
             }
 
-            return Some(TokenKind::IntConst(val as i16));
+            return Ok(TokenKind::IntConst(val as i16));
         };
 
         let mut val = 0f64;
@@ -121,9 +112,7 @@ impl<'t, 'c> LexerCore<'t, 'c> {
             val = val * 10.0 + (byte - b'0') as f64;
 
             if val > f32::MAX as f64 {
-                self.ctx.diags.push(DiagKind::FloatOverflow(self.rpos - start), self.row, col);
-                
-                return None;
+                return Err(DiagKind::FloatOverflow(self.rpos - start));
             }
         }
 
@@ -134,9 +123,7 @@ impl<'t, 'c> LexerCore<'t, 'c> {
             div *= 10.0;
 
             if val > f32::MAX as f64 {
-                self.ctx.diags.push(DiagKind::FloatOverflow(self.rpos - start), self.row, col);
-                
-                return None;
+                return Err(DiagKind::FloatOverflow(self.rpos - start));
             }
 
             if div > 1e10 {
@@ -147,34 +134,28 @@ impl<'t, 'c> LexerCore<'t, 'c> {
         let val = val as f32;
 
         if !(val.is_finite()) {
-            self.ctx.diags.push(DiagKind::FloatOverflow(self.rpos - start), self.row, col);
-            
-            return None;
+            Err(DiagKind::FloatOverflow(self.rpos - start))
+        } else {
+            Ok(TokenKind::FloatConst(val))
         }
 
-        Some(TokenKind::FloatConst(val))
     }
 
-    fn read_str(&mut self) -> Option<TokenKind> {
-        let col = self.col;
-
-        let mut str = String::new();
+    fn read_str(&mut self) -> Result<TokenKind, DiagKind> {
+        let mut string = String::new();
         let mut added_len = 1;
 
         loop {
             let Some(next) = self.peek() else {
-                self.ctx.diags.push(DiagKind::UnterminatedStr(str.len() + added_len), self.row, col);
-                return None;
+                return Err(DiagKind::UnterminatedStr(string.len() + added_len));
             };
 
             if !next.is_ascii_graphic() && next != b' ' {
-                self.ctx.diags.push(DiagKind::UnterminatedStr(str.len() + added_len), self.row, col);
-
                 while !self.peek().is_none_or(|next| next == b'\n') {
                     self.read();
                 }
 
-                return None;
+                return Err(DiagKind::UnterminatedStr(string.len() + added_len));
             }
 
             if next == b'"' {
@@ -186,20 +167,20 @@ impl<'t, 'c> LexerCore<'t, 'c> {
                 self.read();
 
                 let Some(next) = self.peek() else {
-                    self.ctx.diags.push(DiagKind::UnterminatedStr(str.len() + added_len), self.row, col);
-                    return None;
+                    return Err(DiagKind::UnterminatedStr(string.len() + added_len));
                 };
 
                 if let Some(esc_seq) = LexerCore::esc_seq(next) {
-                    str.push(esc_seq as char);
+                    string.push(esc_seq as char);
                     added_len += 1;
                 } else {
-                    self.ctx.diags.push(DiagKind::InvEscSeq(next as char), self.row, self.col);
-                    str.push('\\');
-                    str.push(next as char);
+                    self.ctx.diags.push(Diag::new(DiagKind::InvEscSeq(next as char), self.row, self.col));
+
+                    string.push('\\');
+                    string.push(next as char);
                 }
             } else {
-                str.push(next as char);
+                string.push(next as char);
             }
 
             self.read();
@@ -207,13 +188,11 @@ impl<'t, 'c> LexerCore<'t, 'c> {
 
         added_len += 1;
 
-        if str.len() > TokenKind::MAX_STR_LEN {
-            self.ctx.diags.push(DiagKind::StrOverflow((str.len(), added_len)), self.row, col);
-
-            return None;
+        if string.len() > TokenKind::MAX_STR_LEN {
+            return Err(DiagKind::StrOverflow((string.len(), added_len)));
         }
 
-        Some(TokenKind::StrConst(str))
+        Ok(TokenKind::StrConst(string))
     }
 
     fn read_id(&mut self) -> TokenKind {
@@ -232,7 +211,102 @@ impl<'t, 'c> LexerCore<'t, 'c> {
         }
     }
 
-    fn esc_seq(byte: u8) -> Option<u8> {
+    fn next_kind(&mut self) -> Result<Token, Diag> {
+        loop {
+            self.read();
+            self.skip_whitespace();
+
+            if self.curr.is_some_and(|curr| curr == b'/') && self.peek().is_some_and(|next| next == b'*') {
+                self.skip_comment()?;
+            } else {
+                break;
+            }
+        }
+
+        let Some(curr) = self.curr else {
+            return Ok(Token::new(TokenKind::Eof, self.col, self.row));
+        };
+
+        let col = self.col;
+
+        let kind = match curr {
+            b',' => Ok(TokenKind::Comma),
+            b';' => Ok(TokenKind::Semi),
+            b'(' => Ok(TokenKind::LParen),
+            b')' => Ok(TokenKind::RParen),
+            b'{' => Ok(TokenKind::LBrack),
+            b'}' => Ok(TokenKind::RBrack),
+            b'+' => Ok(TokenKind::Sum),
+            b'-' => Ok(TokenKind::Sub),
+            b'*' => Ok(TokenKind::Mul),
+            b'/' => Ok(TokenKind::Div),
+            b'%' => Ok(TokenKind::Mod),
+            b'=' => {
+                if self.peek().is_some_and(|next| next == b'=') {
+                    self.read();
+                    Ok(TokenKind::Eq)
+                } else {
+                    Ok(TokenKind::Assign)
+                }
+            },
+            b'!' => {
+                if self.peek().is_some_and(|next| next == b'=') {
+                    self.read();
+                    Ok(TokenKind::Ne)
+                } else {
+                    Ok(TokenKind::Not)
+                }
+            },
+            b'<' => {
+                if self.peek().is_some_and(|next| next == b'=') {
+                    self.read();
+                    Ok(TokenKind::Le)
+                } else {
+                    Ok(TokenKind::Lt)
+                }
+            },
+            b'>' => {
+                if self.peek().is_some_and(|next| next == b'=') {
+                    self.read();
+                    Ok(TokenKind::Ge)
+                } else {
+                    Ok(TokenKind::Gt)
+                }
+            },
+            b'&' => {
+                let Some(next) = self.peek() else {
+                    return Err(Diag::new(DiagKind::StrayChar('&'), self.row, col));
+                };
+
+                if next == b'&' {
+                    self.read();
+                    Ok(TokenKind::And)
+                } else if next == b'=' {
+                    self.read();
+                    Ok(TokenKind::AndAssign)
+                } else {
+                    Err(DiagKind::StrayChar('&'))
+                }
+            },
+            b'|' => {
+                if self.peek().is_some_and(|next| next == b'|') {
+                    self.read();
+                    Ok(TokenKind::Or)
+                } else {
+                    Err(DiagKind::StrayChar('|'))
+                }
+            }
+            b'0'..=b'9' => self.read_num(),
+            b'"' => self.read_str(),
+            b'a'..=b'z' | b'A'..=b'Z' | b'_' => Ok(self.read_id()),
+            other => Err(DiagKind::StrayChar(other as char)),
+        };
+
+        kind.map(|kind| Token::new(kind, self.row, col))
+            .map_err(|kind| Diag::new(kind, self.row, col))
+    }
+
+    const fn esc_seq(byte: u8) -> Option<u8> {
         match byte {
             b'0' => Some(b'\0'),
             b't' => Some(b'\t'),
@@ -250,111 +324,15 @@ impl<'t, 'c> Iterator for LexerCore<'t, 'c> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.read();
-        self.skip_whitespace();
-
-        let Some(curr) = self.curr else {
-            return None;
-        };
-
-        let kind = match curr {
-            b',' => TokenKind::Comma,
-            b';' => TokenKind::Semi,
-            b'(' => TokenKind::LParen,
-            b')' => TokenKind::RParen,
-            b'{' => TokenKind::LBrack,
-            b'}' => TokenKind::RBrack,
-            b'+' => TokenKind::Sum,
-            b'-' => TokenKind::Sub,
-            b'*' => TokenKind::Mul,
-            b'%' => TokenKind::Mod,
-            b'=' => {
-                if self.peek().is_some_and(|next| next == b'=') {
-                    self.read();
-                    TokenKind::Eq
+        loop {
+            match self.next_kind() {
+                Ok(token) => return if token.kind == TokenKind::Eof {
+                    None
                 } else {
-                    TokenKind::Assign
-                }
-            },
-            b'!' => {
-                if self.peek().is_some_and(|next| next == b'=') {
-                    self.read();
-                    TokenKind::Ne
-                } else {
-                    TokenKind::Not
-                }
-            },
-            b'<' => {
-                if self.peek().is_some_and(|next| next == b'=') {
-                    self.read();
-                    TokenKind::Le
-                } else {
-                    TokenKind::Lt
-                }
-            },
-            b'>' => {
-                if self.peek().is_some_and(|next| next == b'=') {
-                    self.read();
-                    TokenKind::Ge
-                } else {
-                    TokenKind::Gt
-                }
-            },
-            b'&' => {
-                let Some(next) = self.peek() else {
-                    self.ctx.diags.push(DiagKind::StrayChar('&'), self.row, self.col);
-                    return self.next();
-                };
-
-                if next == b'&' {
-                    self.read();
-                    TokenKind::And
-                } else if next == b'=' {
-                    self.read();
-                    TokenKind::AndAssign
-                } else {
-                    self.ctx.diags.push(DiagKind::StrayChar('&'), self.row, self.col);
-                    return self.next();
-                }
-            },
-            b'|' => {
-                if self.peek().is_some_and(|next| next == b'|') {
-                    self.read();
-                    TokenKind::Or
-                } else {
-                    self.ctx.diags.push(DiagKind::StrayChar('|'), self.row, self.col);
-                    return self.next();
-                }
+                    Some(token)
+                },
+                Err(diag) => self.ctx.diags.push(diag),
             }
-            b'/' => {
-                if self.peek().is_some_and(|next| next == b'*') {
-                    self.skip_comment();
-                    return self.next();
-                } else {
-                    TokenKind::Div
-                }
-            }
-            b'0'..=b'9' => {
-                if let Some(kind) = self.read_num() {
-                    kind
-                } else {
-                    return self.next();
-                }
-            },
-            b'"' => {
-                if let Some(kind) = self.read_str() {
-                    kind
-                } else {
-                    return self.next();
-                }
-            }
-            b'a'..=b'z' | b'A'..=b'Z' | b'_' => self.read_id(),
-            other => {
-                self.ctx.diags.push(DiagKind::StrayChar(other as char), self.row, self.col);
-                return self.next();
-            }
-        };
-
-        Some(Token::new(kind, self.row, self.col))
+        }
     }
 }
