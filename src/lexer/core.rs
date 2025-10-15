@@ -69,6 +69,7 @@ impl<'t, 'c> LexerCore<'t, 'c> {
             };
 
             if curr == b'*' && self.peek().is_some_and(|next| next == b'/') {
+                self.read();
                 break;
             }
         }
@@ -330,7 +331,6 @@ impl<'t, 'c> Iterator for LexerCore<'t, 'c> {
                     self.skip_comment();
                     return self.next();
                 } else {
-                    println!("making divisions");
                     TokenKind::Div
                 }
             }

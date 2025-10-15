@@ -1,4 +1,6 @@
 
+/* ** /**/
+
 /*** this function returns the nth fibonacci number ***/
 function int fib(int n) {
     if (n <= 1) {
