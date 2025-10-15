@@ -10,7 +10,7 @@ pub struct SymTable {
 }
 
 impl SymTable {
-    pub fn new() -> Self {
+    pub fn with_keywords() -> Self {
         let mut symtable = Self {
             vec: Vec::with_capacity(TokenKind::KEYWORDS_LEN),
             map: HashMap::new(),

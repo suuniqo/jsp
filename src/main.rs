@@ -39,7 +39,7 @@ fn main() {
         });
 
     let mut ctx = Context::new(
-        SymTable::new(),
+        SymTable::with_keywords(),
         DiagManager::new(&target),
     );
 
