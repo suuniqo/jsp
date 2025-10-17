@@ -6,7 +6,9 @@ mod token;
 mod target;
 mod context;
 mod writer;
+
 mod lexer;
+mod parser;
 
 
 fn fetch_args() -> (String, String, Option<String>, Option<String>) {

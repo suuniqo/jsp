@@ -176,7 +176,7 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
                     string.push(esc_seq as char);
                     added_len += 1;
                 } else {
-                    self.ctx.diags.push(Diag::new(DiagKind::InvEscSeq(next as char), self.row, self.col));
+                    self.ctx.diag_mng.push(Diag::new(DiagKind::InvEscSeq(next as char), self.row, self.col));
 
                     string.push('\\');
                     string.push(next as char);
@@ -333,7 +333,7 @@ impl<'t, 'c, T: SymTable> Iterator for LexerCore<'t, 'c, T> {
                 } else {
                     Some(token)
                 },
-                Err(diag) => self.ctx.diags.push(diag),
+                Err(diag) => self.ctx.diag_mng.push(diag),
             }
         }
     }
