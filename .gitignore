@@ -1,1 +1,12 @@
+# cargo
 /target
+
+# macos
+.DS_STORE
+
+# tex
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.synctex.gz
