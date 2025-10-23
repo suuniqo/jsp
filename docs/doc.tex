@@ -1,0 +1,448 @@
+\documentclass[a4paper]{CSMakotoTechnicalReport}
+
+\addbibresource{sample.bib} % BibLaTeX bibliography file
+
+%----------------------------------------------------------------------------------------
+%   REPORT INFORMATION
+%----------------------------------------------------------------------------------------
+
+\reporttitle{Procesador de MyJS: \textit{jsp}}
+
+\reportsubtitle{Memoria del Grupo 59 (Primera Entrega)}
+
+\reportauthors{Por Andrés Súnico (23M018)}
+
+\reportdate{\today}
+
+\leftheadercontent{Procesador de MyJS: \textit{jsp}}
+
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+%----------------------------------------------------------------------------------------
+%   TITLE SECTION
+%----------------------------------------------------------------------------------------
+
+\thispagestyle{empty} % Suppress headers and footers on this page
+
+\vspace*{0.08\textheight} % Vertical whitespace
+
+{\large\raggedright\reportdate\par} % Report date
+
+\vspace{0.01\textheight} % Vertical whitespace
+
+{\fontsize{32pt}{34pt}\selectfont\raggedright\textbf{\reporttitle}\par} % Report title
+
+\vspace{0.03\textheight} % Vertical whitespace
+
+{\Large\raggedright\textit{\textbf{\reportsubtitle}}\par} % Subtitle
+
+\vspace{0.06\textheight} % Vertical whitespace
+
+{\large\raggedright\reportauthors\par} % Report authors, group or department
+
+\vspace{0.25\textheight} % Vertical whitespace
+
+%----------------------------------------------------------------------------------------
+
+\begin{multicols}{2} % Begin two column mode
+
+    %----------------------------------------------------------------------------------------
+    %   TABLE OF CONTENTS
+    %----------------------------------------------------------------------------------------
+
+    \renewcommand{\contentsname}{Índice}
+    \tableofcontents
+
+    %----------------------------------------------------------------------------------------
+    %   SECTIONS AND PARAGRAPHS
+    %----------------------------------------------------------------------------------------
+
+    \section{Introducción}
+
+    El desarrollo del procesador \textit{jsp} se ha centrado principalmente en la experiencia del usuario (\textit{UX}). Para ello, se han priorizado tres aspectos fundamentales una gestión de errores sólida e informativa, una interfaz de línea de comandos (\textit{CLI}) intuitiva y, finalmente, que el programa sea eficiente y extremadamente rápido.
+
+    Por estas razones se ha elegido \textit{Rust} como el lenguaje de desarrollo. No sólo permite una gestión de memoria eficiente y segura, sino que también facilita el uso de \textit{clap}, una de las mejores librerías para desarollar aplicaciones de \textit{CLI}.
+
+    Además, aunque los detalles de la implementación van más allá del alcance de esta memoria, gracias al uso del patrón de \textit{inyección de dependencias} en todo el proyecto, el usuario puede optar por utilizar módulos (como el Analizador Léxico o la Tabla de Símbolos) que no vuelquen sus contenidos en ficheros, evitando así el \textit{overhead} de las \textit{syscalls}.
+
+    \section{Información Adicional}
+
+    El código fuente del procesador se puede encontrar en \href{https://www.github.com/suuniqo}{github.com/suuniqo}, así como los tests y las dependencias del proyecto.
+
+    \section{Opciones de la práctica}
+
+    Además de las opciones comunes a todos los grupos, se han implementado las opciones:
+
+    \subsection{Específicas del grupo}
+
+    \begin{itemize}
+        \item Comentarios de bloque (/* */)
+        \item Cadenas con comillas dobles (" ")
+        \item Sentencia repetitiva do-while
+        \item Asignación con \textit{y} lógico (\textit{\&=})
+        \item Análisis Sintáctico Ascendente
+    \end{itemize}
+
+    Cabe notar que la opción de Análisis Sintáctico Ascendente se escogió más tarde a cambio del Descendente con Tablas, ya que el primero es consistentemente más rápido.
+    \subsection{Adicionales}
+
+    Para que el procesador esté más completo, se han decidido implementar todos los operadores lógicos y aritméticos, así como los operadores unarios y los \textit{tokens} \textit{true} y \textit{false}.
+
+    Además se ha escogido implementar el tratamiento de secuencias de escape (\textit{\textbackslash n} y \textit{\textbackslash t}).
+
+
+    \subsection{Phasellus sit amet enim efficitur, aliquam nulla id, lacinia mauris viverra libero ac magna}
+
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent porttitor arcu luctus, imperdiet urna iaculis, mattis eros. Aenean feugiat pellentesque venenatis. Sed faucibus tristique tortor vel ultrices. Donec consequat tellus sapien. Nam bibendum urna mauris, eget sagittis justo gravida vel.
+
+    \subsubsection{In mi mauris, finibus non faucibus non, imperdiet nec leo. In erat arcu, tincidunt nec aliquam et, volutpat}
+
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent porttitor arcu luctus, imperdiet urna iaculis, mattis eros. Aenean feugiat pellentesque venenatis. Sed faucibus tristique tortor vel ultrices. Donec consequat tellus sapien. Nam bibendum urna mauris, eget sagittis justo gravida vel.
+
+    %----------------------------------------------------------------------------------------
+    %   FONTS
+    %----------------------------------------------------------------------------------------
+
+    \section{Font Examples}
+
+    \subsection{Font Sizes}
+
+    {\tiny \textbackslash tiny} {\scriptsize \textbackslash scriptsize} {\footnotesize \textbackslash footnotesize} {\small \textbackslash small}\\
+    {\normalsize \textbackslash normalsize}\\
+    {\raggedright {\large \textbackslash large} {\Large \textbackslash Large} {\LARGE \textbackslash LARGE} {\huge \textbackslash huge} {\Huge \textbackslash Huge}\par}
+
+    \subsection{Font Families}
+
+    \textsf{IBM Plex Sans Text}
+
+    \textrm{IBM Plex Serif Text}
+
+    \texttt{IBM Plex Mono Text}
+
+    \subsection{Condensed Fonts}
+
+    IBM Plex Sans Normal \textit{Italic} {\plexsansmedium Medium} \textbf{Bold} \textit{\textbf{BoldItalic}}
+
+    {\plexsanscondensed IBM Plex Sans Condensed \textit{Italic} \textbf{Bold} \textit{\textbf{BoldItalic}}}
+
+    %----------------------------------------------------------------------------------------
+    %   QUOTATION
+    %----------------------------------------------------------------------------------------
+
+    \section{Quotation}
+
+    Proin mollis urna posuere fringilla. Curabitur finibus, neque vitae vestibulum vestibulum, dolor sapien tincidunt augue, vel porta mauris metus nec mauris. Integer erat magna, porta id erat sed, lacinia volutpat erat. Nulla fermentum tellus arcu, eu iaculis ipsum malesuada aliquam. Duis et lacus maximus, consectetur metus et, eleifend arcu. Vestibulum condimentum diam vitae diam tincidunt viverra.
+
+    \begin{quote}
+        \textbf{\LARGE ``}Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent porttitor arcu luctus, imperdiet urna iaculis, mattis eros. Pellentesque iaculis odio vel nisl ullamcorper, nec faucibus ipsum molestie. Sed dictum nisl non aliquet porttitor. Etiam vulputate arcu dignissim, finibus sem et, viverra nisl. Aenean luctus congue massa, ut laoreet metus ornare in.\textbf{''}
+
+        \hfill--- John Smith, 1972
+    \end{quote}
+
+    Suspendisse tempus odio sit amet volutpat suscipit. Pellentesque ornare libero lacus, non fringilla dolor placerat in. Ut maximus ullamcorper lectus, a pharetra mi sagittis aliquet. Scelerisque augue sed mi fringilla, vel dapibus ligula finibus. Sed ornare velit sem, ac venenatis velit dignissim. Vestibulum ultrices mi at tincidunt condimentum.
+
+    %----------------------------------------------------------------------------------------
+    %   TABLES
+    %----------------------------------------------------------------------------------------
+
+    \section{Table Examples}
+
+    This statement automatically references the table below using its label: Table \ref{tab:example}.
+
+    %------------------------------------------------
+
+    \begin{table}[H] % [H] forces the table to be output where it is defined in the code (it suppresses floating)
+        \caption{Table caption.}
+        \begin{tabular}{L{0.35\linewidth} L{0.31\linewidth} L{0.17\linewidth}} % Table column widths and alignment (L, C or R)
+            \toprule
+            \textbf{Prospect} & \textbf{Industry} & \textbf{Revenue} \\
+            \midrule
+            Gerlach Inc & Business Development & \$3M\\
+            Doyle and Sons & Law & \$1M\\
+            Heathcote Group & Consulting & \$12M\\
+            Goyette Inc & Advertising & \$5M\\
+            Holzdeppe GmbH & Manufacturing & \$23M\\
+            Bienias AG & Accounting & \$2.5M\\
+            \bottomrule
+        \end{tabular}
+        \label{tab:example}
+    \end{table}
+
+    Sed commodo ipsum ipsum, in elementum neque gravida euismod. Cras mi lacus, pulvinar ut sapien ut, rutrum sagittis dui. Donec non est a metus varius finibus. Pellentesque rutrum pellentesque ligula, vitae accumsan nulla hendrerit ut.
+
+    %------------------------------------------------
+
+    \begin{table*} % Use the table* environment for full width floating tables
+        \caption{Full width table caption.}
+        \begin{tabular}{C{0.03\linewidth} L{0.25\linewidth} L{0.27\linewidth} L{0.16\linewidth} L{0.16\linewidth}} % Table column widths and alignment (L, C or R)
+            \toprule
+            \textit{\#} & \textbf{Prospect} & \textbf{Industry} & \textbf{Revenue} & \textbf{Employees} \\
+            \midrule
+            \textit{1} & Gerlach Inc & Business Development & \$3M & 65\\
+            \textit{2} & Doyle and Sons & Law & \$1M & 15\\
+            \textit{3} & Heathcote Group & Consulting & \$12M & 250\\
+            \textit{4} & Goyette Inc & Advertising & \$5M & 100\\
+            \textit{5} & Holzdeppe GmbH & Manufacturing & \$23M & 75\\
+            \textit{6} & Bienias AG & Accounting & \$2.5M & 40\\
+            \bottomrule
+        \end{tabular}
+    \end{table*}
+
+    %----------------------------------------------------------------------------------------
+    %   LISTS
+    %----------------------------------------------------------------------------------------
+
+    \section{List Examples}
+
+    \subsection{Bullet Point List}
+
+    \begin{itemize}
+        \item First bullet point item
+            \begin{itemize}
+                \item First indented bullet point item
+                \item Second indented bullet point item
+                    \begin{itemize}
+                        \item First second-level indented bullet point item
+                        \item Second second-level indented bullet point item
+                    \end{itemize}
+                \item Third indented bullet point item
+            \end{itemize}
+        \item Second bullet point item
+        \item Third bullet point item
+    \end{itemize}
+
+    %------------------------------------------------
+
+    \subsection{Numbered List}
+
+    \begin{enumerate}
+        \item First numbered item
+            \begin{enumerate}
+                \item First indented numbered item
+                \item Second indented numbered item
+                    \begin{enumerate}
+                        \item First second-level indented numbered item
+                        \item Second second-level indented numbered item
+                    \end{enumerate}
+                \item Third indented numbered item
+            \end{enumerate}
+        \item Second numbered item
+        \item Third numbered item
+    \end{enumerate}
+
+    %------------------------------------------------
+
+    \subsection{Description List}
+
+    \begin{description}
+        \item[Item One] Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent porttitor arcu luctus, imperdiet urna iaculis, mattis eros. Pellentesque iaculis odio vel nisl ullamcorper, nec faucibus ipsum molestie. 
+        \item[Item Two] Sed dictum nisl non aliquet porttitor.
+            \begin{description}
+                \item[Subitem] Maecenas consectetur metus at tellus finibus condimentum. Proin arcu lectus, ultrices non tincidunt et, tincidunt ut quam. Integer luctus posuere est, non maximus ante dignissim quis.
+                    \begin{description}
+                        \item[Subsubitem] Maecenas consectetur metus at tellus finibus condimentum. Proin arcu lectus, ultrices non tincidunt et, tincidunt ut quam. Integer luctus posuere est, non maximus ante dignissim quis.
+                    \end{description}
+            \end{description}
+        \item[Item Three] Etiam vulputate arcu dignissim, finibus sem et, viverra nisl. Aenean luctus congue massa, ut laoreet metus ornare in. Nunc fermentum nisi imperdiet lectus tincidunt vestibulum at ac elit. Nulla mattis nisl eu malesuada suscipit.
+    \end{description}
+
+    %----------------------------------------------------------------------------------------
+    %   REFERENCING CITATIONS
+    %----------------------------------------------------------------------------------------
+
+    \section{Referencing Citations}
+
+    This statement requires citation \autocite{Smith:2024jd}.
+
+    This statement requires multiple citations \autocite{Smith:2024jd, Smith:2023qr}.
+
+    This statement has an in-text citation: \textcite{Smith:2024jd}.
+
+    %----------------------------------------------------------------------------------------
+    %   FIGURES
+    %----------------------------------------------------------------------------------------
+
+    \section{Figure Examples}
+
+    This statement automatically references the figure below using its label: Figure \ref{fig:example}.
+
+    %----------------------------------------------------------------------------------------
+    %   LINKS
+    %----------------------------------------------------------------------------------------
+
+    \section{Link Examples}
+
+    This is a URL link: \href{https://www.LaTeXTemplates.com}{LaTeXTemplates.com}.
+
+    This is a email link: \href{mailto:example@example.com}{example@example.com}.
+
+    This is a monospaced URL link:\\ \url{https://LaTeXTemplates.com}.
+
+    %----------------------------------------------------------------------------------------
+    %   EQUATIONS
+    %----------------------------------------------------------------------------------------
+
+    \section{Equation}
+
+    \begin{equation}
+        \cos^3 \theta =\frac{1}{4}\cos\theta+\frac{3}{4}\cos 3\theta
+        \label{eq:example}
+    \end{equation}
+
+    This statement automatically references the equation number above using its label: Equation \ref{eq:example}.
+
+    %----------------------------------------------------------------------------------------
+    %   INTERNATIONAL SUPPORT
+    %----------------------------------------------------------------------------------------
+
+    \section{International Support}
+
+    àáâäãåèéêëìíîïòóôöõøùúûüÿýñçčšž
+
+    ÀÁÂÄÃÅÈÉÊËÌÍÎÏÒÓÔÖÕØÙÚÛÜŸÝÑ
+
+    ßÇŒÆČŠŽ
+
+    %----------------------------------------------------------------------------------------
+    %   CODE
+    %----------------------------------------------------------------------------------------
+
+    \section{Displaying Code}
+
+    The block below is a code listing. It displays code in an easy to use way with line numbers for quick reference to specific parts of the code.
+
+    \begin{lstlisting}
+        {
+            "city": [
+            {
+                "id": 1,
+                "name": "Toronto",
+                "country": "Canada",
+                "population": 6200000
+            },
+            {
+                "id": 2,
+                "name": "New York",
+                "country": "United States of America",
+                "population": 8800000
+            }
+            ]
+        }
+    \end{lstlisting}
+
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent porttitor arcu luctus, imperdiet urna iaculis, mattis eros. Pellentesque iaculis odio vel nisl ullamcorper, nec faucibus ipsum molestie. Sed dictum nisl non aliquet porttitor. Etiam vulputate arcu dignissim, finibus sem et, viverra nisl. Aenean luctus congue massa, ut laoreet metus ornare in. Nunc fermentum nisi imperdiet lectus tincidunt vestibulum at ac elit. Nulla mattis nisl eu malesuada suscipit.
+
+    Aliquam arcu turpis, ultrices sed luctus ac, vehicula id metus. Morbi eu feugiat velit, et tempus augue. Proin ac mattis tortor. Donec tincidunt, ante rhoncus luctus semper, arcu lorem lobortis justo, nec convallis ante quam quis lectus. Aenean tincidunt sodales massa, et hendrerit tellus mattis ac. Sed non pretium nibh. Donec cursus maximus luctus. Vivamus lobortis eros et massa porta porttitor.
+
+    Fusce varius orci ac magna dapibus porttitor. In tempor leo a neque bibendum sollicitudin. Nulla pretium fermentum nisi, eget sodales magna facilisis eu. Praesent aliquet nulla ut bibendum lacinia. Donec vel mauris vulputate, commodo ligula ut, egestas orci. Suspendisse commodo odio sed hendrerit lobortis. Donec finibus eros erat, vel ornare enim mattis et. Donec finibus dolor quis dolor tempus consequat. Mauris fringilla dui id libero egestas, ut mattis neque ornare. Ut condimentum urna pharetra ipsum consequat, eu interdum elit cursus. Vivamus scelerisque tortor et nunc ultricies, id tincidunt libero pharetra. Aliquam eu imperdiet leo. Morbi a massa volutpat velit condimentum convallis et facilisis dolor.
+
+    In hac habitasse platea dictumst. Curabitur mattis elit sit amet justo luctus vestibulum. In hac habitasse platea dictumst. Pellentesque lobortis justo enim, a condimentum massa tempor eu. Ut quis nulla a quam pretium eleifend nec eu nisl. Nam cursus porttitor eros, sed luctus ligula convallis quis. Nam convallis, ligula in auctor euismod, ligula mauris fringilla tellus, et egestas mauris odio eget diam. Praesent sodales in ipsum eu dictum.
+
+    %----------------------------------------------------------------------------------------
+
+\end{multicols} % End two column mode
+
+%----------------------------------------------------------------------------------------
+%   FULL WIDTH CONTENT
+%----------------------------------------------------------------------------------------
+
+\section{Full Width Content}
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent porttitor arcu luctus, imperdiet urna iaculis, mattis eros. Pellentesque iaculis odio vel nisl ullamcorper, nec faucibus ipsum molestie. Sed dictum nisl non aliquet porttitor. Etiam vulputate arcu dignissim, finibus sem et, viverra nisl. Aenean luctus congue massa, ut laoreet metus ornare in. Nunc fermentum nisi imperdiet lectus tincidunt vestibulum at ac elit.
+
+Aliquam arcu turpis, ultrices sed luctus ac, vehicula id metus. Morbi eu feugiat velit, et tempus augue. Proin ac mattis tortor. Donec tincidunt, ante rhoncus luctus semper, arcu lorem lobortis justo, nec convallis ante quam quis lectus. Aenean tincidunt sodales massa, et hendrerit tellus mattis ac. Sed non pretium nibh.
+
+%----------------------------------------------------------------------------------------
+%   THREE COLUMN CONTENT
+%----------------------------------------------------------------------------------------
+
+\section{Three Column Content}
+
+\begin{multicols}{3} % Begin three column mode
+
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent porttitor arcu luctus, imperdiet urna iaculis, mattis eros. Pellentesque iaculis odio vel nisl ullamcorper, nec faucibus ipsum molestie. Sed dictum nisl non aliquet porttitor. Etiam vulputate arcu dignissim, finibus sem et, viverra nisl. Aenean luctus congue massa, ut laoreet metus ornare in. Nunc fermentum nisi imperdiet lectus tincidunt vestibulum at ac elit. Nulla mattis nisl eu malesuada suscipit.
+
+    Aliquam arcu turpis, ultrices sed luctus, vehicula id metus. Morbi eu feugiat velit, et tempus augue. Proin ac mattis tortor. Donec tincidunt, ante rhoncus luctus semper, arcu lorem lobortis justo, nec convallis ante quam quis lectus. Aenean tincidunt sodales massa, et hendrerit tellus mattis ac. Sed non pretium nibh. Donec cursuses maximus luctus. Vivamus lobortis eros et massa porta porttitor.
+
+\end{multicols} % End three column mode
+
+%----------------------------------------------------------------------------------------
+%    REFERENCES/BIBLIOGRAPHY
+%----------------------------------------------------------------------------------------
+
+\newpage
+
+\begin{multicols}{2} % Begin two column mode
+
+    \addcontentsline{toc}{section}{Reference List} % Add the bibliography to the table of contents
+
+    \printbibliography[title=Reference List] % Output the bibliography with a custom section title
+
+\end{multicols} % End two column mode
+
+%----------------------------------------------------------------------------------------
+%   DISCLAIMER/COPYRIGHT TEXT
+%----------------------------------------------------------------------------------------
+
+\vfill % Push text to the bottom of the page
+
+\begingroup
+\footnotesize % Reduce font size
+
+\subsection*{Disclaimer}
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent porttitor arcu luctus, imperdiet urna iaculis, mattis eros. Pellentesque iaculis odio vel nisl ullamcorper, nec faucibus ipsum molestie. Sed dictum nisl non aliquet porttitor. Etiam vulputate arcu dignissim, finibus sem et, viverra nisl. Aenean luctus congue massa, ut laoreet metus ornare in. Nunc fermentum nisi imperdiet lectus tincidunt vestibulum at ac elit.
+
+\subsection*{Copyright}
+
+\textcopyright~[Year] [Company] 
+
+Copyright notice text\ldots In hac habitasse platea dictumst. Curabitur mattis elit sit amet justo luctus vestibulum. In hac habitasse platea dictumst. Pellentesque lobortis justo enim, a condimentum massa tempor eu. Ut quis nulla a quam pretium eleifend nec eu nisl. Nam cursus porttitor eros, sed luctus ligula convallis quis.
+
+\subsection*{Contact}
+
+Address Line 1\\
+Address Line 2\\
+Address Line 3
+
+Business Number 123456
+
+Contact: name@company.com
+\endgroup
+
+%----------------------------------------------------------------------------------------
+%   APPENDICES
+%----------------------------------------------------------------------------------------
+
+\newpage
+
+\section*{Appendices}
+
+\begin{appendices}
+
+    \section{Appendix Section}
+
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam auctor mi risus, quis tempor libero hendrerit at. Duis hendrerit placerat quam et semper. Nam ultricies metus vehicula arcu viverra, vel ullamcorper justo elementum. Pellentesque vel mi ac lectus cursus posuere et nec ex. Fusce quis mauris egestas lacus commodo venenatis. Ut at arcu lectus. Donec et urna nunc. Morbi eu nisl cursus sapien eleifend tincidunt quis quis est. Donec ut orci ex. Praesent ligula enim, ullamcorper non lorem a, ultrices volutpat dolor. Nullam at imperdiet urna. Pellentesque nec velit eget euismod pretium.
+
+    \section{Appendix Section}
+
+    \begin{multicols}{2} % Begin two column mode
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam auctor mi risus, quis tempor libero hendrerit at. Duis hendrerit placerat quam et semper. Nam ultricies metus vehicula arcu viverra, vel ullamcorper justo elementum. Pellentesque vel mi ac lectus cursus posuere et nec ex. Fusce quis mauris egestas lacus commodo venenatis. Ut at arcu lectus. Donec et urna nunc. Morbi eu nisl cursus sapien eleifend tincidunt quis quis est. Donec ut orci ex. Praesent ligula enim, ullamcorper non lorem a, ultrices volutpat dolor. Nullam at imperdiet urna. Pellentesque nec velit eget euismod pretium.
+
+        Aliquam arcu turpis, ultrices sed luctus ac, vehicula id metus. Morbi eu feugiat velit, et tempus augue. Proin ac mattis tortor. Donec tincidunt, ante rhoncus luctus semper, arcu lorem lobortis justo, nec convallis ante quam quis lectus. Aenean tincidunt sodales massa, et hendrerit tellus mattis ac. Sed non pretium nibh. Donec cursus maximus luctus. Vivamus lobortis eros et massa porta porttitor.
+
+        Fusce varius orci ac magna dapibus porttitor. In tempor leo a neque bibendum sollicitudin. Nulla pretium fermentum nisi, eget sodales magna facilisis eu. Praesent aliquet nulla ut bibendum lacinia. Donec vel mauris vulputate, commodo ligula ut, egestas orci. Suspendisse commodo odio sed hendrerit lobortis. Donec finibus eros erat, vel ornare enim mattis et. Donec finibus dolor quis dolor tempus consequat. Mauris fringilla dui id libero egestas, ut mattis neque ornare. Ut condimentum urna pharetra ipsum consequat, eu interdum elit cursus. Vivamus scelerisque tortor et nunc ultricies, id tincidunt libero pharetra. Aliquam eu imperdiet leo. Morbi a massa volutpat velit condimentum convallis et facilisis dolor.
+    \end{multicols} % End two column mode
+
+    \section{Appendix Section}
+
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam auctor mi risus, quis tempor libero hendrerit at. Duis hendrerit placerat quam et semper. Nam ultricies metus vehicula arcu viverra, vel ullamcorper justo elementum. Pellentesque vel mi ac lectus cursus posuere et nec ex. Fusce quis mauris egestas lacus commodo venenatis. Ut at arcu lectus. Donec et urna nunc. Morbi eu nisl cursus sapien eleifend tincidunt quis quis est. Donec ut orci ex. Praesent ligula enim, ullamcorper non lorem a, ultrices volutpat dolor. Nullam at imperdiet urna. Pellentesque nec velit eget euismod pretium.
+
+\end{appendices}
+
+%----------------------------------------------------------------------------------------
+
+\end{document}
+
