@@ -61,7 +61,7 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
             self.read();
 
             let Some(curr) = self.curr else {
-                return Err(Diag::new(DiagKind::UnterminatedComment, coords.0, coords.1));
+                return Err(Diag::new(DiagKind::UntermComm, coords.0, coords.1));
             };
 
             if curr == b'*' && self.peek().is_some_and(|next| next == b'/') {
@@ -85,7 +85,7 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
                 self.read();
 
                 if self.peek().is_none_or(|next| !next.is_ascii_digit()) {
-                    return Err(DiagKind::FloatInvFmt(self.rpos - start));
+                    return Err(DiagKind::InvFmtFloat(self.rpos - start));
                 }
             } else if next.is_none_or(|next| !next.is_ascii_digit()) {
                 break;
@@ -101,7 +101,7 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
                 val = val * 10 + (byte - b'0') as i32;
 
                 if val > i16::MAX as i32 {
-                    return Err(DiagKind::IntOverflow(self.rpos - start));
+                    return Err(DiagKind::OverflowInt(self.rpos - start));
                 }
             }
 
@@ -114,7 +114,7 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
             val = val * 10.0 + (byte - b'0') as f64;
 
             if val > f32::MAX as f64 {
-                return Err(DiagKind::FloatOverflow(self.rpos - start));
+                return Err(DiagKind::OverflowFloat(self.rpos - start));
             }
         }
 
@@ -125,7 +125,7 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
             div *= 10.0;
 
             if val > f32::MAX as f64 {
-                return Err(DiagKind::FloatOverflow(self.rpos - start));
+                return Err(DiagKind::OverflowFloat(self.rpos - start));
             }
 
             if div > 1e10 {
@@ -136,7 +136,7 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
         let val = val as f32;
 
         if !(val.is_finite()) {
-            Err(DiagKind::FloatOverflow(self.rpos - start))
+            Err(DiagKind::OverflowFloat(self.rpos - start))
         } else {
             Ok(TokenKind::FloatLit(val))
         }
@@ -149,7 +149,7 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
 
         loop {
             let Some(next) = self.peek() else {
-                return Err(DiagKind::UnterminatedStr(string.len() + added_len));
+                return Err(DiagKind::UntermStr(string.len() + added_len));
             };
 
             if !next.is_ascii_graphic() && next != b' ' {
@@ -157,7 +157,7 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
                     self.read();
                 }
 
-                return Err(DiagKind::UnterminatedStr(string.len() + added_len));
+                return Err(DiagKind::UntermStr(string.len() + added_len));
             }
 
             if next == b'"' {
@@ -169,7 +169,7 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
                 self.read();
 
                 let Some(next) = self.peek() else {
-                    return Err(DiagKind::UnterminatedStr(string.len() + added_len));
+                    return Err(DiagKind::UntermStr(string.len() + added_len));
                 };
 
                 if let Some(esc_seq) = Self::esc_seq(next) {
@@ -191,7 +191,7 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
         added_len += 1;
 
         if string.len() > TokenKind::MAX_STR_LEN {
-            return Err(DiagKind::StrOverflow((string.len(), added_len)));
+            return Err(DiagKind::OverflowStr((string.len(), added_len)));
         }
 
         Ok(TokenKind::StrLit(string))
