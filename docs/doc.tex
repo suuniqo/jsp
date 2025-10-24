@@ -46,7 +46,7 @@
 
 {\large\raggedright\reportauthors\par} % Report authors, group or department
 
-\vspace{0.25\textheight} % Vertical whitespace
+\vspace{0.36\textheight} % Vertical whitespace
 
 %----------------------------------------------------------------------------------------
 
@@ -63,15 +63,13 @@
     %   SECTIONS AND PARAGRAPHS
     %----------------------------------------------------------------------------------------
 
-    \vspace{0.052\textheight} % Vertical whitespace
-
     \section{Introducción}
 
-    El desarrollo del procesador \textit{jsp} se ha centrado en la experiencia del usuario (\textit{UX}). Para ello, se han priorizado tres aspectos fundamentales una gestión de errores sólida e informativa, una interfaz de línea de comandos (\textit{CLI}) intuitiva y, finalmente, que el programa sea eficiente y rápido.
+    El desarrollo del procesador \textit{jsp} se ha centrado en la experiencia del usuario (\textit{UX}), priorizando tres aspectos clave: una gestión de errores sólida y clara, una interfaz de línea de comandos (\textit{CLI}) intuitiva, y un rendimiento eficiente.
 
-    Por estas razones se ha elegido \textit{Rust} como el lenguaje de desarrollo. No sólo permite una gestión de memoria eficiente y segura, sino que también facilita el uso de \textit{clap}, una de las mejores librerías para desarollar aplicaciones de \textit{CLI}.
+    Por ello, se ha elegido \textit{Rust} como el lenguaje de desarrollo. Ofrece una gestión de memoria eficiente, además de integrar \textit{clap}, una de las mejores librerías para desarollar aplicaciones \textit{CLI}.
 
-    Además, gracias al uso del patrón de \textit{inyección de dependencias} en todo el proyecto, el usuario puede optar por utilizar módulos (como el \textit{Lexer} o la Tabla de Símbolos) que no vuelquen sus contenidos en ficheros, evitando así el \textit{overhead} de las \textit{syscalls}.
+    Gracias al uso del patrón de \textit{inyección de dependencias} en todo el proyecto, el código fuente es altamente extensible y modular.
 
     \section{Información Adicional}
 
@@ -551,21 +549,7 @@
 
 \begin{appendices}
 
-    \section{Appendix Section}
-
-    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam auctor mi risus, quis tempor libero hendrerit at. Duis hendrerit placerat quam et semper. Nam ultricies metus vehicula arcu viverra, vel ullamcorper justo elementum. Pellentesque vel mi ac lectus cursus posuere et nec ex. Fusce quis mauris egestas lacus commodo venenatis. Ut at arcu lectus. Donec et urna nunc. Morbi eu nisl cursus sapien eleifend tincidunt quis quis est. Donec ut orci ex. Praesent ligula enim, ullamcorper non lorem a, ultrices volutpat dolor. Nullam at imperdiet urna. Pellentesque nec velit eget euismod pretium.
-
-    \section{Appendix Section}
-
-    \begin{multicols}{2} % Begin two column mode
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam auctor mi risus, quis tempor libero hendrerit at. Duis hendrerit placerat quam et semper. Nam ultricies metus vehicula arcu viverra, vel ullamcorper justo elementum. Pellentesque vel mi ac lectus cursus posuere et nec ex. Fusce quis mauris egestas lacus commodo venenatis. Ut at arcu lectus. Donec et urna nunc. Morbi eu nisl cursus sapien eleifend tincidunt quis quis est. Donec ut orci ex. Praesent ligula enim, ullamcorper non lorem a, ultrices volutpat dolor. Nullam at imperdiet urna. Pellentesque nec velit eget euismod pretium.
-
-        Aliquam arcu turpis, ultrices sed luctus ac, vehicula id metus. Morbi eu feugiat velit, et tempus augue. Proin ac mattis tortor. Donec tincidunt, ante rhoncus luctus semper, arcu lorem lobortis justo, nec convallis ante quam quis lectus. Aenean tincidunt sodales massa, et hendrerit tellus mattis ac. Sed non pretium nibh. Donec cursus maximus luctus. Vivamus lobortis eros et massa porta porttitor.
-
-        Fusce varius orci ac magna dapibus porttitor. In tempor leo a neque bibendum sollicitudin. Nulla pretium fermentum nisi, eget sodales magna facilisis eu. Praesent aliquet nulla ut bibendum lacinia. Donec vel mauris vulputate, commodo ligula ut, egestas orci. Suspendisse commodo odio sed hendrerit lobortis. Donec finibus eros erat, vel ornare enim mattis et. Donec finibus dolor quis dolor tempus consequat. Mauris fringilla dui id libero egestas, ut mattis neque ornare. Ut condimentum urna pharetra ipsum consequat, eu interdum elit cursus. Vivamus scelerisque tortor et nunc ultricies, id tincidunt libero pharetra. Aliquam eu imperdiet leo. Morbi a massa volutpat velit condimentum convallis et facilisis dolor.
-    \end{multicols} % End two column mode
-
-    \section{Appendix Section}
+    \section{Casos de Prueba}
 
     Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam auctor mi risus, quis tempor libero hendrerit at. Duis hendrerit placerat quam et semper. Nam ultricies metus vehicula arcu viverra, vel ullamcorper justo elementum. Pellentesque vel mi ac lectus cursus posuere et nec ex. Fusce quis mauris egestas lacus commodo venenatis. Ut at arcu lectus. Donec et urna nunc. Morbi eu nisl cursus sapien eleifend tincidunt quis quis est. Donec ut orci ex. Praesent ligula enim, ullamcorper non lorem a, ultrices volutpat dolor. Nullam at imperdiet urna. Pellentesque nec velit eget euismod pretium.
 
