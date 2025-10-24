@@ -1,0 +1,18 @@
+\contentsline {section}{\numberline {1}Introducción}{1}{section.1}%
+\contentsline {section}{\numberline {2}Información Adicional}{2}{section.2}%
+\contentsline {section}{\numberline {3}Opciones de la práctica}{2}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Específicas del grupo}{2}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Adicionales}{2}{subsection.3.2}%
+\contentsline {section}{\numberline {4}Diseño del Lexer}{2}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Tokens}{2}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Errores}{3}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Gramática}{3}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Autómata}{4}{subsection.4.4}%
+\contentsline {subsection}{\numberline {4.5}Acciones Semánticas}{4}{subsection.4.5}%
+\contentsline {section}{\numberline {5}Diseño de la Tabla de Símbolos}{5}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Estructura y Organización}{5}{subsection.5.1}%
+\contentsline {section}{\numberline {6}Diseño del Parser}{5}{section.6}%
+\contentsline {section}{\numberline {7}Diseño del Semanter}{5}{section.7}%
+\contentsline {section}{\numberline {8}Gestor de Errores}{5}{section.8}%
+\contentsline {section}{\numberline {A}Casos de Prueba}{6}{appendix.1.A}%
+\contentsfinish 

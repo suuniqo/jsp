@@ -5,7 +5,7 @@ if (cond) {
 
 
 /* this characters are illegal */
-$$ & | ?    @@?
+$& |
 
 /* this string is unterminated */
 let dop = "lasdljkljdfsalkj
