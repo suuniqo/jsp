@@ -1,27 +1,13 @@
 \documentclass[a4paper]{CSMakotoTechnicalReport}
 
-\addbibresource{sample.bib} % BibLaTeX bibliography file
-
-\usepackage{amsmath}
+\usepackage[spanish, es-noshorthands]{babel}
+\usepackage{csquotes} 
+\usepackage{amsmath} 
 \usepackage{tikz}
 \usetikzlibrary{arrows,automata,positioning}
 \usepackage{tcolorbox}
 
-\tcbuselibrary{listings, skins}
-
-\newtcolorbox{codeblock}[1][]{
-    listing only,
-    listing options={basicstyle=\ttfamily\large, breaklines=false},
-    colback=gray!5,
-    colframe=black!40,
-    boxsep=3pt,
-    left=4pt,right=4pt,top=4pt,bottom=4pt,
-    enhanced,
-    sharp corners,
-    fit algorithm=hybrid* strict, % <-- makes box fit content
-    #1
-}
-
+\addbibresource{sample.bib} % BibLaTeX bibliography file
 
 %----------------------------------------------------------------------------------------
 %   REPORT INFORMATION
@@ -73,7 +59,6 @@
     %   TABLE OF CONTENTS
     %----------------------------------------------------------------------------------------
 
-    \renewcommand{\contentsname}{Índice}
     \tableofcontents
 
     %----------------------------------------------------------------------------------------
@@ -823,7 +808,40 @@
     \end{minipage}
 
     \section{Diseño de la Tabla de Símbolos}
+
+    Se trata de un tipo abstracto de datos encargado de gestionar la información relevante a los identificadores del programa. Todos los módulos del procesador van a necesitar acceder a ella con distintos propósitos por lo que es importante que tanto la inserción como la consulta de datos sea eficiente.
+
     \subsection{Estructura y Organización}
+
+    \subsubsection{Entradas}
+
+    La información de los identificadores se va a guardar en la tabla de símbolos en forma de entradas. Como en \textit{MyJS} no existen los \textit{arrays} se distinguen únicamente 2 tipos:
+
+    \begin{description}
+        \item[Entrada Básica] Para todos los tipos básicos, es decir, \textit{int}, \textit{float}, \textit{string} y \textit{bool}.
+            \begin{description}
+                \item[Lexema] Nombre de la variable.
+                \item[Tipo] Tipo de la variable.
+                \item[Desplazamiento] Desplazamiento en memoria relativo a su ámbito.
+            \end{description}
+
+        \item[Entrada Función] Para las funciones. Nótese que 'Tipos Argumentos' es un puntero a una lista de tipos.
+            \begin{description}
+                \item[Lexema] Nombre de la función.
+                \item[Tipo Retorno] Tipo que devuelve la función, pudiendo ser \textit{Void}.
+                \item[Tipos Argumentos] Lista de los tipos de los parámetros en orden.
+                \item[Etiqueta] Etiqueta que se usará para navegar a la función en el código ensamblador.
+            \end{description}
+    \end{description}
+
+    Cada entrada va a tener una estructura de 'llave-valor', dónde el lexema del identificador actúa como llave, y sus atributos (toda su información relevante) como valor. Como cada llave identifica de forma única cada entrada, se puede optimizar el complejidad de acceso e inserción a $O(1)$ usando \textit{hashmaps}.
+
+
+    \subsubsection{Ámbitos}
+
+    No siempre se puede acceder a cada variable de un programa. Por ejemplo, desde una función no se puede acceder a una variable local de otra. Por ello, por cada ámbito se va a crear una tabla de símbolos distinta. Además, como \textit{MyJS} es un lenguaje sin anidamiento de funciones, en cada momento habrá como máximo 2 tablas de símbolos activas: la global y, opcionalmente, la de una función.
+    
+    De esta manera, se puede comprender una tabla de símbolos como una \textit{stack} de ámbitos (es decir, tablas de símbolos locales), dónde el Analizador Semántico será el encargado de apilar y desapilar ámbitos al entrar y salir de funciones respectivamente.
 
     \section{Diseño del Parser}
     Se detallará en la próxima entrega.
@@ -831,7 +849,7 @@
     \section{Diseño del Semanter}
     Se detallará en la entrega final.
 
-    \section{Gestor de Errores}
+    \section{Diseño del Gestor de Errores}
     Se detallará en la entrega final.
 
 %----------------------------------------------------------------------------------------
@@ -840,17 +858,535 @@
 
 \newpage
 
-\section*{Appendices}
+\section*{Anexo}
 
 \begin{appendices}
 
     \section{Casos de Prueba}
 
-    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam auctor mi risus, quis tempor libero hendrerit at. Duis hendrerit placerat quam et semper. Nam ultricies metus vehicula arcu viverra, vel ullamcorper justo elementum. Pellentesque vel mi ac lectus cursus posuere et nec ex. Fusce quis mauris egestas lacus commodo venenatis. Ut at arcu lectus. Donec et urna nunc. Morbi eu nisl cursus sapien eleifend tincidunt quis quis est. Donec ut orci ex. Praesent ligula enim, ullamcorper non lorem a, ultrices volutpat dolor. Nullam at imperdiet urna. Pellentesque nec velit eget euismod pretium.
+    Se va a probar el funcionamiento del procesador con 6 fichero fuentes distintos. La mitad de ellos serán correctos y la otra incorrectos. En los casos correctos se volcará el fichero de \textit{tokens} y de la tabla de símbolos; en los incorrectos los diagnósticos generados por el gestor de errores.
+
+    \subsection{Casos Correctos}
+
+    \begin{description}
+        \item[fib.javascript] Fichero con un estilo limpio y estándar.
+            \begin{lstlisting}[language=C]
+/* This function computes the nth fibonacci number */
+function int fib(int n) {
+    if (n == 0) {
+        return 0;
+    }
+    if (n == 1) {
+        return 1;
+    }
+
+    let int a = 0;
+    let int b = 1;
+
+    do {
+        let int c = a + b;
+
+        a = b;
+        b = c;
+
+        n = n - 1;
+    } while (n >= 2);
+
+    return b;
+}
+            \end{lstlisting}
+            \begin{multicols}{4}
+                \textbf{Fichero de \textit{tokens}:}
+                \begin{lstlisting}
+<Func, >
+<Int, >
+<Id, 15>
+<LParen, >
+<Int, >
+<Id, 16>
+<RParen, >
+<LBrack, >
+<If, >
+<LParen, >
+<Id, 16>
+<Eq, >
+<IntLit, 0>
+<RParen, >
+<LBrack, >
+<Ret, >
+<IntLit, 0>
+<Semi, >
+<RBrack, >
+<If, >
+<LParen, >
+<Id, 16>
+<Eq, >
+<IntLit, 1>
+<RParen, >
+<LBrack, >
+<Ret, >
+<IntLit, 1>
+<Semi, >
+<RBrack, >
+<Let, >
+<Int, >
+<Id, 17>
+<Assign, >
+<IntLit, 0>
+<Semi, >
+<Let, >
+<Int, >
+<Id, 18>
+<Assign, >
+<IntLit, 1>
+<Semi, >
+<Do, >
+<LBrack, >
+<Let, >
+<Int, >
+<Id, 19>
+<Assign, >
+<Id, 17>
+<Sum, >
+<Id, 18>
+<Semi, >
+<Id, 17>
+<Assign, >
+<Id, 18>
+<Semi, >
+<Id, 18>
+<Assign, >
+<Id, 19>
+<Semi, >
+<Id, 16>
+<Assign, >
+<Id, 16>
+<Sub, >
+<IntLit, 1>
+<Semi, >
+<RBrack, >
+<While, >
+<LParen, >
+<Id, 16>
+<Ge, >
+<IntLit, 2>
+<RParen, >
+<Semi, >
+<Ret, >
+<Id, 18>
+<Semi, >
+<RBrack, >
+                \end{lstlisting}
+                \textbf{Tabla de símbolos:}
+                \begin{lstlisting}
+table #0:
+* 'fib'
+* 'n'
+* 'a'
+* 'b'
+* 'c'
+                \end{lstlisting}
+            \end{multicols}
+
+        \item[factorial.javascript] Fichero con un código más comprimido y comentarios más raros.
+            \begin{lstlisting}[language=C]
+/*********************************************/
+/*          * / * N FACTORIAL * / *          */
+/*********************************************/
+
+/*
+* This function computes n! (n factorial)
+*/
+function int factorial(int n) {
+    if(n==0){return 1;}
+    if(n<=2){return n;}
+    let int res=n;
+    do{n=n-1;res=res*n;}while(n>2);
+    return res;
+}
+
+/* read n and write n! */
+let int n=0;read(n);let int res=factorial(n);write("n! = ", res);
+
+/*** eof ***/
+            \end{lstlisting}
+            \begin{multicols}{3}
+                \textbf{Fichero de \textit{tokens}:}
+                \begin{lstlisting}
+<Func, >
+<Int, >
+<Id, 15>
+<LParen, >
+<Int, >
+<Id, 16>
+<RParen, >
+<LBrack, >
+<If, >
+<LParen, >
+<Id, 16>
+<Eq, >
+<IntLit, 0>
+<RParen, >
+<LBrack, >
+<Ret, >
+<IntLit, 1>
+<Semi, >
+<RBrack, >
+<If, >
+<LParen, >
+<Id, 16>
+<Le, >
+<IntLit, 2>
+<RParen, >
+<LBrack, >
+<Ret, >
+<Id, 16>
+<Semi, >
+<RBrack, >
+<Let, >
+<Int, >
+<Id, 17>
+<Assign, >
+<Id, 16>
+<Semi, >
+<Do, >
+<LBrack, >
+<Id, 16>
+<Assign, >
+<Id, 16>
+<Sub, >
+<IntLit, 1>
+<Semi, >
+<Id, 17>
+<Assign, >
+<Id, 17>
+<Mul, >
+<Id, 16>
+<Semi, >
+<RBrack, >
+<While, >
+<LParen, >
+<Id, 16>
+<Gt, >
+<IntLit, 2>
+<RParen, >
+<Semi, >
+<Ret, >
+<Id, 17>
+<Semi, >
+<RBrack, >
+<Let, >
+<Int, >
+<Id, 16>
+<Assign, >
+<IntLit, 0>
+<Semi, >
+<Read, >
+<LParen, >
+<Id, 16>
+<RParen, >
+<Semi, >
+<Let, >
+<Int, >
+<Id, 17>
+<Assign, >
+<Id, 15>
+<LParen, >
+<Id, 16>
+<RParen, >
+<Semi, >
+<Write, >
+<LParen, >
+<StrLit, "n! = ">
+<Comma, >
+<Id, 17>
+<RParen, >
+<Semi, >
+                \end{lstlisting}
+                \textbf{Tabla de símbolos:}
+                \begin{lstlisting}
+table #0:
+* 'factorial'
+* 'n'
+* 'res'
+                \end{lstlisting}
+            \end{multicols}
+
+        \newpage
+
+        \item[fuzz.javascript] Fichero correcto pero caótico, con el objectivo de obtener \textit{edgecases}.
+            \begin{lstlisting}[language=C]
+let int global=13;
+function void nothing(void) { read(global) do{global=global-1;}while(global>0);}
+function int main(float b, string d){let string aux="this is a string";
+/*** this is a comment ***/ let float foo=1203.123; let int bar=2398;
+;;;/* semicolons */;;; let oper=2||5;let boolean bool=false;
+let boolean george=true;george&=bool;}/*** / eof /***/
+            \end{lstlisting}
+            \begin{multicols}{3}
+                \textbf{Fichero de \textit{tokens}:}
+                \begin{lstlisting}
+<Let, >
+<Int, >
+<Id, 15>
+<Assign, >
+<IntLit, 13>
+<Semi, >
+<Func, >
+<Void, >
+<Id, 16>
+<LParen, >
+<Void, >
+<RParen, >
+<LBrack, >
+<Read, >
+<LParen, >
+<Id, 15>
+<RParen, >
+<Do, >
+<LBrack, >
+<Id, 15>
+<Assign, >
+<Id, 15>
+<Sub, >
+<IntLit, 1>
+<Semi, >
+<RBrack, >
+<While, >
+<LParen, >
+<Id, 15>
+<Gt, >
+<IntLit, 0>
+<RParen, >
+<Semi, >
+<RBrack, >
+<Func, >
+<Int, >
+<Id, 17>
+<LParen, >
+<Float, >
+<Id, 18>
+<Comma, >
+<Str, >
+<Id, 19>
+<RParen, >
+<LBrack, >
+<Let, >
+<Str, >
+<Id, 20>
+<Assign, >
+<StrLit, "this is a string">
+<Semi, >
+<Let, >
+<Float, >
+<Id, 21>
+<Assign, >
+<FloatLit, 1203.123>
+<Semi, >
+<Let, >
+<Int, >
+<Id, 22>
+<Assign, >
+<IntLit, 2398>
+<Semi, >
+<Semi, >
+<Semi, >
+<Semi, >
+<Semi, >
+<Semi, >
+<Semi, >
+<Let, >
+<Id, 23>
+<Assign, >
+<IntLit, 2>
+<Or, >
+<IntLit, 5>
+<Semi, >
+<Let, >
+<Bool, >
+<Id, 24>
+<Assign, >
+<False, >
+<Semi, >
+<Let, >
+<Bool, >
+<Id, 25>
+<Assign, >
+<True, >
+<Semi, >
+<Id, 25>
+<AndAssign, >
+<Id, 24>
+<Semi, >
+<RBrack, >
+                \end{lstlisting}
+                \textbf{Tabla de símbolos:}
+                \begin{lstlisting}
+table #0:
+* 'global'
+* 'nothing'
+* 'main'
+* 'b'
+* 'd'
+* 'aux'
+* 'foo'
+* 'bar'
+* 'oper'
+* 'bool'
+* 'george'
+                \end{lstlisting}
+            \end{multicols}
+    \end{description}
+
+    \newpage
+
+    \subsection{Casos Incorrectos}
+    \begin{description}
+        \item[unterm.javascript] Fichero con errores de sentencias incompletas.
+            \begin{lstlisting}
+/* unfinished strings */
+let string foo = "im not finishing this string
+let string bar = "im not finishing this one either\
+let string rep = "last one\q
+
+/* unfinished floats */
+let float x = 478234.
+let float y = 78234..
+let float z = 2343...
+
+/*** * / * ///** / this comment is finished /* /* ***/
+/*** this one is not ** ****** *** /*
+
+function int main {
+    let string useless = "this variable won't be recognised";
+    return 0;
+}
+            \end{lstlisting}
+
+            \textbf{Diagnósticos:}
+            \begin{lstlisting}
+unterm.javascript:2:18: error: missing terminating character '"' on string literal
+   2 | let string foo = "im not finishing this string
+     |                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+unterm.javascript:3:18: error: missing terminating character '"' on string literal
+   3 | let string bar = "im not finishing this one either\
+     |                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+unterm.javascript:4:27: warning: unknown escape sequence '\q'
+   4 | let string rep = "last one\q
+     |                           ^~
+unterm.javascript:4:18: error: missing terminating character '"' on string literal
+   4 | let string rep = "last one\q
+     |                  ^~~~~~~~~~~
+unterm.javascript:7:15: error: expected digit after '.' in float literal
+   7 | let float x = 478234.
+     |               ^~~~~~~
+unterm.javascript:8:15: error: expected digit after '.' in float literal
+   8 | let float y = 78234..
+     |               ^~~~~~
+unterm.javascript:8:21: error: illegal character '.' in program
+   8 | let float y = 78234..
+     |                     ^
+unterm.javascript:9:15: error: expected digit after '.' in float literal
+   9 | let float z = 2343...
+     |               ^~~~~
+unterm.javascript:9:20: error: illegal character '.' in program
+   9 | let float z = 2343...
+     |                    ^
+unterm.javascript:9:21: error: illegal character '.' in program
+   9 | let float z = 2343...
+     |                     ^
+unterm.javascript:12:1: error: unterminated comment
+   12 | /*** this one is not ** ****** *** /*
+      | ^~
+            \end{lstlisting}
+            \newpage
+        
+        \item[overflow.javascript] Fichero con errores de constantes fuera del rango admitido.
+            \begin{lstlisting}
+/* string with 64 characters */
+let string foo = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+
+/* string with 65 characters */
+let string bar = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+
+/* max int16 */
+let int imax = 32767;
+let int imax_plus_one = 32768;
+
+/* max float */
+let float fmax = 340282346638528859811704183484516925440.0;
+let float fmax_plus_one = 340282346638528859811704183484516925441;
+let float lots_of_decimals = 0.2347028349820934809218409238845290380928;
+            \end{lstlisting}
+
+            \textbf{Diagnósticos:}
+            \begin{lstlisting}
+overflow.javascript:5:18: error: string literal is too long, length is 65 but the maximum is 64
+   5 | let string bar = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+     |                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+overflow.javascript:9:25: error: integer literal out of range for 16-byte type
+   9 | let int imax_plus_one = 32768;
+     |                         ^~~~~
+overflow.javascript:13:27: error: integer literal out of range for 16-byte type
+  13 | let float fmax_plus_one = 340282346638528859811704183484516925441;
+     |                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            \end{lstlisting}
+            \newpage
+
+        \item[noise.javascript] Fichero de ruido, repleto de errores diferentes.
+            \begin{lstlisting}
+123.45.67 12abc 12.34.56..78
+-+*/% &&& ||| != == <= >= >< =!= &== |= <=>
+"unterminated string" "string with illegal char \q" ""empty""
+"bad\escape" "no closing quote
+/* nested comment */ /* comment */ /* unclosed comment
+@@@ ### $$$ %%% ^^^ ??? !!! <<< >>> === ====
+++ -- ** // %% =!= &== |= != <=> &&||!!
+"unterminated string again /* unclosed comment
+"bad string with \x illegal escape" "" ""empty""
+/* final comment */ /* another unclosed
+            \end{lstlisting}
+
+            \textbf{Diagnósticos:}
+            \begin{lstlisting}
+noise.javascript:1:7: error: illegal character '.' in program
+   1 | 123.45.67 12abc 12.34.56..78
+     |       ^
+noise.javascript:1:22: error: illegal character '.' in program
+   1 | 123.45.67 12abc 12.34.56..78
+     |                      ^
+noise.javascript:1:23: error: expected digit after '.' in float literal
+   1 | 123.45.67 12abc 12.34.56..78
+     |                       ^~~
+noise.javascript:1:26: error: illegal character '.' in program
+   1 | 123.45.67 12abc 12.34.56..78
+     |                          ^
+noise.javascript:2:9: error: illegal character '&' in program
+   2 | -+*/% &&& ||| != == <= >= >< =!= &== |= <=>
+     |         ^
+noise.javascript:2:13: error: illegal character '|' in program
+   2 | -+*/% &&& ||| != == <= >= >< =!= &== |= <=>
+     |             ^
+noise.javascript:2:38: error: illegal character '|' in program
+   2 | -+*/% &&& ||| != == <= >= >< =!= &== |= <=>
+     |                                      ^
+noise.javascript:3:53: warning: unknown escape sequence '\q'
+   3 |     "unterminated string" "string with illegal char \q" ""empty""
+     |                                                     ^~
+noise.javascript:4:5: warning: unknown escape sequence '\e'
+   4 | "bad\escape" "no closing quote
+     |     ^~
+noise.javascript:4:14: error: missing terminating character '"' on string literal
+   4 | "bad\escape" "no closing quote
+     |              ^~~~~~~~~~~~~~~~~
+noise.javascript:10:21: error: unterminated comment
+  10 | /* final comment */ /* another unclosed
+     |                     ^~
+            \end{lstlisting}
+    \end{description}
 
 \end{appendices}
 
 %----------------------------------------------------------------------------------------
 
 \end{document}
-

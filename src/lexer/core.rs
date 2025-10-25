@@ -172,6 +172,10 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
                     return Err(DiagKind::UntermStr(string.len() + added_len));
                 };
 
+                if next == b'\n' {
+                    return Err(DiagKind::UntermStr(string.len() + added_len + 1));
+                }
+
                 if let Some(esc_seq) = Self::esc_seq(next) {
                     string.push(esc_seq as char);
                     added_len += 1;
