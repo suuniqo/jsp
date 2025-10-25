@@ -310,13 +310,8 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
 
     const fn esc_seq(byte: u8) -> Option<u8> {
         match byte {
-            b'0' => Some(b'\0'),
             b't' => Some(b'\t'),
             b'n' => Some(b'\n'),
-            b'r' => Some(b'\r'),
-            b'\\' => Some(b'\\'),
-            b'\'' => Some(b'\''),
-            b'\"' => Some(b'\"'),
             _ => None,
         }
     }

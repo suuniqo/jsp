@@ -5,6 +5,23 @@
 \usepackage{amsmath}
 \usepackage{tikz}
 \usetikzlibrary{arrows,automata,positioning}
+\usepackage{tcolorbox}
+
+\tcbuselibrary{listings, skins}
+
+\newtcolorbox{codeblock}[1][]{
+    listing only,
+    listing options={basicstyle=\ttfamily\large, breaklines=false},
+    colback=gray!5,
+    colframe=black!40,
+    boxsep=3pt,
+    left=4pt,right=4pt,top=4pt,bottom=4pt,
+    enhanced,
+    sharp corners,
+    fit algorithm=hybrid* strict, % <-- makes box fit content
+    #1
+}
+
 
 %----------------------------------------------------------------------------------------
 %   REPORT INFORMATION
@@ -110,7 +127,7 @@
 
     Cabe notar, además, que se ha decidido no hacer uso del \textit{token} fin de fichero (\textit{EOF}). Esto es porque el \textit{Lexer} se ha implementado como un iterador de \textit{tokens}, de modo que el final del flujo se detecta naturalmente cuando se consume el iterador.
 
-    \renewcommand{\arraystretch}{1.2}
+    \renewcommand{\arraystretch}{1.19}
     \begin{table}[H]
         \caption{Listado de \textit{tokens}}
         \begin{tabular}{L{0.35\linewidth} L{0.31\linewidth} L{0.17\linewidth}}
@@ -162,18 +179,18 @@
             true & True & - \\
             \bottomrule
         \end{tabular}
-        \label{tab:example}
+        \label{tab:tokens}
     \end{table}
 
     \subsection{Errores}
 
-    El diseño de los errores y del gestor está orientado a la \textit{UX}. Cada tipo de error consta de un mensaje diferente y de una severidad, distinguiéndose \textit{errors} de \textit{warnings} (que no impedirían la compilación del programa).
+    Cada tipo de error consta de un mensaje diferente y de una severidad, distinguiéndose \textit{error} de \textit{warning} (que no impediría la compilación del programa).
 
-    El procesador genera mensajes claros con número de línea y columna, muestra la línea afectada y subraya en color (que depende de la severidad) la parte errónea.
+    El procesador genera mensajes claros con número de línea y columna, muestra la línea afectada y subraya en color la parte errónea.
 
     El \textit{Lexer} sólo genera un warning, \textit{Invalid Escape Sequence}. Como se muestra en \hyperref[subsec:acciones-semanticas]{Acciones Semánticas}, al detectar una secuencia de escape inválida no se descartara el \textit{token} cadena, sino que se conserva literalmente (por ejemplo, la secuencia \textit{\textbackslash q}, se sustituye por esos dos mismos caracteres).
 
-    \renewcommand{\arraystretch}{1.5}
+    \renewcommand{\arraystretch}{1.35}
     \begin{table}[H]
         \caption{Listado de errores del \textit{Lexer}}
         \begin{tabular}{L{0.63\linewidth} L{0.20\linewidth}}
@@ -190,7 +207,7 @@
             Secuencia de Escape Inválida & \textit{warning} \\
             \bottomrule
         \end{tabular}
-        \label{tab:example}
+        \label{tab:err-lexer}
     \end{table}
 \end{multicols}
 
@@ -203,28 +220,30 @@
     \end{flalign*}
      $P$ se compone de las reglas:
     \begin{flalign*}
-        S &\to \textnormal{del}S \;\mid\; , \;\mid\; ; \;\mid\; ( \;\mid\; ) \;\mid\; \{ \;\mid\; \} \;\mid\; + \;\mid\; * \;\mid\; \% \;\mid\; =A \;\mid\; !B \;\mid\; <C \;\mid\; >D \;\mid\; \&E \;\mid\; |F \;\mid\; dG \;\mid\; "H \;\mid\; c_1I \;\mid\; /J \;\mid\; \textit{EOF} && \\
-        A &\to \; = \;\mid\; \lambda && \\
-        B &\to \; = \;\mid\; \lambda && \\
-        C &\to \; = \;\mid\; \lambda && \\
-        D &\to \; = \;\mid\; \lambda && \\
-        E &\to \; = \;\mid\; \lambda && \\
-        F &\to \; | && \\
-        G &\to dG \;\mid\; .K \;\mid\; \lambda && \\
-        K &\to dK \;\mid\; \lambda && \\
-        H &\to c_2H \;\mid\; \backslash L \;\mid\; " && \\
-        L &\to \textnormal{n}H \;\mid\; \textnormal{t}H && \\
-        I &\to c_3I \;\mid\; \lambda && \\
-        J &\to *M \;\mid\; \lambda && \\
-        M &\to c_4M \;\mid\; *N && \\
-        N &\to c_5M \;\mid\; *N \;\mid\; /S &&
+        S &\to delS \:\mid\: \textnormal{,} \:\mid\: \textnormal{;} \:\mid\: \textnormal{(} \:\mid\: \textnormal{)} \:\mid\: \textnormal{\{} \:\mid\: \textnormal{\}} \:\mid\: \textnormal{+} \:\mid\: \textnormal{*} \:\mid\: \textnormal{\%} \:\mid\: \textnormal{=}A \:\mid\: \textnormal{!}B \:\mid\: \textnormal{<}C \:\mid\: \textnormal{>}D \:\mid\: \textnormal{\&}E \:\mid\: \textnormal{|}F \:\mid\: dG \:\mid\: \textnormal{"}H \:\mid\: c_1I \:\mid\: \textnormal{/}J \:\mid\: \textit{EOF} && \\
+        A &\to \: = \:\mid\: \lambda && \\
+        B &\to \: = \:\mid\: \lambda && \\
+        C &\to \: = \:\mid\: \lambda && \\
+        D &\to \: = \:\mid\: \lambda && \\
+        E &\to \: = \:\mid\: \lambda && \\
+        F &\to \: | && \\
+        G &\to dG \:\mid\: .K \:\mid\: \lambda && \\
+        K &\to dK \:\mid\: \lambda && \\
+        H &\to c_2H \:\mid\: \backslash L \:\mid\: " && \\
+        L &\to \textnormal{n}H \:\mid\: \textnormal{t}H && \\
+        I &\to c_3I \:\mid\: \lambda && \\
+        J &\to *M \:\mid\: \lambda && \\
+        M &\to c_4M \:\mid\: *N && \\
+        N &\to c_5M \:\mid\: *N \:\mid\: /S &&
     \end{flalign*}
     Y se definen:
     \begin{flalign*}
+        del &:= \{\textnormal{Todos los caracteres \textit{ASCII} \textit{whitespace}}\} && \\
+        ngr &:= \{\textnormal{Todos los caracteres \textit{ASCII} no gráficos}\} && \\
         d &:= \{0, 1, \dots, 9\} && \\
         l &:= \{\textnormal{a}, \textnormal{b}, \dots, \textnormal{z}, \textnormal{A}, \textnormal{B}, \dots, \textnormal{Z}\} && \\
         c_1 &:= l \cup \{\_\} && \\
-        c_2 &:= T \setminus (\{\backslash, ", \textit{EOF}\} \cup \{\textnormal{Todos los caracteres \textit{ASCII} no gráficos (Es decir, con código menor que 32)\}}) && \\
+        c_2 &:= T \setminus (\{\backslash, ", \textit{EOF}\} \cup ngr) && \\
         c_3 &:= c_1 \cup d && \\
         c_4 &:= T \setminus \{*, \textit{EOF}\} && \\
         c_5 &:= T \setminus \{*, /, \textit{EOF}\} && \\
@@ -233,7 +252,13 @@
 
     \subsection{Autómata}
 
-    A continuación se muestra el autómata finito determinista que reconoce el lenguaje generado por la gramática $G$. Una transición "o.c." ocurre al leer un carácter que no corresponda a otra transición del estado.
+    A continuación se muestra el autómata finito determinista que reconoce el lenguaje generado por la gramática $G$. Nótese que una transición "o.c." ocurre al leer un carácter que no corresponda a otra transición del estado.
+
+    Se considera un error y se detiene la ejecución cuando el autómata lee un carácter con el que no puede transitar. Solo se alcanza un estado final cuando se ha reconocido un \textit{token} exitosamente.
+
+    Como se explica en el siguiente apartado, un autómata no va a ser un modelo suficientemente potente como para representar las operaciones de un \textit{Lexer}. Va a ser necesario complementarlo con algo más.
+
+    \vspace{0.02\textheight}
 
     \begin{figure}[ht]
         \centering
@@ -505,39 +530,309 @@
             \fill [black] (45.12,-49.9) -- (45.32,-50.83) -- (46.04,-50.13);
             \draw (54.24,-64) node [right,align=center] {$/$};
         \end{tikzpicture}
-        \vspace{0.02\textheight}
+        \vspace{0.03\textheight}
         \caption{Autómata que reconoce el lenguaje $L(G)$}
         \label{fig:automaton}
     \end{figure}
 
+    \vspace{0.01\textheight}
+
     \subsection{Acciones Semánticas}
     \label{subsec:acciones-semanticas}
 
-    \begin{lstlisting}
-        {
-            "city": [
-            {
-                "id": 1,
-                "name": "Toronto",
-                "country": "Canada",
-                "population": 6200000
-            },
-            {
-                "id": 2,
-                "name": "New York",
-                "country": "United States of America",
-                "population": 8800000
-            }
-            ]
-        }
-    \end{lstlisting}
+    Las acciones semánticas son operaciones adicionales que se ejecutan durante las transiciones del autómata, con el propósito de aumentar la expresividad cuando es necesario. Resultan especialmente útiles para realizar conversiones de tipos o para simplificar la ejecución de otras acciones más complejas.
+
+    Por claridad, se dividen en varios grupos:
+
+    \subsubsection{General}
+
+    \lstset{
+        aboveskip=8pt,
+        belowskip=8pt,
+        basicstyle=\ttfamily\small,
+        breaklines=true,
+        frame=single
+    }
+
+    \begin{description}
+        \item[READ] Segunda acción de toda transición menos $11$:$22$, $12$:$24$, $13$:$26$, $14$:$28$, $17$:$35$, $33$:$34$, $36$:$18$, $19$:$38$, $20$:$39$
+            \begin{lstlisting}[language=C]
+ chr := read()
+            \end{lstlisting}
+
+        \item[INV\_CHAR] Ante cualquier error no manejado en el resto de acciones
+            \begin{lstlisting}[language=C]
+ error("Illegal character")
+            \end{lstlisting}
+    \end{description}
+
+    \subsubsection{Generación Directa}
+
+    \begin{multicols}{2}
+
+    \begin{description}
+        \item[GEN\_COMMA] En la transición $0$:$1$
+            \begin{lstlisting}[language=C]
+ gen_token(Comma, -)
+            \end{lstlisting}
+
+        \item[GEN\_SEMI] En la transición $0$:$2$
+            \begin{lstlisting}[language=C]
+ gen_token(Semi, -)
+            \end{lstlisting}
+
+        \item[GEN\_LPAREN] En la transición $0$:$3$
+            \begin{lstlisting}[language=C]
+ gen_token(LParen, -)
+            \end{lstlisting}
+
+        \item[GEN\_RPAREN] En la transición $0$:$4$
+            \begin{lstlisting}[language=C]
+ gen_token(RParen, -)
+            \end{lstlisting}
+
+        \item[GEN\_LBRACK] En la transición $0$:$5$
+            \begin{lstlisting}[language=C]
+ gen_token(LBrack, -)
+            \end{lstlisting}
+
+        \item[GEN\_RBRACK] En la transición $0$:$6$
+            \begin{lstlisting}[language=C]
+ gen_token(RBrack, -)
+            \end{lstlisting}
+
+        \item[GEN\_SUM] En la transición $0$:$7$
+            \begin{lstlisting}[language=C]
+ gen_token(Sum, -)
+            \end{lstlisting}
+
+        \item[GEN\_SUB] En la transición $0$:$8$
+            \begin{lstlisting}[language=C]
+ gen_token(Sub, -)
+            \end{lstlisting}
+
+        \item[GEN\_MUL] En la transición $0$:$9$
+            \begin{lstlisting}[language=C]
+ gen_token(Mul, -)
+            \end{lstlisting}
+
+        \item[GEN\_MOD] En la transición $0$:$10$
+            \begin{lstlisting}[language=C]
+ gen_token(Mod, -)
+            \end{lstlisting}
+
+        \item[GEN\_EQ] En la transición $11$:$21$
+            \begin{lstlisting}[language=C]
+ gen_token(Eq, -)
+            \end{lstlisting}
+
+        \item[GEN\_ASSIGN] En la transición $11$:$22$
+            \begin{lstlisting}[language=C]
+ gen_token(Assign, -)
+            \end{lstlisting}
+
+        \item[GEN\_NE] En la transición $12$:$23$
+            \begin{lstlisting}[language=C]
+ gen_token(Ne, -)
+            \end{lstlisting}
+
+        \item[GEN\_NOT] En la transición $12$:$24$
+            \begin{lstlisting}[language=C]
+ gen_token(Not, -)
+            \end{lstlisting}
+
+        \item[GEN\_LE] En la transición $13$:$25$
+            \begin{lstlisting}[language=C]
+ gen_token(Le, -)
+            \end{lstlisting}
+
+        \item[GEN\_LT] En la transición $13$:$26$
+            \begin{lstlisting}[language=C]
+ gen_token(Lt, -)
+            \end{lstlisting}
+
+        \item[GEN\_GE] En la transición $14$:$27$
+            \begin{lstlisting}[language=C]
+ gen_token(Ge, -)
+            \end{lstlisting}
+
+        \item[GEN\_GT] En la transición $14$:$28$
+            \begin{lstlisting}[language=C]
+ gen_token(Gt, -)
+            \end{lstlisting}
+
+        \item[GEN\_ANDASSIGN] En la transición $15$:$29$
+            \begin{lstlisting}[language=C]
+ gen_token(AndAssign, -)
+            \end{lstlisting}
+
+        \item[GEN\_AND] En la transición $15$:$30$
+            \begin{lstlisting}[language=C]
+ gen_token(And, -)
+            \end{lstlisting}
+
+        \item[GEN\_OR] En la transición $16$:$31$
+            \begin{lstlisting}[language=C]
+ gen_token(Or, -)
+            \end{lstlisting}
+
+        \item[GEN\_DIV] En la transición $20$:$39$
+            \begin{lstlisting}[language=C]
+ gen_token(Div, -)
+            \end{lstlisting}
+
+    \end{description}
+    \end{multicols}
+
+    \begin{minipage}{\textwidth}
+    \subsubsection{Generación de Números}
+
+    \begin{multicols}{2}
+
+    \begin{description}
+        \item[INIT\_NUM] En la transición $0$:$17$
+            \begin{lstlisting}[language=C]
+ num := val(chr)
+            \end{lstlisting}
+
+        \item[INIT\_DEC] En la transición $32$:$33$
+            \begin{lstlisting}[language=C]
+ if (!is_ascii_digit(chr)) {
+     error("Invalid Float Format")
+ } else {
+     dec := 10
+     num := num + vald(chr) / dec
+ }
+            \end{lstlisting}
+
+        \item[GEN\_DEC] En la transición $33$:$34$
+            \begin{lstlisting}[language=C]
+ if (size_bytes(num) > 16) {
+     error("Float out of range")
+ } else {
+     gen_token(FloatLit, num)
+ }
+            \end{lstlisting}
+
+            \columnbreak
+
+        \item[ADD\_INTDIG] En la transición $17$:$17$
+            \begin{lstlisting}[language=C]
+ num := num * 10 + val(chr)
+            \end{lstlisting}
+
+            \vspace{0.03\textheight}
+        \item[ADD\_DECDIG] En las transiciones $33$:$33$
+            \begin{lstlisting}[language=C]
+ dec := dec * 10
+ num := num + vald(chr) / dec
+            \end{lstlisting}
+
+            \vspace{0.02\textheight}
+        \item[GEN\_INT] En la transición $17$:$35$
+            \begin{lstlisting}[language=C]
+ if (size_bytes(num) > 16) {
+     error("Integer out of range")
+ } else {
+     gen_token(IntLit, num)
+ }
+            \end{lstlisting}
+
+    \end{description}
+    \end{multicols}
+
+    \subsubsection{Generación de Cadenas e Identificadores}
+
+    \begin{multicols}{2}
+    \begin{description}
+
+        \item[INIT\_STR\_ID] En la transición $0$:$18$, $0$:$19$
+            \begin{lstlisting}[language=C]
+ lex := ""
+            \end{lstlisting}
+
+        \item[ADD\_CHAR\_STR] En la transición $18$:$18$
+            \begin{lstlisting}[language=C]
+ if (chr == EOF) {
+     error("Unterminated String")
+ } else {
+     lex.concat(chr)
+ }
+            \end{lstlisting}
+
+        \item[ADD\_ESCSEQ] En la transición $36$:$18$
+            \begin{lstlisting}[language=C]
+ switch (chr) {
+     case 'n' -> lex.concat('\n')
+     case 't' -> lex.concat('\t')
+     case EOF -> {
+         error("Unfinsihed comment")
+     }
+     default  -> {
+         warning("Invalid sequence")
+         lex.concat('\\')
+         lex.concat(chr)
+     }
+ }
+            \end{lstlisting}
+
+        \columnbreak
+
+        \item[ADD\_CHAR\_ID] En la transición $0$:$19$, $19$:$19$
+            \begin{lstlisting}[language=C]
+ lex.concat(chr)
+            \end{lstlisting}
+        \item[GEN\_STR] En la transición $18$:$37$
+            \begin{lstlisting}[language=C]
+ if (lex.len() > 64) {
+     error("String is too long")
+ } else {
+     gen_token(StrLit, lex)
+ }
+            \end{lstlisting}
+
+        \item[GEN\_ID] En la transición $19$:$38$
+            \begin{lstlisting}[language=C]
+ code := search_keyword(lex)
+
+ if (code != null) {
+     gen_token(code, -)
+ } else {
+     pos := symtable_search(lex)
+
+     if (pos == null) {
+         pos := symtable_insert(lex)
+     }
+     gen_token(Id, pos)
+ }
+            \end{lstlisting}
+
+    \end{description}
+    \end{multicols}
+
+    \subsubsection{Procesado de Comentarios}
+
+    \begin{description}
+        \item[UNTERM\_COMM] En las transiciones $40$:$40$, $40$:$41$, $41$:$40$, $41$:$41$
+            \begin{lstlisting}[language=C]
+ if (chr == EOF) {
+     error("Unterminated Comment")
+ }
+            \end{lstlisting}
+    \end{description}
+    \end{minipage}
 
     \section{Diseño de la Tabla de Símbolos}
     \subsection{Estructura y Organización}
 
     \section{Diseño del Parser}
+    Se detallará en la próxima entrega.
+
     \section{Diseño del Semanter}
+    Se detallará en la entrega final.
+
     \section{Gestor de Errores}
+    Se detallará en la entrega final.
 
 %----------------------------------------------------------------------------------------
 %   APPENDICES
