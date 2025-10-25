@@ -53,24 +53,6 @@ pub enum TokenKind {
     Eof,
 }
 
-pub static KEYWORDS: [TokenKind; TokenKind::KEYWORDS_LEN] = [
-    TokenKind::If,
-    TokenKind::Do,
-    TokenKind::While,
-    TokenKind::Int,
-    TokenKind::Float,
-    TokenKind::Str,
-    TokenKind::Bool,
-    TokenKind::Void,
-    TokenKind::Let,
-    TokenKind::Func,
-    TokenKind::Ret,
-    TokenKind::Read,
-    TokenKind::Write,
-    TokenKind::True,
-    TokenKind::False,
-];
-
 impl fmt::Display for TokenKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let (code, value) = match self {
@@ -129,8 +111,25 @@ impl fmt::Display for TokenKind {
 
 impl TokenKind {
     pub const MAX_STR_LEN: usize = 64;
-    pub const KEYWORDS_LEN: usize = 15;
 
+    const KEYWORDS_LEN: usize = 15;
+    const KEYWORDS: [TokenKind; TokenKind::KEYWORDS_LEN] = [
+        TokenKind::If,
+        TokenKind::Do,
+        TokenKind::While,
+        TokenKind::Int,
+        TokenKind::Float,
+        TokenKind::Str,
+        TokenKind::Bool,
+        TokenKind::Void,
+        TokenKind::Let,
+        TokenKind::Func,
+        TokenKind::Ret,
+        TokenKind::Read,
+        TokenKind::Write,
+        TokenKind::True,
+        TokenKind::False,
+    ];
 
     pub fn lexeme(&self) -> Option<&'static [u8]> {
         match self {
@@ -182,5 +181,26 @@ impl TokenKind {
 
             TokenKind::Eof => None,
         }
+    }
+
+    pub fn as_keyword(lexeme: &[u8]) -> Option<TokenKind> {
+        Some(Self::KEYWORDS[match lexeme {
+            b"if" => 0,
+            b"do" => 1,
+            b"while" => 2,
+            b"int" => 3,
+            b"float" => 4,
+            b"string" => 5,
+            b"boolean" => 6,
+            b"void" => 7,
+            b"let" => 8,
+            b"function" => 9,
+            b"return" => 10,
+            b"read" => 11,
+            b"write" => 12,
+            b"true" => 13,
+            b"false" => 14,
+            _ => return None,
+        }].clone())
     }
 }

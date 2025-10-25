@@ -42,7 +42,7 @@ fn main() {
             process::exit(1);
         });
 
-    let symtable = SymTableTracer::new(SymTableCore::with_keywords(), dst_sym.as_deref())
+    let symtable = SymTableTracer::new(SymTableCore::new(), dst_sym.as_deref())
         .unwrap_or_else(|err| {
             eprintln!("{}: {}", name, err);
             process::exit(1);

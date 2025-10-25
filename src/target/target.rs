@@ -1,4 +1,4 @@
-use std::{fs, io::Read, str, borrow};
+use std::{borrow, fs, io::Read, path::Path, str};
 
 use super::TargetErr;
 
@@ -8,7 +8,17 @@ pub struct Target {
 }
 
 impl Target {
+    const EXT: [&'static str; 2] = ["txt", "javascript"];
+
     pub fn from_path(path: String) -> Result<Self, TargetErr> {
+        let extension = match Path::new(&path).extension() {
+            Some(ext) => ext.to_str().unwrap_or(""),
+            None => "",
+        };
+
+        if !Self::EXT.contains(&extension) {
+            return Err(TargetErr::WrongExt(extension.to_string()));
+        }
 
         let mut file = fs::File::open(&path)
             .map_err(|e| TargetErr::OpenFailed(e))?;

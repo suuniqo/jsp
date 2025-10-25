@@ -208,12 +208,12 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
             self.read();
         }
 
-        let pos = self.ctx.symtable.intern(&self.bytes[start..self.rpos]);
+        let lexeme = &self.bytes[start..self.rpos];
         
-        if let Some(keyword) = self.ctx.symtable.as_keyword(pos) {
+        if let Some(keyword) = TokenKind::as_keyword(lexeme) {
             keyword
         } else {
-            TokenKind::Id(pos)
+            TokenKind::Id(self.ctx.symtable.intern(lexeme))
         }
     }
 

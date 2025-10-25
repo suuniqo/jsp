@@ -1,9 +1,7 @@
-use crate::token::TokenKind;
+use super::symbol::Symbol;
 
 
 pub trait SymTable {
     fn intern(&mut self, bytes: &[u8]) -> usize;
-
-    fn as_keyword(&self, pos: usize) -> Option<TokenKind>;
+    fn get(&self, pos: usize) -> Option<&Symbol>;
 }
-
