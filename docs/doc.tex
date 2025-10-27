@@ -16,9 +16,9 @@
 
 \reporttitle{Procesador de MyJS: \textit{jsp}}
 
-\reportsubtitle{Memoria del Grupo 59 (Primera Entrega)}
+\reportsubtitle{Memoria del Grupo 59}
 
-\reportauthors{Por Andrés Súnico (23M018)}
+\reportauthors{Andrés Súnico}
 
 \reportdate{\today}
 
@@ -70,7 +70,7 @@
 
     El desarrollo del procesador \textit{jsp} se ha centrado en la experiencia del usuario (\textit{UX}), priorizando tres aspectos clave: una gestión de errores sólida y clara, una interfaz de línea de comandos (\textit{CLI}) intuitiva, y un rendimiento eficiente.
 
-    Por ello, se ha elegido \textit{Rust} como el lenguaje de desarrollo. Ofrece una gestión de memoria eficiente, además de integrar \textit{clap}, una de las mejores bibliotecas para desarollar aplicaciones \textit{CLI}.
+    Por ello, se ha elegido \href{https://rust-lang.org/}{\textit{Rust}} como el lenguaje de desarrollo. Ofrece una gestión de memoria eficiente, además de integrar \href{https://docs.rs/clap/latest/clap/}{\textit{clap}}, una de las mejores bibliotecas para desarollar aplicaciones \textit{CLI}.
 
     Gracias al uso del patrón de \textit{inyección de dependencias} en todo el proyecto, el código fuente es altamente extensible y modular.
 
@@ -199,7 +199,7 @@
 
     \subsection{Gramática}
 
-    Se define la gramática del \textit{Lexer} como $G = (T, N, S, P)$, dónde:
+    Se define la gramática del \textit{Lexer} como la tupla $G = (T, N, S, P)$, dónde:
     \begin{flalign*}
         T &= \{ \textnormal{Todo carácter \textit{ASCII}} \} \cup \{\textit{EOF}\} && \\
         N &= \{A, B, C, D, E, F, G, H, I, J, K, L, M\} &&
@@ -250,9 +250,9 @@
         \]
      \end{multicols}
 
-     \footnotetext{La definición de delimitador se toma de la \href{https://tc39.es/ecma262/multipage/ecmascript-language-lexical-grammar.html\#sec-white-space}{documentación oficial de \textit{ECMAScript}}.}
+     El lenguaje generado por esta gramática, $L(G)$, está compuesto por el conjunto de todos los \textit{tokens} válidos del lenguaje de programación \textit{MyJS}. Por tanto, dada una cadena de símbolos terminales, la gramática $G$ es capaz de detectar si forma o no un \textit{token} válido.
 
-    \newpage
+     \footnotetext{La definición de delimitador se toma de la \href{https://tc39.es/ecma262/multipage/ecmascript-language-lexical-grammar.html\#sec-white-space}{documentación oficial de \textit{ECMAScript}}.}
 
     \subsection{Autómata}
 
@@ -260,7 +260,7 @@
 
     Se considera un error y se detiene la ejecución cuando el autómata lee un carácter con el que no puede transitar. Solo se alcanza un estado final cuando se ha reconocido un \textit{token} exitosamente.
 
-    Como se explica en el siguiente apartado, un autómata no va a ser un modelo suficientemente potente como para representar las operaciones de un \textit{Lexer}. Va a ser necesario complementarlo con algo más.
+    Como se explica en el siguiente apartado, un autómata no va a ser un modelo suficientemente potente como para representar las operaciones de un \textit{Lexer}. Va a ser necesario complementarlo con el conjunto de \hyperref[subsec:acciones-semanticas]{Acciones Semánticas} detallado en la siguiente sección.
 
     \vspace{0.02\textheight}
 
