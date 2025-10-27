@@ -3,6 +3,7 @@
 \usepackage[spanish, es-noshorthands]{babel}
 \usepackage{csquotes} 
 \usepackage{amsmath} 
+\usepackage{calc} 
 \usepackage{tikz}
 \usetikzlibrary{arrows,automata,positioning}
 \usepackage{tcolorbox}
@@ -69,7 +70,7 @@
 
     El desarrollo del procesador \textit{jsp} se ha centrado en la experiencia del usuario (\textit{UX}), priorizando tres aspectos clave: una gestión de errores sólida y clara, una interfaz de línea de comandos (\textit{CLI}) intuitiva, y un rendimiento eficiente.
 
-    Por ello, se ha elegido \textit{Rust} como el lenguaje de desarrollo. Ofrece una gestión de memoria eficiente, además de integrar \textit{clap}, una de las mejores librerías para desarollar aplicaciones \textit{CLI}.
+    Por ello, se ha elegido \textit{Rust} como el lenguaje de desarrollo. Ofrece una gestión de memoria eficiente, además de integrar \textit{clap}, una de las mejores bibliotecas para desarollar aplicaciones \textit{CLI}.
 
     Gracias al uso del patrón de \textit{inyección de dependencias} en todo el proyecto, el código fuente es altamente extensible y modular.
 
@@ -77,7 +78,7 @@
 
     El código fuente del procesador se puede encontrar en \href{https://www.github.com/suuniqo}{github.com/suuniqo}, así como los tests y las dependencias del proyecto.
 
-    \section{Opciones de la práctica}
+    \section{Opciones de la Práctica}
 
     Además de las opciones comunes a todos los grupos, se han implementado las opciones:
 
@@ -173,7 +174,7 @@
 
     El procesador genera mensajes claros con número de línea y columna, muestra la línea afectada y subraya en color la parte errónea.
 
-    El \textit{Lexer} sólo genera un warning, \textit{Invalid Escape Sequence}. Como se muestra en \hyperref[subsec:acciones-semanticas]{Acciones Semánticas}, al detectar una secuencia de escape inválida no se descartara el \textit{token} cadena, sino que se conserva literalmente (por ejemplo, la secuencia \textit{\textbackslash q}, se sustituye por esos dos mismos caracteres).
+    El \textit{Lexer} sólo genera un warning, \textit{Invalid Escape Sequence}. Como se muestra en \hyperref[subsec:acciones-semanticas]{Acciones Semánticas}, al detectar una secuencia de escape inválida no se descartara el \textit{token} cadena, sino que se conserva literalmente (por ejemplo, la secuencia \textit{\textbackslash q}, se sustituye por esos dos mismos caracteres)\footnote{Se ha elegido este comportamiento para que el procesador sea fiel a la \href{https://tc39.es/ecma262/multipage/ecmascript-language-lexical-grammar.html\#sec-literals-string-literals}{documentación oficial de \textit{ECMAScript}}.}.
 
     \renewcommand{\arraystretch}{1.35}
     \begin{table}[H]
@@ -203,37 +204,55 @@
         T &= \{ \textnormal{Todo carácter \textit{ASCII}} \} \cup \{\textit{EOF}\} && \\
         N &= \{A, B, C, D, E, F, G, H, I, J, K, L, M\} &&
     \end{flalign*}
-     $P$ se compone de las reglas:
-    \begin{flalign*}
-        S &\to delS \:\mid\: \textnormal{,} \:\mid\: \textnormal{;} \:\mid\: \textnormal{(} \:\mid\: \textnormal{)} \:\mid\: \textnormal{\{} \:\mid\: \textnormal{\}} \:\mid\: \textnormal{+} \:\mid\: \textnormal{*} \:\mid\: \textnormal{\%} \:\mid\: \textnormal{=}A \:\mid\: \textnormal{!}B \:\mid\: \textnormal{<}C \:\mid\: \textnormal{>}D \:\mid\: \textnormal{\&}E \:\mid\: \textnormal{|}F \:\mid\: dG \:\mid\: \textnormal{"}H \:\mid\: c_1I \:\mid\: \textnormal{/}J \:\mid\: \textit{EOF} && \\
-        A &\to \: = \:\mid\: \lambda && \\
-        B &\to \: = \:\mid\: \lambda && \\
-        C &\to \: = \:\mid\: \lambda && \\
-        D &\to \: = \:\mid\: \lambda && \\
-        E &\to \: = \:\mid\: \lambda && \\
-        F &\to \: | && \\
-        G &\to dG \:\mid\: .K \:\mid\: \lambda && \\
-        K &\to dK \:\mid\: \lambda && \\
-        H &\to c_2H \:\mid\: \backslash L \:\mid\: " && \\
-        L &\to \textnormal{n}H \:\mid\: \textnormal{t}H && \\
-        I &\to c_3I \:\mid\: \lambda && \\
-        J &\to *M \:\mid\: \lambda && \\
-        M &\to c_4M \:\mid\: *N && \\
-        N &\to c_5M \:\mid\: *N \:\mid\: /S &&
-    \end{flalign*}
-    Y se definen:
-    \begin{flalign*}
-        del &:= \{\textnormal{Todos los caracteres \textit{ASCII} \textit{whitespace}}\} && \\
-        ngr &:= \{\textnormal{Todos los caracteres \textit{ASCII} no gráficos}\} && \\
-        d &:= \{0, 1, \dots, 9\} && \\
-        l &:= \{\textnormal{a}, \textnormal{b}, \dots, \textnormal{z}, \textnormal{A}, \textnormal{B}, \dots, \textnormal{Z}\} && \\
-        c_1 &:= l \cup \{\_\} && \\
-        c_2 &:= T \setminus (\{\backslash, ", \textit{EOF}\} \cup ngr) && \\
-        c_3 &:= c_1 \cup d && \\
-        c_4 &:= T \setminus \{*, \textit{EOF}\} && \\
-        c_5 &:= T \setminus \{*, /, \textit{EOF}\} && \\
-    \end{flalign*}
 
+     $P$ se compone de la regla del axioma:
+
+    $S \to delS \:\mid\: \textnormal{,} \:\mid\: \textnormal{;} \:\mid\: \textnormal{(} \:\mid\: \textnormal{)} \:\mid\: \textnormal{\{} \:\mid\: \textnormal{\}} \:\mid\: \textnormal{+} \:\mid\: \textnormal{*} \:\mid\: \textnormal{\%} \:\mid\: \textnormal{=}A \:\mid\: \textnormal{!}B \:\mid\: \textnormal{<}C \:\mid\: \textnormal{>}D \:\mid\: \textnormal{\&}E \:\mid\: \textnormal{|}F \:\mid\: dG \:\mid\: \textnormal{"}H \:\mid\: c_1I \:\mid\: \textnormal{/}J \:\mid\: \textit{EOF}$
+
+     \begin{multicols}{2}
+        Y del resto de reglas:
+        \begin{flalign*}
+            A &\to \: = \:\mid\: \lambda && \\
+            B &\to \: = \:\mid\: \lambda && \\
+            C &\to \: = \:\mid\: \lambda && \\
+            D &\to \: = \:\mid\: \lambda && \\
+            E &\to \: = \:\mid\: \lambda && \\
+            F &\to \: | && \\
+            G &\to dG \:\mid\: .K \:\mid\: \lambda && \\
+            K &\to dK \:\mid\: \lambda && \\
+            H &\to c_2H \:\mid\: \backslash L \:\mid\: " && \\
+            L &\to \textnormal{n}H \:\mid\: \textnormal{t}H && \\
+            I &\to c_3I \:\mid\: \lambda && \\
+            J &\to *M \:\mid\: \lambda && \\
+            M &\to c_4M \:\mid\: *N && \\
+            N &\to c_5M \:\mid\: *N \:\mid\: /S &&
+        \end{flalign*}
+        \columnbreak
+        \vspace*{66pt}
+        \[
+            \fbox{%
+                \begin{minipage}{\widthof{$ngr := \{\textnormal{\textit{ASCII} con código} c : 32 \le c \le 126\}$} + 13pt}
+                    \vspace{-8pt}
+                    \begin{align*}
+                        del &:= \{\textnormal{\textit{ASCII} delimitadores\footnotemark}\} && \\
+                        ngr &:= \{\textnormal{\textit{ASCII} con código } c : 32 \le c \le 126\} && \\
+                        d &:= \{0, 1, \dots, 9\} && \\
+                        l &:= \{\textnormal{a}, \textnormal{b}, \dots, \textnormal{z}, \textnormal{A}, \textnormal{B}, \dots, \textnormal{Z}\} && \\
+                        c_1 &:= l \cup \{\_\} && \\
+                        c_2 &:= T \setminus (\{\backslash, ", \textit{EOF}\} \cup ngr) && \\
+                        c_3 &:= c_1 \cup d && \\
+                        c_4 &:= T \setminus \{*, \textit{EOF}\} && \\
+                        c_5 &:= T \setminus \{*, /, \textit{EOF}\} && \\
+                    \end{align*}
+                    \vspace{-32pt}
+                \end{minipage}%
+            }
+        \]
+     \end{multicols}
+
+     \footnotetext{La definición de delimitador se toma de la \href{https://tc39.es/ecma262/multipage/ecmascript-language-lexical-grammar.html\#sec-white-space}{documentación oficial de \textit{ECMAScript}}.}
+
+    \newpage
 
     \subsection{Autómata}
 
@@ -864,7 +883,7 @@
 
     \section{Casos de Prueba}
 
-    Se va a probar el funcionamiento del procesador con 6 fichero fuentes distintos. La mitad de ellos serán correctos y la otra incorrectos. En los casos correctos se volcará el fichero de \textit{tokens} y de la tabla de símbolos; en los incorrectos los diagnósticos generados por el gestor de errores.
+    Se va a probar el funcionamiento del procesador con 6 ficheros fuentes distintos. La mitad de ellos serán correctos y la otra incorrectos. En los casos correctos se volcará el fichero de \textit{tokens} y de la tabla de símbolos; en los incorrectos los diagnósticos generados por el gestor de errores.
 
     \subsection{Casos Correctos}
 
