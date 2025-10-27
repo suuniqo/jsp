@@ -1334,7 +1334,7 @@ let int imax_plus_one = 32768;
 
 /* max float */
 let float fmax = 340282346638528859811704183484516925440.0;
-let float fmax_plus_one = 340282346638528859811704183484516925441;
+let float fmax_plus_more = 3402823466385288598117041834845169254382923892341.0;
 let float lots_of_decimals = 0.2347028349820934809218409238845290380928;
             \end{lstlisting}
 
@@ -1346,9 +1346,9 @@ overflow.javascript:5:18: error: string literal is too long, length is 65 but th
 overflow.javascript:9:25: error: integer literal out of range for 16-byte type
    9 | let int imax_plus_one = 32768;
      |                         ^~~~~
-overflow.javascript:13:27: error: integer literal out of range for 16-byte type
-  13 | let float fmax_plus_one = 340282346638528859811704183484516925441;
-     |                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+overflow.javascript:13:27: error: float literal out of range for 32-byte type
+  13 | let float fmax_plus_one = 3402823466385288598117041834845169254382923892341.0;
+     |                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             \end{lstlisting}
             \newpage
 
