@@ -47,4 +47,3 @@ impl<T: SymTable> Drop for LexerTracer<'_, '_, T> {
         }
     }
 }
-

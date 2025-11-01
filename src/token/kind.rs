@@ -183,23 +183,23 @@ impl TokenKind {
         }
     }
 
-    pub fn as_keyword(lexeme: &[u8]) -> Option<TokenKind> {
+    pub fn as_keyword(lexeme: &str) -> Option<TokenKind> {
         Some(Self::KEYWORDS[match lexeme {
-            b"if" => 0,
-            b"do" => 1,
-            b"while" => 2,
-            b"int" => 3,
-            b"float" => 4,
-            b"string" => 5,
-            b"boolean" => 6,
-            b"void" => 7,
-            b"let" => 8,
-            b"function" => 9,
-            b"return" => 10,
-            b"read" => 11,
-            b"write" => 12,
-            b"true" => 13,
-            b"false" => 14,
+            "if" => 0,
+            "do" => 1,
+            "while" => 2,
+            "int" => 3,
+            "float" => 4,
+            "string" => 5,
+            "boolean" => 6,
+            "void" => 7,
+            "let" => 8,
+            "function" => 9,
+            "return" => 10,
+            "read" => 11,
+            "write" => 12,
+            "true" => 13,
+            "false" => 14,
             _ => return None,
         }].clone())
     }

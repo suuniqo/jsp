@@ -1,12 +1,16 @@
 use std::{env, process};
 
-use crate::{context::{diag::DiagManager, symtable::{SymTableCore, SymTableTracer}, Context}, lexer::{LexerTracer, LexerCore}, target::Target};
+use crate::{context::{reporter::Reporter, symtable::{SymTableCore, SymTableTracer}, Context}, lexer::{LexerTracer, LexerCore}, target::Target};
 
-mod token;
 mod target;
+mod window;
+mod lexer;
 mod context;
 mod writer;
-mod lexer;
+mod color;
+mod token;
+mod diag;
+mod span;
 
 
 fn fetch_args() -> (String, String, Option<String>, Option<String>) {
@@ -51,7 +55,7 @@ fn main() {
 
     let mut ctx = Context::new(
         symtable,
-        DiagManager::new(&target),
+        Reporter::new(&target),
     );
 
     let lexer = LexerTracer::new(LexerCore::new(&mut ctx, &target), dst_tok.as_deref())

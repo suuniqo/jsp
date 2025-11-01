@@ -1,5 +1,5 @@
-mod kind;
 mod token;
+mod kind;
 
-pub use token::Token;
 pub use kind::TokenKind;
+pub use token::Token;

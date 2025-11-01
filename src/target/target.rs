@@ -1,10 +1,11 @@
-use std::{borrow, fs, io::Read, path::Path, str};
+use std::{fs, path::Path, str};
 
 use super::TargetErr;
 
 pub struct Target {
     path: String,
-    bytes: Vec<u8>,
+    src: String,
+    offsets: Vec<usize>,
 }
 
 impl Target {
@@ -20,25 +21,29 @@ impl Target {
             return Err(TargetErr::WrongExt(extension.to_string()));
         }
 
-        let mut file = fs::File::open(&path)
+        let src = fs::read_to_string(&path)
             .map_err(|e| TargetErr::OpenFailed(e))?;
 
-        let size = file
-            .metadata()
-            .map_err(|e| TargetErr::QueryFailed(e))?
-            .len();
+        if src.is_empty() {
+            return Err(TargetErr::EmptyFile);
+        }
 
-        let mut bytes = Vec::new();
+        let mut offsets = vec![0];
 
-        bytes.try_reserve_exact(size as usize)
-             .map_err(|e| TargetErr::AllocFailed(e))?;
+        for (i, byte) in src.bytes().enumerate() {
+            if byte == b'\n' {
+                offsets.push(i+1);
+            }
+        }
 
-        file.read_to_end(&mut bytes)
-            .map_err(|e| TargetErr::ReadFailed(e))?;
+        if *offsets.last().unwrap() != src.len() {
+            offsets.push(src.len());
+        }
 
         Ok(Self {
             path,
-            bytes,
+            src,
+            offsets,
         })
     }
 
@@ -46,14 +51,19 @@ impl Target {
         &self.path
     }
 
-    pub fn bytes(&self) -> &[u8] {
-        &self.bytes
+    pub fn src(&self) -> &str {
+        self.src.as_str()
     }
 
-    pub fn nth_line(&self, idx: usize) -> Option<borrow::Cow<'_, str>> {
-        self.bytes
-            .split(|&b| b == b'\n')
-            .nth(idx)
-            .map(|bytes| String::from_utf8_lossy(bytes))
+    pub fn line_offsets(&self) -> &Vec<usize> {
+        &self.offsets
+    }
+
+    pub fn nth_line(&self, idx: usize) -> Option<(&str, usize)> {
+        if idx >= self.offsets.len() - 1 {
+            None
+        } else {
+            Some((&self.src[self.offsets[idx]..self.offsets[idx+1]], self.offsets[idx]))
+        }
     }
 }

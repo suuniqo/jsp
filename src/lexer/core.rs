@@ -1,131 +1,95 @@
-use crate::context::{diag::{Diag, DiagKind}, symtable::SymTable, Context};
+use crate::context::{symtable::SymTable, Context};
+use crate::diag::{Diag, DiagKind};
 use crate::target::Target;
 use crate::token::{Token, TokenKind};
+use crate::window::Window;
+use crate::span::Span;
 
 use super::Lexer;
 
 
 pub struct LexerCore<'t, 'c, T: SymTable> {
-    bytes: &'t [u8],
-    curr: Option<u8>,
-    rpos: usize,
-    row: usize,
-    col: usize,
+    win: Window<'t>,
+    trg: &'t Target,
     ctx: &'c mut Context<'t, T>,
 }
 
 impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
-    pub fn new(ctx: &'c mut Context<'t, T>, target: &'t Target) -> Self {
+    pub fn new(ctx: &'c mut Context<'t, T>, trg: &'t Target) -> Self {
+        let win = Window::new(trg.src());
+
         Self {
-            bytes: target.bytes(),
-            curr: None,
-            rpos: 0,
-            row: 1,
-            col: 1,
+            win,
+            trg,
             ctx,
         }
     }
 
-    #[inline]
-    fn peek(&mut self) -> Option<u8> {
-        self.bytes.get(self.rpos).copied()
-    }
-
-    fn read(&mut self) {
-        if let Some(curr) = self.curr {
-            if curr == b'\n' {
-                self.row += 1;
-                self.col = 1;
-            } else {
-                self.col += 1;
-            }
-        }
-
-        self.curr = self.peek();
-        self.rpos = usize::min(self.rpos + 1, self.bytes.len());
-    }
-
-
-    fn skip_whitespace(&mut self) {
-        while self.curr.is_some_and(|curr| curr.is_ascii_whitespace()) {
-            self.read();
-        }
-    }
-
     fn skip_comment(&mut self) -> Result<(), Diag> {
-        let coords = (self.row, self.col);
+        // eat initial '/' and '*'
+        self.win.consume();
+        self.win.consume();
 
-        self.read();
+        let span = self.win.span();
 
         loop {
-            self.read();
+            self.win.consume_while(|c| c != '*');
 
-            let Some(curr) = self.curr else {
-                return Err(Diag::new(DiagKind::UntermComm, coords.0, coords.1));
-            };
-
-            if curr == b'*' && self.peek().is_some_and(|next| next == b'/') {
-                self.read();
-                return Ok(())
+            if self.win.peek_two() == ('*', '/') {
+                break;
+            } else if self.win.finished() {
+                return Err(Diag::new(DiagKind::UntermComm, span));
             }
+
+            self.win.consume();
         }
+
+        // eat ending '*' and '/'
+        self.win.consume();
+        self.win.consume();
+
+        Ok(())
     }
 
-    fn read_num(&mut self) -> Result<TokenKind, DiagKind> {
-        let start = self.rpos - 1;
+    fn parse_int(slice: &str) -> Result<TokenKind, DiagKind> {
+        let mut val = 0i32;
 
-        let mut dot = None;
+        for c in slice.chars() {
+            val = val * 10 + (c as u8 - b'0') as i32;
 
-        loop {
-            let next = self.peek();
-
-            if dot.is_none() && next.is_some_and(|next| next == b'.') {
-                dot = Some(self.rpos);
-
-                self.read();
-
-                if self.peek().is_none_or(|next| !next.is_ascii_digit()) {
-                    return Err(DiagKind::InvFmtFloat(self.rpos - start));
-                }
-            } else if next.is_none_or(|next| !next.is_ascii_digit()) {
-                break;
+            if val > i16::MAX as i32 {
+                return Err(DiagKind::OverflowInt);
             }
-
-            self.read();
         }
 
-        let Some(dot_pos) = dot else {
-            let mut val = 0i32;
+        return Ok(TokenKind::IntLit(val as i16));
+    }
 
-            for &byte in &self.bytes[start..self.rpos] {
-                val = val * 10 + (byte - b'0') as i32;
-
-                if val > i16::MAX as i32 {
-                    return Err(DiagKind::OverflowInt(self.rpos - start));
-                }
-            }
-
-            return Ok(TokenKind::IntLit(val as i16));
-        };
-
+    fn parse_float(slice: &str) -> Result<TokenKind, DiagKind> {
         let mut val = 0f64;
+        let mut chars = slice.chars();
 
-        for &byte in &self.bytes[start..dot_pos] {
-            val = val * 10.0 + (byte - b'0') as f64;
+        // compute integer part
+        for c in chars.by_ref().take_while(|&c| c != '.') {
+            val = val * 10.0 + (c as u8 - b'0') as f64;
 
             if val > f32::MAX as f64 {
-                return Err(DiagKind::OverflowFloat(self.rpos - start));
+                return Err(DiagKind::OverflowFloat);
             }
         }
 
         let mut div = 10.0;
 
-        for &byte in &self.bytes[dot_pos+1..self.rpos] {
-            val += (byte - b'0') as f64 / div;
+        // consume the '.'
+        chars.next();
+
+        // compute decimal part
+        for c in chars {
+            val += (c as u8 - b'0') as f64 / div;
             div *= 10.0;
 
             if val > f32::MAX as f64 {
-                return Err(DiagKind::OverflowFloat(self.rpos - start));
+                return Err(DiagKind::OverflowFloat);
             }
 
             if div > 1e10 {
@@ -135,80 +99,132 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
 
         let val = val as f32;
 
-        if !(val.is_finite()) {
-            Err(DiagKind::OverflowFloat(self.rpos - start))
+        if !val.is_finite() {
+            Err(DiagKind::OverflowFloat)
         } else {
             Ok(TokenKind::FloatLit(val))
         }
-
     }
 
-    fn read_str(&mut self) -> Result<TokenKind, DiagKind> {
-        let mut string = String::new();
-        let mut added_len = 1;
+    fn read_num(&mut self) -> Result<TokenKind, DiagKind> {
+        let mut has_dot = false;
 
-        loop {
-            let Some(next) = self.peek() else {
-                return Err(DiagKind::UntermStr(string.len() + added_len));
-            };
+        while !self.win.finished() {
+            let next = self.win.peek_one();
 
-            if !next.is_ascii_graphic() && next != b' ' {
-                while !self.peek().is_none_or(|next| next == b'\n') {
-                    self.read();
+            if !has_dot && next == '.' {
+                has_dot = true;
+                self.win.consume();
+
+                if !self.win.peek_one().is_ascii_digit() {
+                    return Err(DiagKind::InvFmtFloat);
                 }
-
-                return Err(DiagKind::UntermStr(string.len() + added_len));
-            }
-
-            if next == b'"' {
-                self.read();
+            } else if !next.is_ascii_digit() {
                 break;
             }
 
-            if next == b'\\' {
-                self.read();
-
-                let Some(next) = self.peek() else {
-                    return Err(DiagKind::UntermStr(string.len() + added_len));
-                };
-
-                if next == b'\n' {
-                    return Err(DiagKind::UntermStr(string.len() + added_len + 1));
-                }
-
-                if let Some(esc_seq) = Self::esc_seq(next) {
-                    string.push(esc_seq as char);
-                    added_len += 1;
-                } else {
-                    self.ctx.diags.push(Diag::new(DiagKind::InvEscSeq(next as char), self.row, self.col));
-
-                    string.push('\\');
-                    string.push(next as char);
-                }
-            } else {
-                string.push(next as char);
-            }
-
-            self.read();
+            self.win.consume();
         }
 
-        added_len += 1;
+        let slice = self.trg.slice_from_span(&self.win.span());
+
+        if !has_dot {
+            Self::parse_int(slice)
+        } else {
+            Self::parse_float(slice)
+        }
+    }
+
+    fn read_str(&mut self) -> Result<Token, Diag> {
+        let mut string = String::new();
+
+        loop {
+            match self.win.peek_one() {
+                '\n' => return Err(Diag::new(DiagKind::UntermStr, self.win.span())),
+                '\\' => {
+                    let start = self.win.span().end;
+
+                    // consume the '\'
+                    self.win.consume();
+
+                    let next = self.win.peek_one();
+
+                    if self.win.finished() || next == '\n' {
+                        return Err(Diag::new(DiagKind::UntermStr, self.win.span()));
+                    }
+
+                    if next.is_control() {
+                        // target the control character
+                        self.win.collapse();
+                        self.win.consume();
+
+                        let span = self.win.span();
+
+                        // to recover from the error the line is skipped
+                        self.win.consume_while(|next| next != '\n');
+
+                        return Err(Diag::new(DiagKind::MalformedStr(next), span));
+                    }
+
+                    if let Some(esc_seq) = Self::esc_seq(next) {
+                        // consume the escape character
+                        self.win.consume();
+                        string.push(esc_seq);
+                    } else {
+                        // consume escape character
+                        self.win.consume();
+
+                        self.ctx.reporter.push(Diag::new(
+                            DiagKind::InvEscSeq(next),
+                            Span::new(start, self.win.span().end)
+                        ));
+
+                        string.push('\\');
+                        string.push(next);
+                    }
+                },
+                '"' => {
+                    self.win.consume();
+                    break;
+                },
+                other => {
+                    if self.win.finished() {
+                        return Err(Diag::new(DiagKind::UntermStr, self.win.span()));
+                    }
+
+                    if other.is_control() {
+                        // target the control character
+                        self.win.collapse();
+                        self.win.consume();
+
+                        let span = self.win.span();
+
+                        // to recover from the error the line is skipped
+                        self.win.consume_while(|next| next != '\n');
+
+                        return Err(Diag::new(DiagKind::MalformedStr(other), span));
+                    }
+
+                    // consume the character
+                    self.win.consume();
+                    string.push(other);
+                },
+            }
+        }
+
+        let span = self.win.span();
 
         if string.len() > TokenKind::MAX_STR_LEN {
-            return Err(DiagKind::OverflowStr((string.len(), added_len)));
+            Err(Diag::new(DiagKind::OverflowStr(string.len()), span))
+        } else {
+            Ok(Token::new(TokenKind::StrLit(string), span))
         }
-
-        Ok(TokenKind::StrLit(string))
     }
 
     fn read_id(&mut self) -> TokenKind {
-        let start = self.rpos - 1;
+        self.win.consume_while(|next| next.is_ascii_alphanumeric() || next == '_');
 
-        while self.peek().is_some_and(|next| next.is_ascii_alphanumeric() || next == b'_') {
-            self.read();
-        }
-
-        let lexeme = &self.bytes[start..self.rpos];
+        let lexeme = self.trg.slice_from_span(&self.win.span());
         
         if let Some(keyword) = TokenKind::as_keyword(lexeme) {
             keyword
@@ -219,103 +235,105 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
 
     fn next_token(&mut self) -> Result<Token, Diag> {
         loop {
-            self.read();
-            self.skip_whitespace();
+            self.win.consume_while(|c| c.is_ascii_whitespace());
+            self.win.collapse();
 
-            if self.curr.is_some_and(|curr| curr == b'/') && self.peek().is_some_and(|next| next == b'*') {
+            if self.win.peek_two() == ('/', '*') {
                 self.skip_comment()?;
             } else {
-                break;
+                break
             }
         }
 
-        let Some(curr) = self.curr else {
-            return Ok(Token::new(TokenKind::Eof, self.col, self.row));
+        self.win.collapse();
+
+        let Some(curr) = self.win.consume() else {
+            return Ok(Token::new(TokenKind::Eof, self.win.span()));
         };
 
-        let col = self.col;
-
         let kind = match curr {
-            b',' => Ok(TokenKind::Comma),
-            b';' => Ok(TokenKind::Semi),
-            b'(' => Ok(TokenKind::LParen),
-            b')' => Ok(TokenKind::RParen),
-            b'{' => Ok(TokenKind::LBrack),
-            b'}' => Ok(TokenKind::RBrack),
-            b'+' => Ok(TokenKind::Sum),
-            b'-' => Ok(TokenKind::Sub),
-            b'*' => Ok(TokenKind::Mul),
-            b'/' => Ok(TokenKind::Div),
-            b'%' => Ok(TokenKind::Mod),
-            b'=' => {
-                if self.peek().is_some_and(|next| next == b'=') {
-                    self.read();
+            ',' => Ok(TokenKind::Comma),
+            ';' => Ok(TokenKind::Semi),
+            '(' => Ok(TokenKind::LParen),
+            ')' => Ok(TokenKind::RParen),
+            '{' => Ok(TokenKind::LBrack),
+            '}' => Ok(TokenKind::RBrack),
+            '+' => Ok(TokenKind::Sum),
+            '-' => Ok(TokenKind::Sub),
+            '*' => Ok(TokenKind::Mul),
+            '/' => Ok(TokenKind::Div),
+            '%' => Ok(TokenKind::Mod),
+            '=' => {
+                if self.win.peek_one() == '=' {
+                    self.win.consume();
                     Ok(TokenKind::Eq)
                 } else {
                     Ok(TokenKind::Assign)
                 }
             },
-            b'!' => {
-                if self.peek().is_some_and(|next| next == b'=') {
-                    self.read();
+            '!' => {
+                if self.win.peek_one() == '=' {
+                    self.win.consume();
                     Ok(TokenKind::Ne)
                 } else {
                     Ok(TokenKind::Not)
                 }
             },
-            b'<' => {
-                if self.peek().is_some_and(|next| next == b'=') {
-                    self.read();
+            '<' => {
+                if self.win.peek_one() == '=' {
+                    self.win.consume();
                     Ok(TokenKind::Le)
                 } else {
                     Ok(TokenKind::Lt)
                 }
             },
-            b'>' => {
-                if self.peek().is_some_and(|next| next == b'=') {
-                    self.read();
+            '>' => {
+                if self.win.peek_one() == '=' {
+                    self.win.consume();
                     Ok(TokenKind::Ge)
                 } else {
                     Ok(TokenKind::Gt)
                 }
             },
-            b'&' => {
-                let Some(next) = self.peek() else {
-                    return Err(Diag::new(DiagKind::StrayChar('&'), self.row, col));
-                };
-
-                if next == b'&' {
-                    self.read();
-                    Ok(TokenKind::And)
-                } else if next == b'=' {
-                    self.read();
-                    Ok(TokenKind::AndAssign)
-                } else {
-                    Err(DiagKind::StrayChar('&'))
+            '&' => {
+                match self.win.peek_one() {
+                    '&' => {
+                        self.win.consume();
+                        Ok(TokenKind::And)
+                    },
+                    '=' => {
+                        self.win.consume();
+                        Ok(TokenKind::AndAssign)
+                    }
+                    _ => Err(DiagKind::StrayChar('&'))
                 }
             },
-            b'|' => {
-                if self.peek().is_some_and(|next| next == b'|') {
-                    self.read();
+            '|' => {
+                if self.win.peek_one() == '|' {
+                    self.win.consume();
                     Ok(TokenKind::Or)
                 } else {
                     Err(DiagKind::StrayChar('|'))
                 }
             }
-            b'0'..=b'9' => self.read_num(),
-            b'"' => self.read_str(),
-            b'a'..=b'z' | b'A'..=b'Z' | b'_' => Ok(self.read_id()),
-            other => Err(DiagKind::StrayChar(other as char)),
+            '0'..='9' => self.read_num(),
+            '"' => return self.read_str(),
+            'a'..='z' | 'A'..='Z' | '_' => Ok(self.read_id()),
+            other => Err(DiagKind::StrayChar(other)),
         };
 
-        kind.map(|kind| Token::new(kind, self.row, col))
-            .map_err(|kind| Diag::new(kind, self.row, col))
+        let span = self.win.span();
+
+        match kind {
+            Ok(kind) => Ok(Token::new(kind, span)),
+            Err(kind) => Err(Diag::new(kind, span)),
+        }
     }
 
-    const fn esc_seq(byte: u8) -> Option<u8> {
+    const fn esc_seq(byte: char) -> Option<char> {
         match byte {
-            b't' => Some(b'\t'),
-            b'n' => Some(b'\n'),
+            't' => Some('\t'),
+            'n' => Some('\n'),
             _ => None,
         }
     }
@@ -332,7 +350,7 @@ impl<'t, 'c, T: SymTable> Iterator for LexerCore<'t, 'c, T> {
                 } else {
                     Some(token)
                 },
-                Err(diag) => self.ctx.diags.push(diag),
+                Err(diag) => self.ctx.reporter.push(diag),
             }
         }
     }

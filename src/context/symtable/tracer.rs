@@ -26,8 +26,8 @@ impl SymTableTracer {
 }
 
 impl SymTable for SymTableTracer {
-    fn intern(&mut self, bytes: &[u8]) -> usize {
-        let pos = self.inner.intern(bytes);
+    fn intern(&mut self, lexeme: &str) -> usize {
+        let pos = self.inner.intern(lexeme);
 
         if pos == self.pos {
             self.trace.push(self.inner.get(pos).expect("couldn't newly inserted id").clone());

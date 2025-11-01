@@ -1,26 +1,18 @@
-use std::fmt;
+use crate::span::Span;
 
 use super::TokenKind;
 
 
 pub struct Token {
     pub kind: TokenKind,
-    pub row: usize,
-    pub col: usize,
+    pub span: Span,
 }
 
 impl Token {
-    pub fn new(kind: TokenKind, row: usize, col: usize) -> Self {
+    pub fn new(kind: TokenKind, span: Span) -> Self {
         Self {
             kind,
-            row,
-            col,
+            span,
         }
-    }
-}
-
-impl fmt::Display for Token {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "({}, {}, {})", self.row, self.col, self.kind)
     }
 }

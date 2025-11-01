@@ -19,8 +19,8 @@ impl SymTableCore {
 }
 
 impl SymTable for SymTableCore {
-    fn intern(&mut self, bytes: &[u8]) -> usize {
-        match self.map.entry(Symbol::from_bytes(bytes)) {
+    fn intern(&mut self, lexeme: &str) -> usize {
+        match self.map.entry(Symbol::from_lexeme(lexeme)) {
             Entry::Occupied(entry) => *entry.get(),
             Entry::Vacant(entry) => {
                 let pos = self.vec.len();
