@@ -33,7 +33,9 @@ impl<'t> Reporter<'t> {
         let (row, _) = self.trg.coord_from_span(&self.max_span)
             .expect("invalid span when fetching padding len");
 
-        Self::digits(row + 1)
+        let digits = Self::digits(row + 1);
+
+        digits - (digits % 4) + 4
     }
 
     fn digits(row: usize) -> usize {
@@ -55,8 +57,8 @@ impl Drop for Reporter<'_> {
 
             let lspan = Span::new(diag.span.start - offset, diag.span.end - offset);
 
-            eprintln!("{}{} ┏━ {}:{}:{}: {}{}: {}{}",
-                Color::HIGHLIGHT, padding_row, self.trg.path(), row + 1, col + 1,
+            eprintln!("{}{}:{}:{}: {}{}: {}{}",
+                Color::HIGHLIGHT, self.trg.path(), row + 1, col + 1,
                 diag.kind.sever().color(), diag.kind.sever(), Color::RESET, diag.kind
             );
 
@@ -67,7 +69,9 @@ impl Drop for Reporter<'_> {
             let prefix_len = prefix.chars().count();
             let context_len = context.chars().count();
 
-            eprintln!("{}{}{} ┃ {} {}{}{}{}{}",
+            eprintln!("{}{} |", Color::HIGHLIGHT, padding_row);
+
+            eprintln!("{}{}{} | {}{}{}{}{}{}",
                 Color::HIGHLIGHT, &padding_row[Self::digits(row + 1)..], row + 1, Color::RESET, prefix,
                 diag.kind.sever().color(), context, Color::RESET, suffix
             );
@@ -75,7 +79,7 @@ impl Drop for Reporter<'_> {
             let prefix_padding = " ".repeat(prefix_len);
             let underline = "^".repeat(context_len);
 
-            eprintln!("{}{} ┃  {}{}{}{}",
+            eprintln!("{}{} | {}{}{}{}",
                 Color::HIGHLIGHT, padding_row, prefix_padding,
                 diag.kind.sever().color(), underline, Color::RESET
             );
