@@ -63,7 +63,10 @@ impl Target {
         if idx >= self.offsets.len() - 1 {
             None
         } else {
-            Some((&self.src[self.offsets[idx]..self.offsets[idx+1]], self.offsets[idx]))
+            let slice = &self.src[self.offsets[idx]..self.offsets[idx+1]];
+            let slice = slice.strip_suffix('\n').unwrap_or(slice);
+
+            Some((slice, self.offsets[idx]))
         }
     }
 }

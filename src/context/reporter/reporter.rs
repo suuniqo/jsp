@@ -12,7 +12,6 @@ pub struct Reporter<'t> {
 
 impl<'t> Reporter<'t> {
     pub fn new(target: &'t Target) -> Self {
-        println!("{:?}", target.src().char_indices().collect::<Vec<(usize, char)>>());
         Self {
             trg: target,
             diags: Vec::new(),
@@ -34,9 +33,7 @@ impl<'t> Reporter<'t> {
         let (row, _) = self.trg.coord_from_span(&self.max_span)
             .expect("invalid span when fetching padding len");
 
-        let digits = Self::digits(row + 1);
-
-        digits - (digits % 4) + 4
+        Self::digits(row + 1)
     }
 
     fn digits(row: usize) -> usize {
@@ -58,8 +55,8 @@ impl Drop for Reporter<'_> {
 
             let lspan = Span::new(diag.span.start - offset, diag.span.end - offset);
 
-            eprintln!("{}{}:{}:{}: {}{}: {}{}",
-                Color::HIGHLIGHT, self.trg.path(), row + 1, col + 1,
+            eprintln!("{}{} ┏━ {}:{}:{}: {}{}: {}{}",
+                Color::HIGHLIGHT, padding_row, self.trg.path(), row + 1, col + 1,
                 diag.kind.sever().color(), diag.kind.sever(), Color::RESET, diag.kind
             );
 
@@ -70,16 +67,16 @@ impl Drop for Reporter<'_> {
             let prefix_len = prefix.chars().count();
             let context_len = context.chars().count();
 
-            eprintln!("{}{} | {}{}{}{}{}",
-                &padding_row[Self::digits(row + 1)..], row + 1, prefix,
+            eprintln!("{}{}{} ┃ {} {}{}{}{}{}",
+                Color::HIGHLIGHT, &padding_row[Self::digits(row + 1)..], row + 1, Color::RESET, prefix,
                 diag.kind.sever().color(), context, Color::RESET, suffix
             );
 
             let prefix_padding = " ".repeat(prefix_len);
-            let underline = "~".repeat(context_len - 1);
+            let underline = "^".repeat(context_len);
 
-            eprintln!("{} | {}{}^{}{}",
-                padding_row, prefix_padding,
+            eprintln!("{}{} ┃  {}{}{}{}",
+                Color::HIGHLIGHT, padding_row, prefix_padding,
                 diag.kind.sever().color(), underline, Color::RESET
             );
         }
