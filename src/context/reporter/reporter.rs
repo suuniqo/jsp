@@ -79,10 +79,12 @@ impl Drop for Reporter<'_> {
             let prefix_padding = " ".repeat(prefix_len);
             let underline = "^".repeat(context_len);
 
-            eprintln!("{}{} | {}{}{}{}",
+            eprintln!("{}{} | {}{}{} {}{}",
                 Color::HIGHLIGHT, padding_row, prefix_padding,
-                diag.kind.sever().color(), underline, Color::RESET
+                diag.kind.sever().color(), underline, diag.kind.afterword(), Color::RESET
             );
+
+            eprintln!("{}{} |", Color::HIGHLIGHT, padding_row);
         }
     }
 }

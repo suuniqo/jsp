@@ -117,7 +117,14 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
                 self.win.consume();
 
                 if !self.win.peek_one().is_ascii_digit() {
-                    return Err(DiagKind::InvFmtFloat);
+                    let mut span = self.win.span();
+
+                    // remove '.'
+                    span.end -= 1;
+
+                    let slice = self.trg.slice_from_span(&span);
+
+                    return Err(DiagKind::InvFmtFloat(slice.to_string()));
                 }
             } else if !next.is_ascii_digit() {
                 break;
@@ -138,9 +145,11 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
     fn read_str(&mut self) -> Result<Token, Diag> {
         let mut string = String::new();
 
+        let quote_pos = self.win.span().start;
+
         loop {
             match self.win.peek_one() {
-                '\n' => return Err(Diag::new(DiagKind::UntermStr, self.win.span())),
+                '\n' => return Err(Diag::new(DiagKind::UntermStr, Span::new(quote_pos, quote_pos + 1))),
                 '\\' => {
                     let start = self.win.span().end;
 
@@ -150,7 +159,7 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
                     let next = self.win.peek_one();
 
                     if self.win.finished() || next == '\n' {
-                        return Err(Diag::new(DiagKind::UntermStr, self.win.span()));
+                        return Err(Diag::new(DiagKind::UntermStr, Span::new(quote_pos, quote_pos + 1)));
                     }
 
                     if next.is_control() {
@@ -189,7 +198,7 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
                 },
                 other => {
                     if self.win.finished() {
-                        return Err(Diag::new(DiagKind::UntermStr, self.win.span()));
+                        return Err(Diag::new(DiagKind::UntermStr, Span::new(quote_pos, quote_pos + 1)));
                     }
 
                     if other.is_control() {
