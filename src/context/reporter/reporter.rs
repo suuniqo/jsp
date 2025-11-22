@@ -38,6 +38,20 @@ impl<'t> Reporter<'t> {
         digits - (digits % 4) + 4
     }
 
+    fn human_redable(slice: &str) -> String {
+        let mut readable = String::new();
+
+        for c in slice.chars() {
+            if c.is_control() {
+                readable.push_str(&c.escape_default().to_string());
+            } else {
+                readable.push(c);
+            }
+        }
+
+        readable
+    }
+
     fn digits(row: usize) -> usize {
         (row as f64).log10() as usize + 1
     }
@@ -57,17 +71,20 @@ impl Drop for Reporter<'_> {
 
             let lspan = Span::new(diag.span.start - offset, diag.span.end - offset);
 
+            let prefix = &line[..lspan.start];
+            let context = Self::human_redable(&line[lspan.start..lspan.end]);
+            let suffix = &line[lspan.end..];
+
+            let prefix_len = prefix.chars().count();
+            let context_len = context.len();
+
+            let prefix_padding = " ".repeat(prefix_len);
+            let underline = "^".repeat(context_len);
+
             eprintln!("{}{}:{}:{}: {}{}: {}{}",
                 Color::HIGHLIGHT, self.trg.path(), row + 1, col + 1,
                 diag.kind.sever().color(), diag.kind.sever(), Color::RESET, diag.kind
             );
-
-            let prefix = &line[..lspan.start];
-            let context = &line[lspan.start..lspan.end];
-            let suffix = &line[lspan.end..];
-
-            let prefix_len = prefix.chars().count();
-            let context_len = context.chars().count();
 
             eprintln!("{}{} |", Color::HIGHLIGHT, padding_row);
 
@@ -75,9 +92,6 @@ impl Drop for Reporter<'_> {
                 Color::HIGHLIGHT, &padding_row[Self::digits(row + 1)..], row + 1, Color::RESET, prefix,
                 diag.kind.sever().color(), context, Color::RESET, suffix
             );
-
-            let prefix_padding = " ".repeat(prefix_len);
-            let underline = "^".repeat(context_len);
 
             eprintln!("{}{} | {}{}{} {}{}",
                 Color::HIGHLIGHT, padding_row, prefix_padding,

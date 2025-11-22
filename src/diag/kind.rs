@@ -22,11 +22,11 @@ impl DiagKind {
             DiagKind::StrayChar(_) => "here".to_string(),
             DiagKind::UntermComm => "started here".to_string(),
             DiagKind::UntermStr => "started here".to_string(),
-            DiagKind::MalformedStr(_) => "before this character".to_string(),
-            DiagKind::OverflowStr(len) => format!("length is {} but the maximum is {}", len, TokenKind::MAX_STR_LEN),
+            DiagKind::MalformedStr(_) => "remove this character".to_string(),
+            DiagKind::OverflowStr(len) => format!("length is {} but maximum is {}", len, TokenKind::MAX_STR_LEN),
             DiagKind::InvEscSeq(c) => format!("interpreted as \\\\{}", c),
-            DiagKind::OverflowInt => format!("out of range, maximum is {}", i16::MAX),
-            DiagKind::OverflowFloat => format!("out of range, maximum is {:e}", f32::MAX),
+            DiagKind::OverflowInt => format!("maximum is {}", i16::MAX),
+            DiagKind::OverflowFloat => format!("maximum is {:e}", f32::MAX),
             DiagKind::InvFmtFloat(num) => format!("perhaps you meant '{}.0'", num),
         }
     }

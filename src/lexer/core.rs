@@ -145,11 +145,11 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
     fn read_str(&mut self) -> Result<Token, Diag> {
         let mut string = String::new();
 
-        let quote_pos = self.win.span().start;
+        let quote_span = self.win.span();
 
         loop {
             match self.win.peek_one() {
-                '\n' => return Err(Diag::new(DiagKind::UntermStr, Span::new(quote_pos, quote_pos + 1))),
+                '\n' => return Err(Diag::new(DiagKind::UntermStr, quote_span)),
                 '\\' => {
                     let start = self.win.span().end;
 
@@ -159,7 +159,7 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
                     let next = self.win.peek_one();
 
                     if self.win.finished() || next == '\n' {
-                        return Err(Diag::new(DiagKind::UntermStr, Span::new(quote_pos, quote_pos + 1)));
+                        return Err(Diag::new(DiagKind::UntermStr, quote_span));
                     }
 
                     if next.is_control() {
@@ -198,7 +198,7 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
                 },
                 other => {
                     if self.win.finished() {
-                        return Err(Diag::new(DiagKind::UntermStr, Span::new(quote_pos, quote_pos + 1)));
+                        return Err(Diag::new(DiagKind::UntermStr, quote_span));
                     }
 
                     if other.is_control() {

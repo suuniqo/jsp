@@ -157,7 +157,7 @@
             Menor o igual (<=) & Le & - \\
             Mayor (>) & Gt & - \\
             Mayor o igual (>=) & Ge & - \\
-            Relacionales: Distinto (!=) & Ne & - \\
+            Distinto (!=) & Ne & - \\
             Igual (==) & Eq & - \\
             Menos Unario (-) & Sub & - \\
             Más Unario (+) & Sum & - \\
@@ -202,7 +202,7 @@
     Se define la gramática del \textit{Lexer} como la tupla $G = (T, N, S, P)$, dónde:
     \begin{flalign*}
         T &= \{ \textnormal{Todo carácter \textit{ASCII}} \} \cup \{\textit{EOF}\} && \\
-        N &= \{A, B, C, D, E, F, G, H, I, J, K, L, M\} &&
+        N &= \{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O\} &&
     \end{flalign*}
 
      $P$ se compone de la regla del axioma:
@@ -219,13 +219,14 @@
             E &\to \: = \:\mid\: \lambda && \\
             F &\to \: | && \\
             G &\to dG \:\mid\: .K \:\mid\: \lambda && \\
-            K &\to dK \:\mid\: \lambda && \\
-            H &\to c_2H \:\mid\: \backslash L \:\mid\: " && \\
-            L &\to \textnormal{n}H \:\mid\: \textnormal{t}H && \\
+            K &\to dL && \\
+            L &\to dL \:\mid\: \lambda && \\
+            H &\to c_2H \:\mid\: \backslash M \:\mid\: " && \\
+            M &\to \textnormal{n}H \:\mid\: \textnormal{t}H && \\
             I &\to c_3I \:\mid\: \lambda && \\
-            J &\to *M \:\mid\: \lambda && \\
-            M &\to c_4M \:\mid\: *N && \\
-            N &\to c_5M \:\mid\: *N \:\mid\: /S &&
+            J &\to *N \:\mid\: \lambda && \\
+            N &\to c_4N \:\mid\: *O && \\
+            O &\to c_5N \:\mid\: *O \:\mid\: /S &&
         \end{flalign*}
         \columnbreak
         \vspace*{66pt}
@@ -235,11 +236,11 @@
                     \vspace{-8pt}
                     \begin{align*}
                         del &:= \{\textnormal{\textit{ASCII} delimitadores\footnotemark}\} && \\
-                        ngr &:= \{\textnormal{\textit{ASCII} con código } c : 32 \le c \le 126\} && \\
+                        gra &:= \{\textnormal{\textit{ASCII} con código } c : 32 \le c \le 126\} && \\
                         d &:= \{0, 1, \dots, 9\} && \\
                         l &:= \{\textnormal{a}, \textnormal{b}, \dots, \textnormal{z}, \textnormal{A}, \textnormal{B}, \dots, \textnormal{Z}\} && \\
                         c_1 &:= l \cup \{\_\} && \\
-                        c_2 &:= T \setminus (\{\backslash, ", \textit{EOF}\} \cup ngr) && \\
+                        c_2 &:= gra \setminus \{\backslash, "\} && \\
                         c_3 &:= c_1 \cup d && \\
                         c_4 &:= T \setminus \{*, \textit{EOF}\} && \\
                         c_5 &:= T \setminus \{*, /, \textit{EOF}\} && \\
@@ -711,7 +712,7 @@
 
         \item[GEN\_DEC] En la transición $33$:$34$
             \begin{lstlisting}[language=C]
- if (size_bytes(num) > 16) {
+ if (num > 3.4028235e38) {
      error("Float out of range")
  } else {
      gen_token(FloatLit, num)
@@ -735,7 +736,7 @@
             \vspace{0.02\textheight}
         \item[GEN\_INT] En la transición $17$:$35$
             \begin{lstlisting}[language=C]
- if (size_bytes(num) > 16) {
+ if (num > 32767) {
      error("Integer out of range")
  } else {
      gen_token(IntLit, num)
@@ -750,45 +751,53 @@
     \begin{multicols}{2}
     \begin{description}
 
-        \item[INIT\_STR\_ID] En la transición $0$:$18$, $0$:$19$
+        \item[INIT\_STR] En la transición $0$:$18$
             \begin{lstlisting}[language=C]
  lex := ""
+ len := 0
             \end{lstlisting}
 
         \item[ADD\_CHAR\_STR] En la transición $18$:$18$
             \begin{lstlisting}[language=C]
  if (chr == EOF) {
-     error("Unterminated String")
+     error("Unterminated String literal")
  } else {
      lex.concat(chr)
+     len := len + 1
  }
             \end{lstlisting}
 
         \item[ADD\_ESCSEQ] En la transición $36$:$18$
             \begin{lstlisting}[language=C]
+ len := len + 1
  switch (chr) {
      case 'n' -> lex.concat('\n')
      case 't' -> lex.concat('\t')
      case EOF -> {
-         error("Unfinsihed comment")
+         error("Unterminated String literal")
      }
      default  -> {
          warning("Invalid sequence")
          lex.concat('\\')
          lex.concat(chr)
+         len := len + 1
      }
  }
             \end{lstlisting}
 
         \columnbreak
 
+        \item[INIT\_ID] En la transición $0$:$19$
+            \begin{lstlisting}[language=C]
+ lex := ""
+            \end{lstlisting}
         \item[ADD\_CHAR\_ID] En la transición $0$:$19$, $19$:$19$
             \begin{lstlisting}[language=C]
  lex.concat(chr)
             \end{lstlisting}
         \item[GEN\_STR] En la transición $18$:$37$
             \begin{lstlisting}[language=C]
- if (lex.len() > 64) {
+ if (len > 64) {
      error("String is too long")
  } else {
      gen_token(StrLit, lex)
@@ -837,19 +846,19 @@
     La información de los identificadores se va a guardar en la tabla de símbolos en forma de entradas. Como en \textit{MyJS} no existen los \textit{arrays} se distinguen únicamente 2 tipos:
 
     \begin{description}
-        \item[Entrada Básica] Para todos los tipos básicos, es decir, \textit{int}, \textit{float}, \textit{string} y \textit{bool}.
+        \item[Entrada Básica:] Para todos los tipos básicos, es decir, \textit{int}, \textit{float}, \textit{string} y \textit{bool}.
             \begin{description}
-                \item[Lexema] Nombre de la variable.
-                \item[Tipo] Tipo de la variable.
-                \item[Desplazamiento] Desplazamiento en memoria relativo a su ámbito.
+                \item[Lexema:] Nombre de la variable.
+                \item[Tipo:] Tipo de la variable.
+                \item[Desplazamiento:] Desplazamiento en memoria relativo a su ámbito.
             \end{description}
 
-        \item[Entrada Función] Para las funciones. Nótese que 'Tipos Argumentos' es un puntero a una lista de tipos.
+        \item[Entrada Función:] Para las funciones. Nótese que 'Tipos Argumentos' es un puntero a una lista de tipos.
             \begin{description}
-                \item[Lexema] Nombre de la función.
-                \item[Tipo Retorno] Tipo que devuelve la función, pudiendo ser \textit{Void}.
-                \item[Tipos Argumentos] Lista de los tipos de los parámetros en orden.
-                \item[Etiqueta] Etiqueta que se usará para navegar a la función en el código ensamblador.
+                \item[Lexema:] Nombre de la función.
+                \item[Tipo Retorno:] Tipo que devuelve la función, pudiendo ser \textit{Void}.
+                \item[Tipos Argumentos:] Lista de los tipos de los parámetros en orden.
+                \item[Etiqueta:] Etiqueta que se usará para navegar a la función en el código ensamblador.
             \end{description}
     \end{description}
 
@@ -864,6 +873,41 @@
 
     \section{Diseño del Parser}
     Se detallará en la próxima entrega.
+
+    \newpage
+
+    \subsection{Gramática}
+
+    Se define la gramática del \textit{Parser} como la tupla $\hat{G} = (T, N, S, P)$, dónde:
+    \begin{flalign*}
+        T &= \{ \textnormal{Todo carácter \textit{ASCII}} \} \cup \{\textit{EOF}\} && \\
+        N &= \{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O\} &&
+    \end{flalign*}
+
+     $P$ se compone de la regla del axioma:
+
+    $S \to delS \:\mid\: \textnormal{,} \:\mid\: \textnormal{;} \:\mid\: \textnormal{(} \:\mid\: \textnormal{)} \:\mid\: \textnormal{\{} \:\mid\: \textnormal{\}} \:\mid\: \textnormal{+} \:\mid\: \textnormal{*} \:\mid\: \textnormal{\%} \:\mid\: \textnormal{=}A \:\mid\: \textnormal{!}B \:\mid\: \textnormal{<}C \:\mid\: \textnormal{>}D \:\mid\: \textnormal{\&}E \:\mid\: \textnormal{|}F \:\mid\: dG \:\mid\: \textnormal{"}H \:\mid\: c_1I \:\mid\: \textnormal{/}J \:\mid\: \textit{EOF}$
+
+    Y del resto de reglas:
+    \begin{flalign*}
+        A &\to \: = \:\mid\: \lambda && \\
+        B &\to \: = \:\mid\: \lambda && \\
+        C &\to \: = \:\mid\: \lambda && \\
+        D &\to \: = \:\mid\: \lambda && \\
+        E &\to \: = \:\mid\: \lambda && \\
+        F &\to \: | && \\
+        G &\to dG \:\mid\: .K \:\mid\: \lambda && \\
+        K &\to dL && \\
+        L &\to dL \:\mid\: \lambda && \\
+        H &\to c_2H \:\mid\: \backslash M \:\mid\: " && \\
+        M &\to \textnormal{n}H \:\mid\: \textnormal{t}H && \\
+        I &\to c_3I \:\mid\: \lambda && \\
+        J &\to *N \:\mid\: \lambda && \\
+        N &\to c_4N \:\mid\: *O && \\
+        O &\to c_5N \:\mid\: *O \:\mid\: /S &&
+    \end{flalign*}
+
+     El lenguaje generado por esta gramática, $L(G)$, está compuesto por el conjunto de todos los \textit{tokens} válidos del lenguaje de programación \textit{MyJS}. Por tanto, dada una cadena de símbolos terminales, la gramática $G$ es capaz de detectar si forma o no un \textit{token} válido.
 
     \section{Diseño del Semanter}
     Se detallará en la entrega final.
