@@ -1,10 +1,11 @@
-use std::{env, process};
+use std::{env::{self, current_exe}, process};
 
-use crate::{context::{reporter::Reporter, symtable::{SymTableCore, SymTableTracer}, Context}, lexer::{LexerTracer, LexerCore}, target::Target};
+use crate::{context::{Context, reporter::Reporter, symtable::{SymTableCore, SymTableTracer}}, lexer::{LexerCore, LexerTracer}, target::Target, parser::Parser};
 
 mod target;
 mod window;
 mod lexer;
+mod parser;
 mod context;
 mod writer;
 mod color;
@@ -64,5 +65,5 @@ fn main() {
             process::exit(1);
         });
 
-    lexer.for_each(|_| {});
+    let parser = Parser::new(&mut ctx, &mut lexer);
 }

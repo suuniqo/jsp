@@ -14,6 +14,7 @@ pub enum DiagKind {
     OverflowInt,
     OverflowFloat,
     InvFmtFloat(String),
+    UnexpectedTok((TokenKind, Vec<TokenKind>))
 }
 
 impl DiagKind {
@@ -28,6 +29,19 @@ impl DiagKind {
             DiagKind::OverflowInt => format!("maximum is {}", i16::MAX),
             DiagKind::OverflowFloat => format!("maximum is {:e}", f32::MAX),
             DiagKind::InvFmtFloat(num) => format!("perhaps you meant '{}.0'", num),
+            DiagKind::UnexpectedTok((_, expected)) => {
+                let mut msg = String::from("expected one of ");
+
+                for (i, tok) in expected.iter().enumerate() {
+                    msg.push_str(tok.lexeme());
+
+                    if i != expected.len() - 1 {
+                        msg.push_str(", ");
+                    }
+                }
+
+                msg
+            },
         }
     }
 }
@@ -44,6 +58,7 @@ impl fmt::Display for DiagKind {
             DiagKind::OverflowFloat => write!(f, "float literal out of range for 32-byte type"),
             DiagKind::InvFmtFloat(_) => write!(f, "expected digit after '{}.{}' in float literal", Color::HIGHLIGHT, Color::RESET),
             DiagKind::MalformedStr(c) => write!(f, "malformed string literal, contains control character '{}{}{}'", Color::HIGHLIGHT, c.escape_default(), Color::RESET),
+            DiagKind::UnexpectedTok((kind, _)) => write!(f, "unexpected token '{}{}{}'", Color::HIGHLIGHT, kind.lexeme(), Color::RESET),
         }
     }
 }

@@ -268,40 +268,15 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
             '{' => Ok(TokenKind::LBrack),
             '}' => Ok(TokenKind::RBrack),
             '+' => Ok(TokenKind::Sum),
-            '-' => Ok(TokenKind::Sub),
             '*' => Ok(TokenKind::Mul),
-            '/' => Ok(TokenKind::Div),
-            '%' => Ok(TokenKind::Mod),
+            '!' => Ok(TokenKind::Not),
+            '<' => Ok(TokenKind::Lt),
             '=' => {
                 if self.win.peek_one() == '=' {
                     self.win.consume();
                     Ok(TokenKind::Eq)
                 } else {
                     Ok(TokenKind::Assign)
-                }
-            },
-            '!' => {
-                if self.win.peek_one() == '=' {
-                    self.win.consume();
-                    Ok(TokenKind::Ne)
-                } else {
-                    Ok(TokenKind::Not)
-                }
-            },
-            '<' => {
-                if self.win.peek_one() == '=' {
-                    self.win.consume();
-                    Ok(TokenKind::Le)
-                } else {
-                    Ok(TokenKind::Lt)
-                }
-            },
-            '>' => {
-                if self.win.peek_one() == '=' {
-                    self.win.consume();
-                    Ok(TokenKind::Ge)
-                } else {
-                    Ok(TokenKind::Gt)
                 }
             },
             '&' => {
@@ -317,14 +292,6 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
                     _ => Err(DiagKind::StrayChar('&'))
                 }
             },
-            '|' => {
-                if self.win.peek_one() == '|' {
-                    self.win.consume();
-                    Ok(TokenKind::Or)
-                } else {
-                    Err(DiagKind::StrayChar('|'))
-                }
-            }
             '0'..='9' => self.read_num(),
             '"' => return self.read_str(),
             'a'..='z' | 'A'..='Z' | '_' => Ok(self.read_id()),

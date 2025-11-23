@@ -15,7 +15,7 @@ impl<'t> Reporter<'t> {
         Self {
             trg: target,
             diags: Vec::new(),
-            max_span: Span::new(0, 0),
+            max_span: Span::default(),
         }
     }
 

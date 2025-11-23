@@ -39,3 +39,9 @@ impl Target {
         &self.src()[span.start..span.end]
     }
 }
+
+impl Default for Span {
+    fn default() -> Self {
+        Self { start: Default::default(), end: Default::default() }
+    }
+}

@@ -12,7 +12,7 @@ impl<'a> Window<'a> {
     pub fn new(slice: &'a str) -> Self {
         Self {
             chars: slice.chars(),
-            span: Span::new(0, 0),
+            span: Span::default(),
         }
     }
 

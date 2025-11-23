@@ -20,6 +20,7 @@ impl DiagKind {
             DiagKind::OverflowFloat => DiagSever::Error,
             DiagKind::InvFmtFloat(_) => DiagSever::Error,
             DiagKind::MalformedStr(_) => DiagSever::Error,
+            DiagKind::UnexpectedTok(_) => DiagSever::Error,
         }
     }
 }
