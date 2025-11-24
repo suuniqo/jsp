@@ -1,4 +1,7 @@
-use crate::context::{symtable::SymTable, Context};
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use crate::{symtable::SymTable, reporter::Reporter};
 use crate::diag::{Diag, DiagKind};
 use crate::target::Target;
 use crate::token::{Token, TokenKind};
@@ -8,20 +11,22 @@ use crate::span::Span;
 use super::Lexer;
 
 
-pub struct LexerCore<'t, 'c, T: SymTable> {
+pub struct LexerCore<'t, T: SymTable> {
     win: Window<'t>,
     trg: &'t Target,
-    ctx: &'c mut Context<'t, T>,
+    reporter: Rc<RefCell<Reporter<'t>>>,
+    symtable: Rc<RefCell<T>>,
 }
 
-impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
-    pub fn new(ctx: &'c mut Context<'t, T>, trg: &'t Target) -> Self {
+impl<'t, T: SymTable> LexerCore<'t, T> {
+    pub fn new(reporter: Rc<RefCell<Reporter<'t>>>, symtable: Rc<RefCell<T>>, trg: &'t Target) -> Self {
         let win = Window::new(trg.src());
 
         Self {
             win,
             trg,
-            ctx,
+            reporter,
+            symtable,
         }
     }
 
@@ -183,7 +188,7 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
                         // consume escape character
                         self.win.consume();
 
-                        self.ctx.reporter.push(Diag::new(
+                        self.reporter.borrow_mut().push(Diag::new(
                             DiagKind::InvEscSeq(next),
                             Span::new(start, self.win.span().end)
                         ));
@@ -238,7 +243,7 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
         if let Some(keyword) = TokenKind::as_keyword(lexeme) {
             keyword
         } else {
-            TokenKind::Id(self.ctx.symtable.intern(lexeme))
+            TokenKind::Id(self.symtable.borrow_mut().intern(lexeme))
         }
     }
 
@@ -268,6 +273,7 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
             '{' => Ok(TokenKind::LBrack),
             '}' => Ok(TokenKind::RBrack),
             '+' => Ok(TokenKind::Sum),
+            '-' => Ok(TokenKind::Sub),
             '*' => Ok(TokenKind::Mul),
             '!' => Ok(TokenKind::Not),
             '<' => Ok(TokenKind::Lt),
@@ -315,7 +321,7 @@ impl<'t, 'c, T: SymTable> LexerCore<'t, 'c, T> {
     }
 }
 
-impl<'t, 'c, T: SymTable> Iterator for LexerCore<'t, 'c, T> {
+impl<'t, T: SymTable> Iterator for LexerCore<'t, T> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -326,10 +332,10 @@ impl<'t, 'c, T: SymTable> Iterator for LexerCore<'t, 'c, T> {
                 } else {
                     Some(token)
                 },
-                Err(diag) => self.ctx.reporter.push(diag),
+                Err(diag) => self.reporter.borrow_mut().push(diag),
             }
         }
     }
 }
 
-impl<T: SymTable> Lexer for LexerCore<'_, '_, T> {}
+impl<T: SymTable> Lexer for LexerCore<'_, T> {}

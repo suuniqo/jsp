@@ -30,10 +30,14 @@ impl DiagKind {
             DiagKind::OverflowFloat => format!("maximum is {:e}", f32::MAX),
             DiagKind::InvFmtFloat(num) => format!("perhaps you meant '{}.0'", num),
             DiagKind::UnexpectedTok((_, expected)) => {
+                if expected.is_empty() {
+                    return "here".to_string();
+                }
+
                 let mut msg = String::from("expected one of ");
 
                 for (i, tok) in expected.iter().enumerate() {
-                    msg.push_str(tok.lexeme());
+                    msg.push_str(&format!("'{}'", tok.lexeme()));
 
                     if i != expected.len() - 1 {
                         msg.push_str(", ");

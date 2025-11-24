@@ -98,7 +98,7 @@ impl Drop for Reporter<'_> {
                 diag.kind.sever().color(), underline, diag.kind.afterword(), Color::RESET
             );
 
-            eprintln!("{}{} |", Color::HIGHLIGHT, padding_row);
+            eprintln!("{}{} |{}", Color::HIGHLIGHT, padding_row, Color::RESET);
         }
     }
 }

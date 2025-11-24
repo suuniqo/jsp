@@ -35,6 +35,7 @@ pub enum TokenKind {
     LBrack,
     RBrack,
 
+    Sub,
     Sum,
     Mul,
 
@@ -81,6 +82,7 @@ impl fmt::Display for TokenKind {
             TokenKind::RBrack => ("RBrack", None),
 
             TokenKind::Sum => ("Sum", None),
+            TokenKind::Sub => ("Sub", None),
             TokenKind::Mul => ("Mul", None),
 
             TokenKind::And => ("And", None),
@@ -150,6 +152,7 @@ impl TokenKind {
             TokenKind::RBrack => "}",
 
             TokenKind::Sum => "+",
+            TokenKind::Sub => "-",
             TokenKind::Mul => "*",
             TokenKind::And => "&&",
             TokenKind::Not => "!",
