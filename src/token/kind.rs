@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, rc::Rc};
 
 
 #[derive(Debug, Clone, PartialEq)]
@@ -23,7 +23,7 @@ pub enum TokenKind {
     FloatLit(f32),
     IntLit(i16),
     StrLit(String),
-    Id(usize),
+    Id((usize, Rc<str>)),
 
     Assign,
     AndAssign,
@@ -70,7 +70,7 @@ impl fmt::Display for TokenKind {
             TokenKind::FloatLit(value) => ("FloatLit", Some(value.to_string())),
             TokenKind::IntLit(value) => ("IntLit", Some(value.to_string())),
             TokenKind::StrLit(value) => ("StrLit", Some(format!("\"{value}\""))),
-            TokenKind::Id(value) => ("Id", Some(value.to_string())),
+            TokenKind::Id((value, _)) => ("Id", Some(value.to_string())),
 
             TokenKind::Assign => ("Assign", None),
             TokenKind::AndAssign => ("AndAssign", None),
@@ -119,7 +119,7 @@ impl TokenKind {
         TokenKind::False,
     ];
 
-    pub fn lexeme(&self) -> &'static str {
+    pub fn lexeme_general(&self) -> &'static str {
         match self {
             TokenKind::Bool => "boolean",
             TokenKind::Do => "do",
@@ -161,6 +161,52 @@ impl TokenKind {
 
             TokenKind::Eof => "EOF",
         }
+    }
+
+    pub fn lexeme_concrete(&self) -> String {
+        let str = match self {
+            TokenKind::Bool => "boolean",
+            TokenKind::Do => "do",
+            TokenKind::Float => "float",
+            TokenKind::Func => "function",
+            TokenKind::If => "if",
+            TokenKind::Int => "int",
+            TokenKind::Let => "let",
+            TokenKind::Read => "read",
+            TokenKind::Ret => "return",
+            TokenKind::Str => "string",
+            TokenKind::Void => "void",
+            TokenKind::While => "while",
+            TokenKind::Write => "write",
+            TokenKind::True => "true",
+            TokenKind::False => "false",
+
+            TokenKind::FloatLit(inner) => return inner.to_string(),
+            TokenKind::IntLit(inner) => return inner.to_string(),
+            TokenKind::StrLit(inner) => return inner.to_string(),
+            TokenKind::Id((_, lexeme)) => return lexeme.to_string(),
+
+            TokenKind::Assign => "=",
+            TokenKind::AndAssign => "&=",
+            TokenKind::Comma => ",",
+            TokenKind::Semi => ";",
+            TokenKind::LParen => "(",
+            TokenKind::RParen => ")",
+            TokenKind::LBrack => "{",
+            TokenKind::RBrack => "}",
+
+            TokenKind::Sum => "+",
+            TokenKind::Sub => "-",
+            TokenKind::Mul => "*",
+            TokenKind::And => "&&",
+            TokenKind::Not => "!",
+            TokenKind::Lt => "<",
+            TokenKind::Eq => "==",
+
+            TokenKind::Eof => "EOF",
+        };
+
+        str.to_string()
     }
 
     pub fn as_keyword(lexeme: &str) -> Option<TokenKind> {

@@ -7,6 +7,8 @@
 \usepackage{tikz}
 \usetikzlibrary{arrows,automata,positioning}
 \usepackage{tcolorbox}
+\usepackage{longtable}
+\usepackage{graphicx}
 
 \addbibresource{sample.bib} % BibLaTeX bibliography file
 
@@ -249,14 +251,13 @@
             }
         \]
      \end{multicols}
-
      El lenguaje generado por esta gramática, $L(G)$, está compuesto por el conjunto de todos los \textit{tokens} válidos del lenguaje de programación \textit{MyJS}. Por tanto, dada una cadena de símbolos terminales, la gramática $G$ es capaz de detectar si forma o no un \textit{token} válido.
 
      \footnotetext{La definición de delimitador se toma de la \href{https://tc39.es/ecma262/multipage/ecmascript-language-lexical-grammar.html\#sec-white-space}{documentación oficial de \textit{ECMAScript}}.}
 
      \subsection{Autómata}
 
-     A continuación se muestra el autómata finito determinista que reconoce el lenguaje generado por la gramática $G$. Nótese que una transición "o.c." ocurre al leer un carácter que no corresponda a otra transición del estado.
+     A continuación se muestra el autómata finito determinista o \textit{FDA} que reconoce el lenguaje generado por la gramática $G$. Nótese que una transición "o.c." ocurre al leer un carácter que no corresponda a otra transición del estado.
 
      Se considera un error y se detiene la ejecución cuando el autómata lee un carácter con el que no puede transitar. Solo se alcanza un estado final cuando se ha reconocido un \textit{token} exitosamente.
 
@@ -774,42 +775,643 @@
     De esta manera, se puede comprender una tabla de símbolos como una \textit{stack} de ámbitos (es decir, tablas de símbolos locales), dónde el Analizador Semántico será el encargado de apilar y desapilar ámbitos al entrar y salir de funciones respectivamente.
 
     \section{Diseño del Parser}
-    Se detallará en la próxima entrega.
+    El siguiente gran módulo del procesador es el Analizador Sintáctico o \textit{Parser}. El \textit{Parser} consume los \textit{tokens} del \textit{Lexer} y los utiliza para producir el árbol sintáctico abstracto o \textit{AST}.
+
+    El \textit{AST} es una \textit{TAD} que representa la estructura sintáctica del fichero fuente, dónde cada nodo corresponde a una construcción sintáctica del lenguaje.
+
+    Para este proyecto, se ha escogido implementar un \textit{Parser} ascendente de tipo $SLR(1) \in LR(1)$. A diferencia de un analizador descendente $LL(1)$, se construye el \textit{AST} desde las hojas hasta la raiz, lo que suele permitir una generación más directa y eficiente del árbol.
 
     \newpage
 
     \subsection{Gramática}
 
-    Se define la gramática del \textit{Parser} como la tupla $\hat{G} = (T, N, S, P)$, dónde:
+    Se define la gramática del \textit{Parser} como la tupla $G = (T, N, P, R)$, dónde:
     \begin{flalign*}
-        T &= \{ \textnormal{Todo carácter \textit{ASCII}} \} \cup \{\textit{EOF}\} && \\
-        N &= \{A, B, C, D, E, F, G, H, I, J, K, L, M, N, O\} &&
+        T &= \{ \textnormal{Todo \textit{token} definido por el \textit{Lexer}} \} && \\
+        N &= \{ E_1, R_1, R_2, U_1, U_2, E_2, V, S, L, Q, X, B, T, M, F, F_1, F_2, F_3, H, A, K, C, P \} &&
     \end{flalign*}
 
-     $P$ se compone de la regla del axioma:
-
-    $S \to delS \:\mid\: \textnormal{,} \:\mid\: \textnormal{;} \:\mid\: \textnormal{(} \:\mid\: \textnormal{)} \:\mid\: \textnormal{\{} \:\mid\: \textnormal{\}} \:\mid\: \textnormal{+} \:\mid\: \textnormal{*} \:\mid\: \textnormal{\%} \:\mid\: \textnormal{=}A \:\mid\: \textnormal{!}B \:\mid\: \textnormal{<}C \:\mid\: \textnormal{>}D \:\mid\: \textnormal{\&}E \:\mid\: \textnormal{|}F \:\mid\: dG \:\mid\: \textnormal{"}H \:\mid\: c_1I \:\mid\: \textnormal{/}J \:\mid\: \textit{EOF}$
-
-    Y del resto de reglas:
+    $R$ se compone de:
     \begin{flalign*}
-        A &\to \: = \:\mid\: \lambda && \\
-        B &\to \: = \:\mid\: \lambda && \\
-        C &\to \: = \:\mid\: \lambda && \\
-        D &\to \: = \:\mid\: \lambda && \\
-        E &\to \: = \:\mid\: \lambda && \\
-        F &\to \: | && \\
-        G &\to dG \:\mid\: .K \:\mid\: \lambda && \\
-        K &\to dL && \\
-        L &\to dL \:\mid\: \lambda && \\
-        H &\to c_2H \:\mid\: \backslash M \:\mid\: " && \\
-        M &\to \textnormal{n}H \:\mid\: \textnormal{t}H && \\
-        I &\to c_3I \:\mid\: \lambda && \\
-        J &\to *N \:\mid\: \lambda && \\
-        N &\to c_4N \:\mid\: *O && \\
-        O &\to c_5N \:\mid\: *O \:\mid\: /S &&
+        P &\to B P \:\mid\: F P \:\mid\: \lambda && \\
+        C &\to B C \:\mid\: \lambda && \\
+        F &\to \:\textnormal{Func}\: F_1 F_2 F_3 \:\textnormal{LBrack}\: C \:\textnormal{RBrack}\: && \\
+        F_1 &\to H && \\
+        F_2 &\to \:\textnormal{Id}\: && \\
+        F_3 &\to \:\textnormal{LParen}\: A \:\textnormal{RParen}\: && \\
+        H &\to T \:\mid\: \:\textnormal{Void}\: && \\
+        A &\to T \:\textnormal{Id}\: K \:\mid\: \:\textnormal{Void}\: && \\
+        K &\to \:\textnormal{Comma}\: T \:\textnormal{Id}\: K \:\mid\: \lambda && \\
+        B &\to \:\textnormal{If}\: \:\textnormal{LParen}\: E \:\textnormal{RParen}\: S \:\mid\: \:\textnormal{Do}\: \:\textnormal{LBrack}\: C \:\textnormal{RBrack}\: \:\textnormal{While}\: \:\textnormal{LParen}\: E \:\textnormal{RParen}\: \:\textnormal{Semi}\: && \\
+        B &\to S \:\mid\: \:\textnormal{Let}\: M T \:\textnormal{Id}\: \:\textnormal{Semi}\: \:\mid\: \:\textnormal{Let}\: M T \:\textnormal{Id}\: \:\textnormal{Assign}\: E \:\textnormal{Semi}\: \:\mid\: \:\textnormal{Let}\: M T \:\textnormal{Id}\: \:\textnormal{AndAssign}\: E \:\textnormal{Semi}\: && \\
+        M &\to \lambda && \\
+        T &\to \:\textnormal{Int}\: \:\mid\: \:\textnormal{Float}\: \:\mid\: \:\textnormal{Bool}\: \:\mid\: \:\textnormal{Str}\: && \\
+        S &\to \:\textnormal{Write}\: E \:\textnormal{Semi}\: \:\mid\: \:\textnormal{Read}\: \:\textnormal{Id}\: \:\textnormal{Semi}\: \:\mid\: \:\textnormal{Ret}\: X \:\textnormal{Semi}\: && \\
+        S &\to \:\textnormal{Id}\: \:\textnormal{Assign}\: E \:\textnormal{Semi}\: \:\mid\: \:\textnormal{Id}\: \:\textnormal{AndAssign}\: E \:\textnormal{Semi}\: \:\mid\: \:\textnormal{Id}\: \:\textnormal{LParen}\: L \:\textnormal{RParen}\: \:\textnormal{Semi}\: && \\
+        L &\to E Q \:\mid\: \lambda && \\
+        Q &\to \:\textnormal{Comma}\: E Q \:\mid\: \lambda && \\
+        X &\to E \:\mid\: \lambda && \\
+        E_1 &\to E_1 \:\textnormal{And}\: R_1 \:\mid\: R_1 && \\
+        R_1 &\to R_1 \:\textnormal{Eq}\: R_2 \:\mid\: R_2 && \\
+        R_2 &\to R_2 \:\textnormal{Lt}\: U_1 \:\mid\: U_1 && \\
+        U_1 &\to U_1 \:\textnormal{Sum}\: U_2 \:\mid\: U_2 && \\
+        U_2 &\to U_2 \:\textnormal{Mul}\: E_2 \:\mid\: E_2 && \\
+        E_2 &\to \:\textnormal{Not}\: E_2 \:\mid\: \:\textnormal{Sub}\: E_2 \:\mid\: \:\textnormal{Sum}\: E_2 \:\mid\: V && \\
+        V &\to \:\textnormal{Id}\: \:\textnormal{LParen}\: L \:\textnormal{RParen}\: \:\mid\: \:\textnormal{LParen}\: E \:\textnormal{RParep}\: \:\mid\: \:\textnormal{IntLit}\: \:\mid\: \:\textnormal{FloatLit}\: \:\mid\: \:\textnormal{StrLit}\: \:\mid\: \:\textnormal{True}\: \:\mid\: \:\textnormal{False}\: \:\mid\: \:\textnormal{Id}\: &&
     \end{flalign*}
 
-     El lenguaje generado por esta gramática, $L(G)$, está compuesto por el conjunto de todos los \textit{tokens} válidos del lenguaje de programación \textit{MyJS}. Por tanto, dada una cadena de símbolos terminales, la gramática $G$ es capaz de detectar si forma o no un \textit{token} válido.
+    $G$ se trata de una gramática de contexto libre y el lenguaje que genera, $L(G)$, está compuesto por la estructura de todos los programas sintácticamente correctos.
+
+    De este modo, un fichero fuente sintácticamente correcto se puede interpretar como una palabra $w \in L(G)$ y visto así, el \textit{AST} se trata justamente del árbol de derivación de $w$, por lo que es fácil de obtener a partir de la secuencia de reglas aplicadas por el \textit{Parser} para reducir $w$ al axioma $S$.
+
+    Está secuencia de reglas se llama el \textit{parse} de un programa, y los próximos apartados se centran en como hallarlo.
+
+    \subsection{Autómata}
+
+    $G$ se trata de una gramática de contexto libre, por lo su lenguaje no puede reconocerse directamente con un \textit{AFD}. Sin embargo, si se aumenta su gramática a $G' = (T, N, P', R')$, con $R' = R \cup \{P' \to P\}$, y se verifica que \\ $G' \in SLR(1)$, entonces la colección completa de conjuntos de ítems $LR(0)$ de $G'$ sí que representa un \textit{AFD}: el que reconoce todos los prefijos viables de $G$. Nótese que $L(G) = L(G')$ por lo que son equivalentes.
+
+    Los estados de dicho autómata representan los estados intermedios de análisis tras consumir una secuencia de símbolos potencialmente correcta, y se construye mediante las operaciones de \textit{closure} y de \textit{goto}.
+
+    \subsection{Tablas de Acción y Goto}
+
+    El autómata se puede codificar mediante las tablas de acción y \textit{goto}, que si se pueden construir sin conflictos, garantizan que $G' \in SLR(1)$, es decir, que el analizador puede utilizar estas tablas para reconocer cualquier cadena de $L(G)$ de forma determinista y generar su \textit{parse}.
+
+    \renewcommand{\arraystretch}{1.0}
+    \begin{table}[H]
+        \caption{Tabla de Acción}
+        \fontsize{6.2}{9.6}\selectfont
+        \setlength{\tabcolsep}{0.9pt}
+        \begin{longtable}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+& \textbf{if} & \textbf{do} & \textbf{while} & \textbf{int} & \textbf{float} & \textbf{str} & \textbf{bool} & \textbf{void} & \textbf{let} & \textbf{func} & \textbf{ret} & \textbf{read} & \textbf{write} & \textbf{true} & \textbf{false} & \textbf{FloatLit} & \textbf{IntLit} & \textbf{StrLit} & \textbf{Id} & \textbf{=} & \textbf{\&=} & \textbf{,} & \textbf{;} & \textbf{(} & \textbf{)} & \textbf{\{} & \textbf{\}} & \textbf{+} & \textbf{-} & \textbf{*} & \textbf{\&\&} & \textbf{!} & \textbf{<} & \textbf{==} & \textbf{\$} \\
+\hline
+\textbf{0} & s7 & s5 &  &  &  &  &  &  & s6 & s4 & s9 & s10 & s11 &  &  &  &  &  & s12 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r1 \\
+\hline
+\textbf{1} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & acc \\
+\hline
+\textbf{2} & s7 & s5 &  &  &  &  &  &  & s6 & s4 & s9 & s10 & s11 &  &  &  &  &  & s12 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r1 \\
+\hline
+\textbf{3} & s7 & s5 &  &  &  &  &  &  & s6 & s4 & s9 & s10 & s11 &  &  &  &  &  & s12 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r1 \\
+\hline
+\textbf{4} & &  &  & s22 & s21 & s19 & s20 & s15 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{5} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s23 &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{6} & &  &  & r18 & r18 & r18 & r18 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{7} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s25 &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{8} & r28 & r28 &  &  &  &  &  &  & r28 & r28 & r28 & r28 & r28 &  &  &  &  &  & r28 &  &  &  &  &  &  &  & r28 &  &  &  &  &  &  &  & r28 \\
+\hline
+\textbf{9} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  & r16 & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\hline
+\textbf{10} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s44 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{11} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\hline
+\textbf{12} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s48 & s47 &  &  & s46 &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{13} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r2 \\
+\hline
+\textbf{14} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r3 \\
+\hline
+\textbf{15} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r10 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{16} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r11 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{17} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r14 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{18} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s49 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{19} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r19 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{20} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r20 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{21} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r21 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{22} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r22 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{23} & s7 & s5 &  &  &  &  &  &  & s6 &  & s9 & s10 & s11 &  &  &  &  &  & s12 &  &  &  &  &  &  &  & r4 &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{24} & &  &  & s22 & s21 & s19 & s20 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{25} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\hline
+\textbf{26} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r17 &  &  &  &  &  &  &  & s55 &  &  &  &  \\
+\hline
+\textbf{27} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s56 &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{28} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r39 & r39 & s57 & r39 &  &  & r39 &  & r39 & r39 &  & r39 & r39 &  \\
+\hline
+\textbf{29} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r40 & r40 &  & r40 &  &  & r40 &  & r40 & r40 &  & r40 & r40 &  \\
+\hline
+\textbf{30} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r41 & r41 &  & r41 &  &  & r41 &  & r41 & r41 &  & r41 & r41 &  \\
+\hline
+\textbf{31} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r42 & r42 &  & r42 &  &  & r42 &  & r42 & r42 &  & r42 & r42 &  \\
+\hline
+\textbf{32} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r43 & r43 &  & r43 &  &  & r43 &  & r43 & r43 &  & r43 & r43 &  \\
+\hline
+\textbf{33} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r44 & r44 &  & r44 &  &  & r44 &  & r44 & r44 &  & r44 & r44 &  \\
+\hline
+\textbf{34} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\hline
+\textbf{35} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r47 & r47 &  & r47 &  &  & r47 &  & r47 & r47 &  & r47 & r47 &  \\
+\hline
+\textbf{36} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\hline
+\textbf{37} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\hline
+\textbf{38} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\hline
+\textbf{39} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r51 & r51 &  & r51 &  &  & r51 &  & r51 & r51 &  & r51 & r51 &  \\
+\hline
+\textbf{40} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r53 & r53 &  & r53 &  &  & r53 &  & s62 & r53 &  & r53 & r53 &  \\
+\hline
+\textbf{41} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r55 & r55 &  & r55 &  &  & s63 &  &  & r55 &  & r55 & r55 &  \\
+\hline
+\textbf{42} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r57 & r57 &  & r57 &  &  &  &  &  & r57 &  & s64 & r57 &  \\
+\hline
+\textbf{43} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r59 & r59 &  & r59 &  &  &  &  &  & r59 &  &  & s65 &  \\
+\hline
+\textbf{44} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s66 &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{45} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s67 &  &  &  &  &  &  &  & s55 &  &  &  &  \\
+\hline
+\textbf{46} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 & r31 &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\hline
+\textbf{47} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\hline
+\textbf{48} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\hline
+\textbf{49} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r13 &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{50} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s72 &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{51} & s7 & s5 &  &  &  &  &  &  & s6 &  & s9 & s10 & s11 &  &  &  &  &  & s12 &  &  &  &  &  &  &  & r4 &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{52} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s75 &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{53} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s76 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{54} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s77 &  &  &  &  &  & s55 &  &  &  &  \\
+\hline
+        \end{longtable}
+        \label{tab:action1}
+    \end{table}
+
+\renewcommand{\arraystretch}{1.00}
+\begin{table}[H]
+    \fontsize{6.4}{9.6}\selectfont
+    \setlength{\tabcolsep}{1.0pt}
+    \begin{longtable}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+\textbf{55} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\hline
+\textbf{56} & r33 & r33 &  &  &  &  &  &  & r33 & r33 & r33 & r33 & r33 &  &  &  &  &  & r33 &  &  &  &  &  &  &  & r33 &  &  &  &  &  &  &  & r33 \\
+\hline
+\textbf{57} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 & r31 &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\hline
+\textbf{58} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s80 &  &  &  &  &  & s55 &  &  &  &  \\
+\hline
+\textbf{59} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r48 & r48 &  & r48 &  &  & r48 &  & r48 & r48 &  & r48 & r48 &  \\
+\hline
+\textbf{60} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r49 & r49 &  & r49 &  &  & r49 &  & r49 & r49 &  & r49 & r49 &  \\
+\hline
+\textbf{61} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r50 & r50 &  & r50 &  &  & r50 &  & r50 & r50 &  & r50 & r50 &  \\
+\hline
+\textbf{62} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\hline
+\textbf{63} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\hline
+\textbf{64} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\hline
+\textbf{65} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\hline
+\textbf{66} & r34 & r34 &  &  &  &  &  &  & r34 & r34 & r34 & r34 & r34 &  &  &  &  &  & r34 &  &  &  &  &  &  &  & r34 &  &  &  &  &  &  &  & r34 \\
+\hline
+\textbf{67} & r35 & r35 &  &  &  &  &  &  & r35 & r35 & r35 & r35 & r35 &  &  &  &  &  & r35 &  &  &  &  &  &  &  & r35 &  &  &  &  &  &  &  & r35 \\
+\hline
+\textbf{68} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s85 &  &  & r29 &  &  &  &  &  & s55 &  &  &  &  \\
+\hline
+\textbf{69} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s87 &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{70} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s88 &  &  &  &  &  &  &  & s55 &  &  &  &  \\
+\hline
+\textbf{71} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s89 &  &  &  &  &  &  &  & s55 &  &  &  &  \\
+\hline
+\textbf{72} & &  &  & s22 & s21 & s19 & s20 & s90 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{73} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s93 &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{74} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r5 &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{75} & &  & s94 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{76} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s96 & s95 &  & s97 &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{77} & &  &  &  &  &  &  &  &  &  & s9 & s10 & s11 &  &  &  &  &  & s12 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{78} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r60 & r60 &  & r60 &  &  &  &  &  & r60 &  &  & s65 &  \\
+\hline
+\textbf{79} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s99 &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{80} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r45 & r45 &  & r45 &  &  & r45 &  & r45 & r45 &  & r45 & r45 &  \\
+\hline
+\textbf{81} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r52 & r52 &  & r52 &  &  & r52 &  & r52 & r52 &  & r52 & r52 &  \\
+\hline
+\textbf{82} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r54 & r54 &  & r54 &  &  & r54 &  & s62 & r54 &  & r54 & r54 &  \\
+\hline
+\textbf{83} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r56 & r56 &  & r56 &  &  & s63 &  &  & r56 &  & r56 & r56 &  \\
+\hline
+\textbf{84} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r58 & r58 &  & r58 &  &  &  &  &  & r58 &  & s64 & r58 &  \\
+\hline
+\textbf{85} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\hline
+\textbf{86} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r32 &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{87} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s101 &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{88} & r37 & r37 &  &  &  &  &  &  & r37 & r37 & r37 & r37 & r37 &  &  &  &  &  & r37 &  &  &  &  &  &  &  & r37 &  &  &  &  &  &  &  & r37 \\
+\hline
+\textbf{89} & r38 & r38 &  &  &  &  &  &  & r38 & r38 & r38 & r38 & r38 &  &  &  &  &  & r38 &  &  &  &  &  &  &  & r38 &  &  &  &  &  &  &  & r38 \\
+\hline
+\textbf{90} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r8 &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{91} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s102 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{92} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s103 &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{93} & s7 & s5 &  &  &  &  &  &  & s6 &  & s9 & s10 & s11 &  &  &  &  &  & s12 &  &  &  &  &  &  &  & r4 &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{94} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s105 &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{95} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\hline
+\textbf{96} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\hline
+\textbf{97} & r26 & r26 &  &  &  &  &  &  & r26 & r26 & r26 & r26 & r26 &  &  &  &  &  & r26 &  &  &  &  &  &  &  & r26 &  &  &  &  &  &  &  & r26 \\
+\hline
+\textbf{98} & r27 & r27 &  &  &  &  &  &  & r27 & r27 & r27 & r27 & r27 &  &  &  &  &  & r27 &  &  &  &  &  &  &  & r27 &  &  &  &  &  &  &  & r27 \\
+\hline
+\textbf{99} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r46 & r46 &  & r46 &  &  & r46 &  & r46 & r46 &  & r46 & r46 &  \\
+\hline
+\textbf{100} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s85 &  &  & r29 &  &  &  &  &  & s55 &  &  &  &  \\
+\hline
+\textbf{101} & r36 & r36 &  &  &  &  &  &  & r36 & r36 & r36 & r36 & r36 &  &  &  &  &  & r36 &  &  &  &  &  &  &  & r36 &  &  &  &  &  &  &  & r36 \\
+\hline
+\textbf{102} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s109 &  &  & r6 &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{103} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r12 &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{104} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s111 &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{105} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\hline
+\textbf{106} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s113 &  &  &  &  &  &  &  & s55 &  &  &  &  \\
+\hline
+\textbf{107} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s114 &  &  &  &  &  &  &  & s55 &  &  &  &  \\
+\hline
+\textbf{108} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r30 &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{109} & &  &  & s22 & s21 & s19 & s20 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{110} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r9 &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{111} & r15 & r15 &  &  &  &  &  &  & r15 & r15 & r15 & r15 & r15 &  &  &  &  &  & r15 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r15 \\
+\hline
+\textbf{112} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s116 &  &  &  &  &  & s55 &  &  &  &  \\
+\hline
+\textbf{113} & r24 & r24 &  &  &  &  &  &  & r24 & r24 & r24 & r24 & r24 &  &  &  &  &  & r24 &  &  &  &  &  &  &  & r24 &  &  &  &  &  &  &  & r24 \\
+\hline
+\textbf{114} & r25 & r25 &  &  &  &  &  &  & r25 & r25 & r25 & r25 & r25 &  &  &  &  &  & r25 &  &  &  &  &  &  &  & r25 &  &  &  &  &  &  &  & r25 \\
+\hline
+\textbf{115} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s117 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{116} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s118 &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{117} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s109 &  &  & r6 &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{118} & r23 & r23 &  &  &  &  &  &  & r23 & r23 & r23 & r23 & r23 &  &  &  &  &  & r23 &  &  &  &  &  &  &  & r23 &  &  &  &  &  &  &  & r23 \\
+\hline
+\textbf{119} &  &  &  & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r7 &  &  &  &  &  &  &  &  &  &  \\
+\hline
+        \end{longtable}
+        \label{tab:action2}
+    \end{table}
+
+    \renewcommand{\arraystretch}{1.03}
+    \begin{table}[H]
+        \caption{Tabla de Goto}
+        \fontsize{8}{9.6}\selectfont
+        \setlength{\tabcolsep}{5.8pt}
+        \begin{longtable}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+& $\mathbf{E_1}$ & $\mathbf{R_1}$ & $\mathbf{R_2}$ & $\mathbf{U_1}$ & $\mathbf{U_2}$ & $\mathbf{E_2}$ & $\mathbf{V}$ & $\mathbf{S}$ & $\mathbf{L}$ & $\mathbf{Q}$ & $\mathbf{X}$ & $\mathbf{B}$ & $\mathbf{T}$ & $\mathbf{M}$ & $\mathbf{F}$ & $\mathbf{F_1}$ & $\mathbf{F_2}$ & $\mathbf{F_3}$ & $\mathbf{H}$ & $\mathbf{A}$ & $\mathbf{K}$ & $\mathbf{C}$ & $\mathbf{P}$ \\
+\hline
+\textbf{0} & &  &  &  &  &  &  & 8 &  &  &  & 3 &  &  & 2 &  &  &  &  &  &  &  & 1 \\
+\hline
+\textbf{1} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{2} & &  &  &  &  &  &  & 8 &  &  &  & 3 &  &  & 2 &  &  &  &  &  &  &  & 13 \\
+\hline
+\textbf{3} & &  &  &  &  &  &  & 8 &  &  &  & 3 &  &  & 2 &  &  &  &  &  &  &  & 14 \\
+\hline
+\textbf{4} & &  &  &  &  &  &  &  &  &  &  &  & 16 &  &  & 18 &  &  & 17 &  &  &  &  \\
+\hline
+\textbf{5} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{6} & &  &  &  &  &  &  &  &  &  &  &  &  & 24 &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{7} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{8} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{9} & 26 & 43 & 42 & 41 & 40 & 39 & 35 &  &  &  & 27 &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{10} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{11} & 45 & 43 & 42 & 41 & 40 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{12} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{13} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{14} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{15} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{16} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{17} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{18} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & 50 &  &  &  &  &  &  \\
+\hline
+\textbf{19} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{20} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{21} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{22} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{23} & &  &  &  &  &  &  & 8 &  &  &  & 51 &  &  &  &  &  &  &  &  &  & 52 &  \\
+\hline
+\textbf{24} & &  &  &  &  &  &  &  &  &  &  &  & 53 &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{25} & 54 & 43 & 42 & 41 & 40 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{26} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{27} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{28} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{29} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{30} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{31} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{32} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{33} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{34} & 58 & 43 & 42 & 41 & 40 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{35} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{36} & &  &  &  &  & 59 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{37} & &  &  &  &  & 60 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{38} & &  &  &  &  & 61 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{39} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{40} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{41} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{42} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{43} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{44} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{45} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{46} & 68 & 43 & 42 & 41 & 40 & 39 & 35 &  & 69 &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{47} & 70 & 43 & 42 & 41 & 40 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{48} & 71 & 43 & 42 & 41 & 40 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{49} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{50} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & 73 &  &  &  &  &  \\
+\hline
+\textbf{51} & &  &  &  &  &  &  & 8 &  &  &  & 51 &  &  &  &  &  &  &  &  &  & 74 &  \\
+\hline
+\textbf{52} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{53} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{54} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{55} & & 78 & 42 & 41 & 40 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{56} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{57} & 68 & 43 & 42 & 41 & 40 & 39 & 35 &  & 79 &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{58} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{59} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+        \end{longtable}
+        \label{tab:goto1}
+    \end{table}
+
+    \renewcommand{\arraystretch}{1.03}
+    \begin{table}[H]
+        \fontsize{8}{9.6}\selectfont
+        \setlength{\tabcolsep}{6.56pt}
+        \begin{longtable}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+            \hline
+            \textbf{60} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{61} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{62} & &  &  &  &  & 81 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{63} & &  &  &  & 82 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{64} & &  &  & 83 & 40 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{65} & &  & 84 & 41 & 40 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{66} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{67} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{68} & &  &  &  &  &  &  &  &  & 86 &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{69} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{70} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{71} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{72} & &  &  &  &  &  &  &  &  &  &  &  & 91 &  &  &  &  &  &  & 92 &  &  &  \\
+            \hline
+            \textbf{73} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{74} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{75} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{76} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{77} & &  &  &  &  &  &  & 98 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{78} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{79} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{80} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{81} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{82} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{83} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{84} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{85} & 100 & 43 & 42 & 41 & 40 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{86} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{87} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{88} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{89} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{90} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{91} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{92} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{93} & &  &  &  &  &  &  & 8 &  &  &  & 51 &  &  &  &  &  &  &  &  &  & 104 &  \\
+            \hline
+            \textbf{94} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{95} & 106 & 43 & 42 & 41 & 40 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{96} & 107 & 43 & 42 & 41 & 40 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{97} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{98} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{99} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{100} & &  &  &  &  &  &  &  &  & 108 &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{101} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{102} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & 110 &  &  \\
+            \hline
+            \textbf{103} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{104} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{105} & 112 & 43 & 42 & 41 & 40 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{106} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{107} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{108} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{109} & &  &  &  &  &  &  &  &  &  &  &  & 115 &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{110} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{111} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{112} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{113} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{114} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{115} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{116} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{117} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & 119 &  &  \\
+            \hline
+            \textbf{118} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+            \textbf{119} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+            \hline
+        \end{longtable}
+        \label{tab:goto2}
+    \end{table}
+
+    \newpage
+
+
+    \subsection{Algoritmo}
+
+    El recorrido de las tablas se realizará con un \textit{stack} dónde se irán apilando los símbolos no terminales hasta ser reducidos al axioma. Además, cada vez que se efectúe una reducción, el índice de la regla utilizada se añadirá al \textit{parse}, quedando este completamente formado al terminar el procedimiento.
+
+    En la tabla acción las celdas quieren decir:
+    \begin{itemize}
+        \item $sN:$ desplazar y apilar el estado n-ésimo
+        \item $rN:$ reducir por la regla n-ésima
+        \item $acc:$ aceptar la cadena
+    \end{itemize}
+
+    En la tabla goto:
+    \begin{itemize}
+        \item $N:$ apilar el estado n-ésimo
+    \end{itemize}
+
+    En ambas tablas una celda en blanco indica un error sintáctico.
+
+    \subsection{Conflictos}
+
+    Hay dos tipos de conflictos, conflictos recucción-reducción y conflictos desplazamiento-reducción. Ambos ocurren cuando se intenta escribir una acción en una celda no vacía de la tabla acción.
+
+    Como no han habido colisiones durante la construcción de la tabla, se confirma que $G' \in SLR(1)$. Por tanto, se va a poder implementar el \textit{Parser} $LR(1)$ exitosamente con la gramática escogida.
+
+    \subsection{Errores}
+
+    Por ahora sólo se ha lanza un tipo de error en el \textit{Parser}\footnote{Tras implementar el Analizador Semántico, se podrán enriquecer los errores del \textit{Parser} con mayor facilidad y se añadirán más tipos.}, \textit{Token Inesperado}.
+    Sin embargo, su mensaje varía según la celda en la que se lance, tomando el formato:
+
+    \begin{center}
+        \emph{"expected <opción 1>, <opción 2>, $\dots$, <opción n-1> or <opción n> before <token inesperado>"}
+    \end{center}
+
+    \renewcommand{\arraystretch}{1.0}
+    \begin{table}[H]
+        \caption{Listado de errores del \textit{Parser}}
+        \begin{tabular}{L{0.54\linewidth} L{0.40\linewidth}}
+            \toprule
+            \textbf{Error} & \textbf{Severidad} \\
+            \midrule
+            Token Inesperado & \textit{error} \\
+            \bottomrule
+        \end{tabular}
+        \label{tab:err-parser}
+    \end{table}
+
+    La lista de \textit{tokens} esperados se obtiene realizando una busqueda en profundidad en las tablas por cada \textit{token} con una celda no vacía en la fila del fallo. Los \textit{tokens} que desplazan siempre serán válidos, pero hay casos en los que un \textit{token} reduce una o varias veces pero acaba terminando en error, por lo que es necesario simular cada uno de ellos hasta llegar a un desplazamiento.
 
     \section{Diseño del Semanter}
     Se detallará en la entrega final.
@@ -835,34 +1437,31 @@
 
     \begin{description}
         \item[fib.javascript] Fichero con un estilo limpio y estándar.
-            \begin{lstlisting}[language=C]
+            \begin{lstlisting}[language=C, basicstyle=\footnotesize]
 /* This function computes the nth fibonacci number */
 function int fib(int n) {
-    if (n == 0) {
+    if (n == 0)
         return 0;
-    }
-    if (n == 1) {
+
+    if (n == 1)
         return 1;
-    }
 
     let int a = 0;
     let int b = 1;
 
     do {
         let int c = a + b;
+        a = b; b = c;
 
-        a = b;
-        b = c;
-
-        n = n - 1;
-    } while (n >= 2);
+        n = n + -1;
+    } while (!(n < 2));
 
     return b;
 }
-            \end{lstlisting}
-            \begin{multicols}{4}
-                \textbf{Fichero de \textit{tokens}:}
-                \begin{lstlisting}
+\end{lstlisting}
+\begin{multicols}{4}
+\textbf{Fichero de \textit{tokens}:}
+\begin{lstlisting}[basicstyle=\footnotesize]
 <Func, >
 <Int, >
 <Id, 0>
@@ -877,22 +1476,18 @@ function int fib(int n) {
 <Eq, >
 <IntLit, 0>
 <RParen, >
-<LBrack, >
 <Ret, >
 <IntLit, 0>
 <Semi, >
-<RBrack, >
 <If, >
 <LParen, >
 <Id, 1>
 <Eq, >
 <IntLit, 1>
 <RParen, >
-<LBrack, >
 <Ret, >
 <IntLit, 1>
 <Semi, >
-<RBrack, >
 <Let, >
 <Int, >
 <Id, 2>
@@ -926,24 +1521,28 @@ function int fib(int n) {
 <Id, 1>
 <Assign, >
 <Id, 1>
+<Sum, >
 <Sub, >
 <IntLit, 1>
 <Semi, >
 <RBrack, >
 <While, >
 <LParen, >
+<Not, >
+<LParen, >
 <Id, 1>
-<Ge, >
+<Lt, >
 <IntLit, 2>
+<RParen, >
 <RParen, >
 <Semi, >
 <Ret, >
 <Id, 3>
 <Semi, >
 <RBrack, >
-                \end{lstlisting}
-                \textbf{Tabla de símbolos:}
-                \begin{lstlisting}
+            \end{lstlisting}
+            \textbf{Tabla de símbolos:}
+            \begin{lstlisting}[basicstyle=\footnotesize]
 table #0:
 * 'fib'
 * 'n'
@@ -953,8 +1552,86 @@ table #0:
                 \end{lstlisting}
             \end{multicols}
 
+                \textbf{Parse:}
+                \begin{lstlisting}[basicstyle=\footnotesize]
+ascending 23 12 15 14 23 7 10 13 40 48 52 54 56 58 45 48 52 54 56 59 60 45 48 52 54 56 58 60 18 34 28 40 48 52 54 56 58 45 48 52 54 56 59 60 45 48 52 54 56 58 60 18 34 28 19 23 45 48 52 54 56 58 60 26 19 23 45 48 52 54 56 58 60 26 19 23 40 48 52 54 40 48 52 55 56 58 60 26 40 48 52 54 56 58 60 39 29 40 48 52 54 56 58 60 39 29 40 48 52 54 45 48 51 52 55 56 58 60 39 29 5 6 6 6 6 40 48 52 54 56 45 48 52 54 57 58 60 46 48 49 52 54 56 58 60 24 40 48 52 54 56 58 60 18 34 29 5 6 6 6 6 6 6 16 2 3 1
+                \end{lstlisting}
+
+\newpage
+
+\begin{center}
+\vspace*{\fill}
+\begin{multicols}{2}
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/fib/vast-1.png}
+    \label{fig:fib-vast-1}
+\end{figure}
+
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/fib/vast-2.png}
+    \label{fig:fib-vast-2}
+\end{figure}
+\end{multicols}
+\vspace*{\fill}
+\end{center}
+
+\newpage
+
+\begin{center}
+\vspace*{\fill}
+\begin{multicols}{2}
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/fib/vast-3.png}
+    \label{fig:fib-vast-3}
+\end{figure}
+
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/fib/vast-4.png}
+    \label{fig:fib-vast-4}
+\end{figure}
+\end{multicols}
+\vspace*{\fill}
+\end{center}
+
+\newpage
+
+\begin{center}
+\vspace*{\fill}
+\begin{multicols}{2}
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/fib/vast-5.png}
+    \label{fig:fib-vast-5}
+\end{figure}
+
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/fib/vast-6.png}
+    \label{fig:fib-vast-6}
+\end{figure}
+\end{multicols}
+\vspace*{\fill}
+\end{center}
+
+\newpage
+
+\begin{center}
+\vspace*{\fill}
+\begin{multicols}{2}
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/fib/vast-7.png}
+    \label{fig:fib-vast-7}
+\end{figure}
+
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/fib/vast-8.png}
+    \label{fig:fib-vast-8}
+\end{figure}
+\end{multicols}
+\vspace*{\fill}
+\end{center}
+
+\newpage
         \item[factorial.javascript] Fichero con un código más comprimido y comentarios más raros.
-            \begin{lstlisting}[language=C]
+            \begin{lstlisting}[language=C, basicstyle=\footnotesize]
 /*********************************************/
 /*          * / * N FACTORIAL * / *          */
 /*********************************************/
@@ -963,21 +1640,21 @@ table #0:
 * This function computes n! (n factorial)
 */
 function int factorial(int n) {
-    if(n==0){return 1;}
-    if(n<=2){return n;}
+    if(n==0)return 1;
+    if(n<2)return n;
     let int res=n;
-    do{n=n-1;res=res*n;}while(n>2);
+    do{n=n + -1;res=res*n;}while(!(n<2));
     return res;
 }
 
 /* read n and write n! */
-let int n=0;read(n);let int res=factorial(n);write("n! = ", res);
+let int n=0;read n;let int res=factorial(n);write(res);
 
 /*** eof ***/
             \end{lstlisting}
             \begin{multicols}{3}
                 \textbf{Fichero de \textit{tokens}:}
-                \begin{lstlisting}
+                \begin{lstlisting}[basicstyle=\footnotesize]
 <Func, >
 <Int, >
 <Id, 0>
@@ -992,22 +1669,18 @@ let int n=0;read(n);let int res=factorial(n);write("n! = ", res);
 <Eq, >
 <IntLit, 0>
 <RParen, >
-<LBrack, >
 <Ret, >
 <IntLit, 1>
 <Semi, >
-<RBrack, >
 <If, >
 <LParen, >
 <Id, 1>
-<Le, >
+<Lt, >
 <IntLit, 2>
 <RParen, >
-<LBrack, >
 <Ret, >
 <Id, 1>
 <Semi, >
-<RBrack, >
 <Let, >
 <Int, >
 <Id, 2>
@@ -1019,6 +1692,7 @@ let int n=0;read(n);let int res=factorial(n);write("n! = ", res);
 <Id, 1>
 <Assign, >
 <Id, 1>
+<Sum, >
 <Sub, >
 <IntLit, 1>
 <Semi, >
@@ -1031,9 +1705,12 @@ let int n=0;read(n);let int res=factorial(n);write("n! = ", res);
 <RBrack, >
 <While, >
 <LParen, >
+<Not, >
+<LParen, >
 <Id, 1>
-<Gt, >
+<Lt, >
 <IntLit, 2>
+<RParen, >
 <RParen, >
 <Semi, >
 <Ret, >
@@ -1047,9 +1724,7 @@ let int n=0;read(n);let int res=factorial(n);write("n! = ", res);
 <IntLit, 0>
 <Semi, >
 <Read, >
-<LParen, >
 <Id, 1>
-<RParen, >
 <Semi, >
 <Let, >
 <Int, >
@@ -1062,14 +1737,12 @@ let int n=0;read(n);let int res=factorial(n);write("n! = ", res);
 <Semi, >
 <Write, >
 <LParen, >
-<StrLit, "n! = ">
-<Comma, >
 <Id, 2>
 <RParen, >
 <Semi, >
                 \end{lstlisting}
                 \textbf{Tabla de símbolos:}
-                \begin{lstlisting}
+                \begin{lstlisting}[basicstyle=\footnotesize]
 table #0:
 * 'factorial'
 * 'n'
@@ -1077,20 +1750,98 @@ table #0:
                 \end{lstlisting}
             \end{multicols}
 
-        \newpage
+                \textbf{Parse:}
+                \begin{lstlisting}[basicstyle=\footnotesize]
+ascending 23 12 15 14 23 7 10 13 40 48 52 54 56 58 45 48 52 54 56 59 60 45 48 52 54 56 58 60 18 34 28 40 48 52 54 56 45 48 52 54 57 58 60 40 48 52 54 56 58 60 18 34 28 19 23 40 48 52 54 56 58 60 26 40 48 52 54 45 48 51 52 55 56 58 60 39 29 40 48 52 40 48 53 54 56 58 60 39 29 5 6 6 40 48 52 54 56 45 48 52 54 57 58 60 46 48 49 52 54 56 58 60 24 40 48 52 54 56 58 60 18 34 29 5 6 6 6 6 6 16 19 23 45 48 52 54 56 58 60 26 35 29 19 23 40 48 52 54 56 58 60 30 33 47 48 52 54 56 58 60 26 40 48 52 54 56 58 60 46 48 52 54 56 58 60 36 29 2 4 4 4 4 3 1
+                \end{lstlisting}
+
+\newpage
+
+\begin{center}
+\vspace*{\fill}
+\begin{multicols}{2}
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/factorial/vast-1.png}
+    \label{fig:factorial-vast-1}
+\end{figure}
+
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/factorial/vast-2.png}
+    \label{fig:factorial-vast-2}
+\end{figure}
+\end{multicols}
+\vspace*{\fill}
+\end{center}
+
+\newpage
+
+\begin{center}
+\vspace*{\fill}
+\begin{multicols}{2}
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/factorial/vast-3.png}
+    \label{fig:factorial-vast-3}
+\end{figure}
+
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/factorial/vast-4.png}
+    \label{fig:factorial-vast-4}
+\end{figure}
+\end{multicols}
+\vspace*{\fill}
+\end{center}
+
+\newpage
+
+\begin{center}
+\vspace*{\fill}
+\begin{multicols}{2}
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/factorial/vast-5.png}
+    \label{fig:factorial-vast-5}
+\end{figure}
+
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/factorial/vast-6.png}
+    \label{fig:factorial-vast-6}
+\end{figure}
+\end{multicols}
+\vspace*{\fill}
+\end{center}
+
+\newpage
+
+\begin{center}
+\vspace*{\fill}
+\begin{multicols}{2}
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/factorial/vast-7.png}
+    \label{fig:factorial-vast-7}
+\end{figure}
+
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/factorial/vast-8.png}
+    \label{fig:factorial-vast-8}
+\end{figure}
+\end{multicols}
+\vspace*{\fill}
+\end{center}
+
+\newpage
 
         \item[fuzz.javascript] Fichero correcto pero caótico, con el objectivo de obtener \textit{edgecases}.
-            \begin{lstlisting}[language=C]
+            \begin{lstlisting}[language=C, basicstyle=\footnotesize]
 let int global=13;
-function void nothing(void) { read(global) do{global=global-1;}while(global>0);}
+function void nothing(void) { read global; do{global=global+-1;}while(!(global<0));}
 function int main(float b, string d){let string aux="this is a str";
 /*** this is a comment ***/ let float foo=1203.123; let int bar=2398;
-;;;/* semicolons */;;; let oper=2||5;let boolean bool=false;
+/* semicolons */let int weird &= 3+-+-+-+-+-+-+-+-+5; let float oper=2.0000; let boolean bool=false;
 let boolean george=true;george&=bool;}/*** / eof /***/
+
             \end{lstlisting}
             \begin{multicols}{3}
                 \textbf{Fichero de \textit{tokens}:}
-                \begin{lstlisting}
+                \begin{lstlisting}[basicstyle=\footnotesize]
 <Let, >
 <Int, >
 <Id, 0>
@@ -1105,23 +1856,26 @@ let boolean george=true;george&=bool;}/*** / eof /***/
 <RParen, >
 <LBrack, >
 <Read, >
-<LParen, >
 <Id, 0>
-<RParen, >
+<Semi, >
 <Do, >
 <LBrack, >
 <Id, 0>
 <Assign, >
 <Id, 0>
+<Sum, >
 <Sub, >
 <IntLit, 1>
 <Semi, >
 <RBrack, >
 <While, >
 <LParen, >
+<Not, >
+<LParen, >
 <Id, 0>
-<Gt, >
+<Lt, >
 <IntLit, 0>
+<RParen, >
 <RParen, >
 <Semi, >
 <RBrack, >
@@ -1146,7 +1900,7 @@ let boolean george=true;george&=bool;}/*** / eof /***/
 <Float, >
 <Id, 6>
 <Assign, >
-<FloatLit, 1203.123>
+<FloatLit, 1203.23>
 <Semi, >
 <Let, >
 <Int, >
@@ -1154,39 +1908,56 @@ let boolean george=true;george&=bool;}/*** / eof /***/
 <Assign, >
 <IntLit, 2398>
 <Semi, >
-<Semi, >
-<Semi, >
-<Semi, >
-<Semi, >
-<Semi, >
-<Semi, >
 <Let, >
+<Int, >
 <Id, 8>
-<Assign, >
-<IntLit, 2>
-<Or, >
+<AndAssign, >
+<IntLit, 3>
+<Sum, >
+<Sub, >
+<Sum, >
+<Sub, >
+<Sum, >
+<Sub, >
+<Sum, >
+<Sub, >
+<Sum, >
+<Sub, >
+<Sum, >
+<Sub, >
+<Sum, >
+<Sub, >
+<Sum, >
+<Sub, >
+<Sum, >
 <IntLit, 5>
 <Semi, >
 <Let, >
-<Bool, >
+<Float, >
 <Id, 9>
+<Assign, >
+<FloatLit, 2>
+<Semi, >
+<Let, >
+<Bool, >
+<Id, 10>
 <Assign, >
 <False, >
 <Semi, >
 <Let, >
 <Bool, >
-<Id, 10>
+<Id, 11>
 <Assign, >
 <True, >
 <Semi, >
-<Id, 10>
+<Id, 11>
 <AndAssign, >
-<Id, 9>
+<Id, 10>
 <Semi, >
 <RBrack, >
                 \end{lstlisting}
                 \textbf{Tabla de símbolos:}
-                \begin{lstlisting}
+                \begin{lstlisting}[basicstyle=\footnotesize]
 table #0:
 * 'global'
 * 'nothing'
@@ -1203,21 +1974,99 @@ table #0:
             \end{multicols}
     \end{description}
 
-    \newpage
+                \textbf{Parse:}
+                \begin{lstlisting}[basicstyle=\footnotesize]
+ascending 19 23 45 48 52 54 56 58 60 26 11 15 14 9 13 35 29 40 48 52 54 45 48 51 52 55 56 58 60 39 29 5 6 40 48 52 54 56 45 48 52 54 57 58 60 46 48 49 52 54 56 58 60 24 5 6 6 16 23 12 15 14 22 20 7 8 10 13 19 20 43 48 52 54 56 58 60 26 19 22 44 48 52 54 56 58 60 26 19 23 45 48 52 54 56 58 60 26 19 23 45 48 52 54 45 48 50 51 50 51 50 51 50 51 50 51 50 51 50 51 50 51 52 55 56 58 60 25 19 22 44 48 52 54 56 58 60 26 19 21 41 48 52 54 56 58 60 26 19 21 42 48 52 54 56 58 60 26 40 48 52 54 56 58 60 38 29 5 6 6 6 6 6 6 6 6 16 2 3 3 4 1
+                \end{lstlisting}
+
+\newpage
+
+\begin{center}
+\vspace*{\fill}
+\begin{multicols}{2}
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/fuzz/vast-1.png}
+    \label{fig:fuzz-vast-1}
+\end{figure}
+
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/fuzz/vast-2.png}
+    \label{fig:fuzz-vast-2}
+\end{figure}
+\end{multicols}
+\vspace*{\fill}
+\end{center}
+
+\newpage
+
+\begin{center}
+\vspace*{\fill}
+\begin{multicols}{2}
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/fuzz/vast-3.png}
+    \label{fig:fuzz-vast-3}
+\end{figure}
+
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/fuzz/vast-4.png}
+    \label{fig:fuzz-vast-4}
+\end{figure}
+\end{multicols}
+\vspace*{\fill}
+\end{center}
+
+\newpage
+
+\begin{center}
+\vspace*{\fill}
+\begin{multicols}{2}
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/fuzz/vast-5.png}
+    \label{fig:fuzz-vast-5}
+\end{figure}
+
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/fuzz/vast-6.png}
+    \label{fig:fuzz-vast-6}
+\end{figure}
+\end{multicols}
+\vspace*{\fill}
+\end{center}
+
+\newpage
+
+\begin{center}
+\vspace*{\fill}
+\begin{multicols}{2}
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/fuzz/vast-7.png}
+    \label{fig:fuzz-vast-7}
+\end{figure}
+
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/fuzz/vast-8.png}
+    \label{fig:fuzz-vast-8}
+\end{figure}
+\end{multicols}
+\vspace*{\fill}
+\end{center}
+
+\newpage
 
     \subsection{Casos Incorrectos}
     \begin{description}
         \item[unterm.javascript] Fichero con errores de sentencias incompletas.
-            \begin{lstlisting}
+            \begin{lstlisting}[basicstyle=\footnotesize]
+/* unterminated declaration */
+let int = 2;
+
 /* unfinished strings */
 let string foo = "im not finishing this string
 let string bar = "im not finishing this one either\
 let string rep = "last one\q
 
-/* unfinished floats */
+/* unfinished float */
 let float x = 478234.
-let float y = 78234..
-let float z = 2343...
 
 /*** * / * ///** / this comment is finished /* /* ***/
 /*** this one is not ** ****** *** /*
@@ -1229,45 +2078,50 @@ function int main {
             \end{lstlisting}
 
             \textbf{Diagnósticos:}
-            \begin{lstlisting}
-unterm.javascript:2:18: error: missing terminating character '"' on string literal
-   2 | let string foo = "im not finishing this string
-     |                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-unterm.javascript:3:18: error: missing terminating character '"' on string literal
-   3 | let string bar = "im not finishing this one either\
-     |                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-unterm.javascript:4:27: warning: unknown escape sequence '\q'
-   4 | let string rep = "last one\q
-     |                           ^~
-unterm.javascript:4:18: error: missing terminating character '"' on string literal
-   4 | let string rep = "last one\q
-     |                  ^~~~~~~~~~~
-unterm.javascript:7:15: error: expected digit after '.' in float literal
-   7 | let float x = 478234.
-     |               ^~~~~~~
-unterm.javascript:8:15: error: expected digit after '.' in float literal
-   8 | let float y = 78234..
-     |               ^~~~~~
-unterm.javascript:8:21: error: illegal character '.' in program
-   8 | let float y = 78234..
-     |                     ^
-unterm.javascript:9:15: error: expected digit after '.' in float literal
-   9 | let float z = 2343...
-     |               ^~~~~
-unterm.javascript:9:20: error: illegal character '.' in program
-   9 | let float z = 2343...
-     |                    ^
-unterm.javascript:9:21: error: illegal character '.' in program
-   9 | let float z = 2343...
-     |                     ^
-unterm.javascript:12:1: error: unterminated comment
-   12 | /*** this one is not ** ****** *** /*
-      | ^~
+            \begin{lstlisting}[basicstyle=\footnotesize]
+unterm.javascript:5:18: error: missing terminating character '"' on string literal
+    |
+  5 | let string foo = "im not finishing this string
+    |                  ^ started here
+    |
+unterm.javascript:6:18: error: missing terminating character '"' on string literal
+    |
+  6 | let string bar = "im not finishing this one either\
+    |                  ^ started here
+    |
+unterm.javascript:7:27: warning: unknown escape sequence '\q'
+    |
+  7 | let string rep = "last one\q
+    |                           ^^ interpreted as \\q
+    |
+unterm.javascript:7:18: error: missing terminating character '"' on string literal
+    |
+  7 | let string rep = "last one\q
+    |                  ^ started here
+    |
+unterm.javascript:10:15: error: expected digit after '.' in float literal
+    |
+ 10 | let float x = 478234.
+    |               ^^^^^^^ perhaps you meant '478234.0'
+    |
+unterm.javascript:13:1: error: unterminated block comment
+    |
+ 13 | /*** this one is not ** ****** *** /*
+    | ^^ started here
+    |
+unterm.javascript:2:9: error: expected 'identifier' before '='
+    |
+  2 | let int = 2;
+    |         ^ before this token
+    |
             \end{lstlisting}
             \newpage
         
         \item[overflow.javascript] Fichero con errores de constantes fuera del rango admitido.
-            \begin{lstlisting}
+            \begin{lstlisting}[basicstyle=\footnotesize]
+/* parse error, missing type */
+function hello() {}
+
 /* string with 64 characters */
 let string foo = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
@@ -1285,68 +2139,100 @@ let float lots_of_decimals = 0.2347028349820934809218409238845290380928;
             \end{lstlisting}
 
             \textbf{Diagnósticos:}
-            \begin{lstlisting}
-overflow.javascript:5:18: error: string literal is too long, length is 65 but the maximum is 64
-   5 | let string bar = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
-     |                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-overflow.javascript:9:25: error: integer literal out of range for 16-byte type
-   9 | let int imax_plus_one = 32768;
-     |                         ^~~~~
-overflow.javascript:13:27: error: float literal out of range for 32-byte type
-  13 | let float fmax_plus_one = 3402823466385288598117041834845169254382923892341.0;
-     |                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            \begin{lstlisting}[basicstyle=\scriptsize]
+overflow.javascript:8:18: error: string literal is too long
+    |
+  8 | let string bar = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ length is 65 but maximum is 64
+    |
+overflow.javascript:12:25: error: integer literal out of range for 16-byte type
+    |
+ 12 | let int imax_plus_one = 32768;
+    |                         ^^^^^ maximum is 32767
+    |
+overflow.javascript:16:28: error: float literal out of range for 32-byte type
+    |
+ 16 | let float fmax_plus_more = 3402823466385288598117041834845169254382923892341.0;
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ maximum is 3.4028235e38
+    |
+overflow.javascript:2:10: error: expected 'int', 'float', 'string', 'boolean' or 'void' before 'hello'
+    |
+  2 | function hello() {}
+    |          ^^^^^ before this token
+    |
             \end{lstlisting}
             \newpage
 
         \item[noise.javascript] Fichero de ruido, repleto de errores diferentes.
-            \begin{lstlisting}
-123.45.67 12abc 12.34.56..78
--+*/% &&& ||| != == <= >= >< =!= &== |= <=>
-"unterminated string" "string with illegal char \q" ""empty""
+            \begin{lstlisting}[basicstyle=\footnotesize]
+if condition write "no parenthesis";
+123.45.67 12abc 123456. 78
 "bad\escape" "no closing quote
-/* nested comment */ /* comment */ /* unclosed comment
-@@@ ### $$$ %%% ^^^ ??? !!! <<< >>> === ====
-++ -- ** // %% =!= &== |= != <=> &&||!!
-"unterminated string again /* unclosed comment
+/* nested comment */ /* comment */ /* unclosed comment*/
+=!= &== != <=> &&|!!
+"unterminated string again /* unclosed comment            
 "bad string with \x illegal escape" "" ""empty""
+"Hello^[World"
 /* final comment */ /* another unclosed
             \end{lstlisting}
 
             \textbf{Diagnósticos:}
-            \begin{lstlisting}
-noise.javascript:1:7: error: illegal character '.' in program
-   1 | 123.45.67 12abc 12.34.56..78
-     |       ^
-noise.javascript:1:22: error: illegal character '.' in program
-   1 | 123.45.67 12abc 12.34.56..78
-     |                      ^
-noise.javascript:1:23: error: expected digit after '.' in float literal
-   1 | 123.45.67 12abc 12.34.56..78
-     |                       ^~~
-noise.javascript:1:26: error: illegal character '.' in program
-   1 | 123.45.67 12abc 12.34.56..78
-     |                          ^
-noise.javascript:2:9: error: illegal character '&' in program
-   2 | -+*/% &&& ||| != == <= >= >< =!= &== |= <=>
-     |         ^
-noise.javascript:2:13: error: illegal character '|' in program
-   2 | -+*/% &&& ||| != == <= >= >< =!= &== |= <=>
-     |             ^
-noise.javascript:2:38: error: illegal character '|' in program
-   2 | -+*/% &&& ||| != == <= >= >< =!= &== |= <=>
-     |                                      ^
-noise.javascript:3:53: warning: unknown escape sequence '\q'
-   3 |     "unterminated string" "string with illegal char \q" ""empty""
-     |                                                     ^~
-noise.javascript:4:5: warning: unknown escape sequence '\e'
-   4 | "bad\escape" "no closing quote
-     |     ^~
-noise.javascript:4:14: error: missing terminating character '"' on string literal
-   4 | "bad\escape" "no closing quote
-     |              ^~~~~~~~~~~~~~~~~
-noise.javascript:10:21: error: unterminated comment
-  10 | /* final comment */ /* another unclosed
-     |                     ^~
+            \begin{lstlisting}[basicstyle=\footnotesize]
+noise.javascript:2:7: error: illegal character '.' in program
+    |
+  2 | 123.45.67 12abc 123456. 78
+    |       ^ here
+    |
+noise.javascript:2:17: error: expected digit after '.' in float literal
+    |
+  2 | 123.45.67 12abc 123456. 78
+    |                 ^^^^^^^ perhaps you meant '123456.0'
+    |
+noise.javascript:3:5: warning: unknown escape sequence '\e'
+    |
+  3 | "bad\escape" "no closing quote
+    |     ^^ interpreted as \\e
+    |
+noise.javascript:3:14: error: missing terminating character '"' on string literal
+    |
+  3 | "bad\escape" "no closing quote
+    |              ^ started here
+    |
+noise.javascript:5:14: error: illegal character '>' in program
+    |
+  5 | =!= &== != <=> &&|!!
+    |              ^ here
+    |
+noise.javascript:5:18: error: illegal character '|' in program
+    |
+  5 | =!= &== != <=> &&|!!
+    |                  ^ here
+    |
+noise.javascript:6:1: error: missing terminating character '"' on string literal
+    |
+  6 | "unterminated string again /* unclosed comment
+    | ^ started here
+    |
+noise.javascript:7:18: warning: unknown escape sequence '\x'
+    |
+  7 | "bad string with \x illegal escape" "" ""empty""
+    |                  ^^ interpreted as \\x
+    |
+noise.javascript:8:7: error: malformed string literal, contains control character '\u{1b}'
+    |
+  8 | "Hello\u{1b}World"
+    |       ^^^^^^ remove this character
+    |
+noise.javascript:9:21: error: unterminated block comment
+    |
+  9 | /* final comment */ /* another unclosed
+    |                     ^^ started here
+    |
+noise.javascript:1:4: error: expected '(' before 'condition'
+    |
+  1 | if condition write "no parenthesis";
+    |    ^^^^^^^^^ before this token
+    |
             \end{lstlisting}
     \end{description}
 

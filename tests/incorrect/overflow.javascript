@@ -1,3 +1,6 @@
+/* parse error, missing type */
+function hello() {}
+
 /* string with 64 characters */
 let string foo = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 

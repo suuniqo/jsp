@@ -12,6 +12,10 @@ impl Symbol {
             lexeme: Rc::from(lexeme)
         }
     }
+
+    pub fn lexeme(&self) -> Rc<str> {
+        Rc::clone(&self.lexeme)
+    }
 }
 
 impl fmt::Display for Symbol {

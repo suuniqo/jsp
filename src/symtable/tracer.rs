@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::writer::{Writer, WriterErr};
 
 use super::{SymTable, SymTableCore, symbol::Symbol};
@@ -26,15 +28,15 @@ impl SymTableTracer {
 }
 
 impl SymTable for SymTableTracer {
-    fn intern(&mut self, lexeme: &str) -> usize {
-        let pos = self.inner.intern(lexeme);
+    fn intern(&mut self, lexeme: &str) -> (usize, Rc<str>) {
+        let (pos, rc) = self.inner.intern(lexeme);
 
         if pos == self.pos {
             self.trace.push(self.inner.get(pos).expect("couldn't newly inserted id").clone());
             self.pos += 1;
         }
 
-        pos
+        (pos, rc)
     }
 
     fn get(&self, pos: usize) -> Option<&Symbol> {

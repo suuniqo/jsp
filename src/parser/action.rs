@@ -1,4 +1,4 @@
-use std::{f32, i16, usize};
+use std::{f32, i16, rc::Rc, usize};
 
 use crate::token::TokenKind;
 use super::grammar::NotTerm;
@@ -42,7 +42,7 @@ impl TokenKind {
             15 => TokenKind::FloatLit(f32::default()),
             16 => TokenKind::IntLit(i16::default()),
             17 => TokenKind::StrLit(String::default()),
-            18 => TokenKind::Id(usize::default()),
+            18 => TokenKind::Id((usize::default(), Rc::from(""))),
             19 => TokenKind::Assign,
             20 => TokenKind::AndAssign,
             21 => TokenKind::Comma,
@@ -52,12 +52,13 @@ impl TokenKind {
             25 => TokenKind::LBrack,
             26 => TokenKind::RBrack,
             27 => TokenKind::Sum,
-            28 => TokenKind::Mul,
-            29 => TokenKind::And,
-            30 => TokenKind::Not,
-            31 => TokenKind::Lt,
-            32 => TokenKind::Eq,
-            33 => TokenKind::Eof,
+            28 => TokenKind::Sub,
+            29 => TokenKind::Mul,
+            30 => TokenKind::And,
+            31 => TokenKind::Not,
+            32 => TokenKind::Lt,
+            33 => TokenKind::Eq,
+            34 => TokenKind::Eof,
             other => unreachable!("should always be a valid TokenKind index, but got {other}"),
         }
     }
