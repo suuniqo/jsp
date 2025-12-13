@@ -119,7 +119,6 @@ pub const GRAMMAR: &[Rule] = &[
     (NotTerm::T, &[GramSym::T(Term::Int)]),
 
     (NotTerm::B, &[GramSym::T(Term::Do), GramSym::T(Term::LBrack), GramSym::N(NotTerm::C), GramSym::T(Term::RBrack), GramSym::T(Term::While), GramSym::T(Term::LParen), GramSym::N(NotTerm::E), GramSym::T(Term::RParen), GramSym::T(Term::Semi)]),
-    (NotTerm::B, &[GramSym::T(Term::Let), GramSym::N(NotTerm::M), GramSym::N(NotTerm::T), GramSym::T(Term::Id), GramSym::T(Term::AndAssign), GramSym::N(NotTerm::E), GramSym::T(Term::Semi)]),
     (NotTerm::B, &[GramSym::T(Term::Let), GramSym::N(NotTerm::M), GramSym::N(NotTerm::T), GramSym::T(Term::Id), GramSym::T(Term::Assign), GramSym::N(NotTerm::E), GramSym::T(Term::Semi)]),
     (NotTerm::B, &[GramSym::T(Term::Let), GramSym::N(NotTerm::M), GramSym::N(NotTerm::T), GramSym::T(Term::Id), GramSym::T(Term::Semi)]),
     (NotTerm::B, &[GramSym::T(Term::If), GramSym::T(Term::LParen), GramSym::N(NotTerm::E), GramSym::T(Term::RParen), GramSym::N(NotTerm::S)]),
@@ -149,8 +148,6 @@ pub const GRAMMAR: &[Rule] = &[
 
     (NotTerm::EE, &[GramSym::N(NotTerm::V)]),
     (NotTerm::EE, &[GramSym::T(Term::Not), GramSym::N(NotTerm::EE)]),
-    (NotTerm::EE, &[GramSym::T(Term::Sum), GramSym::N(NotTerm::EE)]),
-    (NotTerm::EE, &[GramSym::T(Term::Sub), GramSym::N(NotTerm::EE)]),
 
     (NotTerm::UU, &[GramSym::N(NotTerm::EE)]),
     (NotTerm::UU, &[GramSym::N(NotTerm::UU), GramSym::T(Term::Mul), GramSym::N(NotTerm::EE)]),
@@ -166,4 +163,8 @@ pub const GRAMMAR: &[Rule] = &[
 
     (NotTerm::E, &[GramSym::N(NotTerm::R)]),
     (NotTerm::E, &[GramSym::N(NotTerm::E), GramSym::T(Term::And), GramSym::N(NotTerm::R)]),
+
+    // Para que draco funcione
+    (NotTerm::EE, &[GramSym::T(Term::Sum), GramSym::N(NotTerm::EE)]),
+    (NotTerm::EE, &[GramSym::T(Term::Sub), GramSym::N(NotTerm::EE)]),
 ];

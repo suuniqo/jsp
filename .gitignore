@@ -10,8 +10,10 @@
 *.fls
 *.log
 *.synctex.gz
-*.bcf
+*.bcf*
 *.out
 *.run.xml
 *.toc
 *.xdv
+*.bbl*
+*.blg

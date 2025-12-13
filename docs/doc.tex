@@ -788,22 +788,22 @@
     Se define la gramática del \textit{Parser} como la tupla $G = (T, N, P, R)$, dónde:
     \begin{flalign*}
         T &= \{ \textnormal{Todo \textit{token} definido por el \textit{Lexer}} \} && \\
-        N &= \{ E_1, R_1, R_2, U_1, U_2, E_2, V, S, L, Q, X, B, T, M, F, F_1, F_2, F_3, H, A, K, C, P \} &&
+        N &= \{ E, R, RR, U, UU, EE, V, S, L, Q, X, B, T, M, F, F1, F2, F3, H, A, K, C, P \} &&
     \end{flalign*}
 
     $R$ se compone de:
     \begin{flalign*}
         P &\to B P \:\mid\: F P \:\mid\: \lambda && \\
         C &\to B C \:\mid\: \lambda && \\
-        F &\to \:\textnormal{Func}\: F_1 F_2 F_3 \:\textnormal{LBrack}\: C \:\textnormal{RBrack}\: && \\
-        F_1 &\to H && \\
-        F_2 &\to \:\textnormal{Id}\: && \\
-        F_3 &\to \:\textnormal{LParen}\: A \:\textnormal{RParen}\: && \\
+        F &\to \:\textnormal{Func}\: F1 F2 F3 \:\textnormal{LBrack}\: C \:\textnormal{RBrack}\: && \\
+        F1 &\to H && \\
+        F2 &\to \:\textnormal{Id}\: && \\
+        F3 &\to \:\textnormal{LParen}\: A \:\textnormal{RParen}\: && \\
         H &\to T \:\mid\: \:\textnormal{Void}\: && \\
         A &\to T \:\textnormal{Id}\: K \:\mid\: \:\textnormal{Void}\: && \\
         K &\to \:\textnormal{Comma}\: T \:\textnormal{Id}\: K \:\mid\: \lambda && \\
         B &\to \:\textnormal{If}\: \:\textnormal{LParen}\: E \:\textnormal{RParen}\: S \:\mid\: \:\textnormal{Do}\: \:\textnormal{LBrack}\: C \:\textnormal{RBrack}\: \:\textnormal{While}\: \:\textnormal{LParen}\: E \:\textnormal{RParen}\: \:\textnormal{Semi}\: && \\
-        B &\to S \:\mid\: \:\textnormal{Let}\: M T \:\textnormal{Id}\: \:\textnormal{Semi}\: \:\mid\: \:\textnormal{Let}\: M T \:\textnormal{Id}\: \:\textnormal{Assign}\: E \:\textnormal{Semi}\: \:\mid\: \:\textnormal{Let}\: M T \:\textnormal{Id}\: \:\textnormal{AndAssign}\: E \:\textnormal{Semi}\: && \\
+        B &\to S \:\mid\: \:\textnormal{Let}\: M T \:\textnormal{Id}\: \:\textnormal{Semi}\: \:\mid\: \:\textnormal{Let}\: M T \:\textnormal{Id}\: \:\textnormal{Assign}\: E \:\textnormal{Semi}\: && \\
         M &\to \lambda && \\
         T &\to \:\textnormal{Int}\: \:\mid\: \:\textnormal{Float}\: \:\mid\: \:\textnormal{Bool}\: \:\mid\: \:\textnormal{Str}\: && \\
         S &\to \:\textnormal{Write}\: E \:\textnormal{Semi}\: \:\mid\: \:\textnormal{Read}\: \:\textnormal{Id}\: \:\textnormal{Semi}\: \:\mid\: \:\textnormal{Ret}\: X \:\textnormal{Semi}\: && \\
@@ -811,12 +811,12 @@
         L &\to E Q \:\mid\: \lambda && \\
         Q &\to \:\textnormal{Comma}\: E Q \:\mid\: \lambda && \\
         X &\to E \:\mid\: \lambda && \\
-        E_1 &\to E_1 \:\textnormal{And}\: R_1 \:\mid\: R_1 && \\
-        R_1 &\to R_1 \:\textnormal{Eq}\: R_2 \:\mid\: R_2 && \\
-        R_2 &\to R_2 \:\textnormal{Lt}\: U_1 \:\mid\: U_1 && \\
-        U_1 &\to U_1 \:\textnormal{Sum}\: U_2 \:\mid\: U_2 && \\
-        U_2 &\to U_2 \:\textnormal{Mul}\: E_2 \:\mid\: E_2 && \\
-        E_2 &\to \:\textnormal{Not}\: E_2 \:\mid\: \:\textnormal{Sub}\: E_2 \:\mid\: \:\textnormal{Sum}\: E_2 \:\mid\: V && \\
+        E &\to E \:\textnormal{And}\: R \:\mid\: R && \\
+        R &\to R \:\textnormal{Eq}\: RR \:\mid\: RR && \\
+        RR &\to RR \:\textnormal{Lt}\: U \:\mid\: U && \\
+        U &\to U \:\textnormal{Sum}\: UU \:\mid\: UU && \\
+        UU &\to UU \:\textnormal{Mul}\: EE \:\mid\: EE && \\
+        EE &\to \:\textnormal{Not}\: EE \:\mid\: \:\textnormal{Sub}\: EE \:\mid\: \:\textnormal{Sum}\: EE \:\mid\: V && \\
         V &\to \:\textnormal{Id}\: \:\textnormal{LParen}\: L \:\textnormal{RParen}\: \:\mid\: \:\textnormal{LParen}\: E \:\textnormal{RParep}\: \:\mid\: \:\textnormal{IntLit}\: \:\mid\: \:\textnormal{FloatLit}\: \:\mid\: \:\textnormal{StrLit}\: \:\mid\: \:\textnormal{True}\: \:\mid\: \:\textnormal{False}\: \:\mid\: \:\textnormal{Id}\: &&
     \end{flalign*}
 
@@ -836,531 +836,501 @@
 
     El autómata se puede codificar mediante las tablas de acción y \textit{goto}, que si se pueden construir sin conflictos, garantizan que $G' \in SLR(1)$, es decir, que el analizador puede utilizar estas tablas para reconocer cualquier cadena de $L(G)$ de forma determinista y generar su \textit{parse}.
 
-    \renewcommand{\arraystretch}{1.0}
-    \begin{table}[H]
-        \caption{Tabla de Acción}
-        \fontsize{6.2}{9.6}\selectfont
-        \setlength{\tabcolsep}{0.9pt}
-        \begin{longtable}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+    {
+    \renewcommand{\arraystretch}{1.23}
+    \fontsize{6.0}{8.0}\selectfont
+    \setlength{\tabcolsep}{0.76pt}
+    \begin{longtable}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+    \caption{Tabla de Acción}
+    \label{tab:action} \\
 \hline
 & \textbf{if} & \textbf{do} & \textbf{while} & \textbf{int} & \textbf{float} & \textbf{str} & \textbf{bool} & \textbf{void} & \textbf{let} & \textbf{func} & \textbf{ret} & \textbf{read} & \textbf{write} & \textbf{true} & \textbf{false} & \textbf{FloatLit} & \textbf{IntLit} & \textbf{StrLit} & \textbf{Id} & \textbf{=} & \textbf{\&=} & \textbf{,} & \textbf{;} & \textbf{(} & \textbf{)} & \textbf{\{} & \textbf{\}} & \textbf{+} & \textbf{-} & \textbf{*} & \textbf{\&\&} & \textbf{!} & \textbf{<} & \textbf{==} & \textbf{\$} \\
 \hline
 \textbf{0} & s7 & s5 &  &  &  &  &  &  & s6 & s4 & s9 & s10 & s11 &  &  &  &  &  & s12 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r1 \\
 \hline
-\textbf{1} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & acc \\
+\textbf{1} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & acc \\
 \hline
 \textbf{2} & s7 & s5 &  &  &  &  &  &  & s6 & s4 & s9 & s10 & s11 &  &  &  &  &  & s12 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r1 \\
 \hline
 \textbf{3} & s7 & s5 &  &  &  &  &  &  & s6 & s4 & s9 & s10 & s11 &  &  &  &  &  & s12 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r1 \\
 \hline
-\textbf{4} & &  &  & s22 & s21 & s19 & s20 & s15 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{4} &  &  &  & s22 & s21 & s19 & s20 & s15 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{5} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s23 &  &  &  &  &  &  &  &  &  \\
+\textbf{5} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s23 &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{6} & &  &  & r18 & r18 & r18 & r18 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{6} &  &  &  & r18 & r18 & r18 & r18 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{7} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s25 &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{7} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s25 &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{8} & r28 & r28 &  &  &  &  &  &  & r28 & r28 & r28 & r28 & r28 &  &  &  &  &  & r28 &  &  &  &  &  &  &  & r28 &  &  &  &  &  &  &  & r28 \\
+\textbf{8} & r27 & r27 &  &  &  &  &  &  & r27 & r27 & r27 & r27 & r27 &  &  &  &  &  & r27 &  &  &  &  &  &  &  & r27 &  &  &  &  &  &  &  & r27 \\
 \hline
-\textbf{9} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  & r16 & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\textbf{9} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  & r16 & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
 \hline
-\textbf{10} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s44 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{10} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s44 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{11} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\textbf{11} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
 \hline
-\textbf{12} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s48 & s47 &  &  & s46 &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{12} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s48 & s47 &  &  & s46 &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{13} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r2 \\
+\textbf{13} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r2 \\
 \hline
-\textbf{14} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r3 \\
+\textbf{14} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r3 \\
 \hline
-\textbf{15} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r10 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{15} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r10 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{16} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r11 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{16} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r11 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{17} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r14 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{17} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r14 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{18} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s49 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{18} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s49 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{19} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r19 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{19} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r19 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{20} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r20 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{20} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r20 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{21} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r21 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{21} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r21 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{22} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r22 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{22} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r22 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
 \textbf{23} & s7 & s5 &  &  &  &  &  &  & s6 &  & s9 & s10 & s11 &  &  &  &  &  & s12 &  &  &  &  &  &  &  & r4 &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{24} & &  &  & s22 & s21 & s19 & s20 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{24} &  &  &  & s22 & s21 & s19 & s20 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{25} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\textbf{25} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
 \hline
-\textbf{26} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r17 &  &  &  &  &  &  &  & s55 &  &  &  &  \\
+\textbf{26} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r17 &  &  &  &  &  &  &  & s55 &  &  &  &  \\
 \hline
-\textbf{27} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s56 &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{27} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s56 &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{28} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r39 & r39 & s57 & r39 &  &  & r39 &  & r39 & r39 &  & r39 & r39 &  \\
+\textbf{28} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r38 & r38 & s57 & r38 &  &  & r38 &  & r38 & r38 &  & r38 & r38 &  \\
 \hline
-\textbf{29} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r40 & r40 &  & r40 &  &  & r40 &  & r40 & r40 &  & r40 & r40 &  \\
+\textbf{29} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r39 & r39 &  & r39 &  &  & r39 &  & r39 & r39 &  & r39 & r39 &  \\
 \hline
-\textbf{30} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r41 & r41 &  & r41 &  &  & r41 &  & r41 & r41 &  & r41 & r41 &  \\
+\textbf{30} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r40 & r40 &  & r40 &  &  & r40 &  & r40 & r40 &  & r40 & r40 &  \\
 \hline
-\textbf{31} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r42 & r42 &  & r42 &  &  & r42 &  & r42 & r42 &  & r42 & r42 &  \\
+\textbf{31} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r41 & r41 &  & r41 &  &  & r41 &  & r41 & r41 &  & r41 & r41 &  \\
 \hline
-\textbf{32} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r43 & r43 &  & r43 &  &  & r43 &  & r43 & r43 &  & r43 & r43 &  \\
+\textbf{32} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r42 & r42 &  & r42 &  &  & r42 &  & r42 & r42 &  & r42 & r42 &  \\
 \hline
-\textbf{33} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r44 & r44 &  & r44 &  &  & r44 &  & r44 & r44 &  & r44 & r44 &  \\
+\textbf{33} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r43 & r43 &  & r43 &  &  & r43 &  & r43 & r43 &  & r43 & r43 &  \\
 \hline
-\textbf{34} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\textbf{34} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
 \hline
-\textbf{35} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r47 & r47 &  & r47 &  &  & r47 &  & r47 & r47 &  & r47 & r47 &  \\
+\textbf{35} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r46 & r46 &  & r46 &  &  & r46 &  & r46 & r46 &  & r46 & r46 &  \\
 \hline
-\textbf{36} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\textbf{36} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
 \hline
-\textbf{37} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\textbf{37} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r48 & r48 &  & r48 &  &  & r48 &  & r48 & r48 &  & r48 & r48 &  \\
 \hline
-\textbf{38} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\textbf{38} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r50 & r50 &  & r50 &  &  & r50 &  & s60 & r50 &  & r50 & r50 &  \\
 \hline
-\textbf{39} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r51 & r51 &  & r51 &  &  & r51 &  & r51 & r51 &  & r51 & r51 &  \\
+\textbf{39} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r52 & r52 &  & r52 &  &  & s61 &  &  & r52 &  & r52 & r52 &  \\
 \hline
-\textbf{40} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r53 & r53 &  & r53 &  &  & r53 &  & s62 & r53 &  & r53 & r53 &  \\
+\textbf{40} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r54 & r54 &  & r54 &  &  &  &  &  & r54 &  & s62 & r54 &  \\
 \hline
-\textbf{41} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r55 & r55 &  & r55 &  &  & s63 &  &  & r55 &  & r55 & r55 &  \\
+\textbf{41} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r56 & r56 &  & r56 &  &  &  &  &  & r56 &  &  & s63 &  \\
 \hline
-\textbf{42} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r57 & r57 &  & r57 &  &  &  &  &  & r57 &  & s64 & r57 &  \\
+\textbf{42} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
 \hline
-\textbf{43} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r59 & r59 &  & r59 &  &  &  &  &  & r59 &  &  & s65 &  \\
+\textbf{43} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
 \hline
-\textbf{44} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s66 &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{44} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s66 &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{45} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s67 &  &  &  &  &  &  &  & s55 &  &  &  &  \\
+\textbf{45} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s67 &  &  &  &  &  &  &  & s55 &  &  &  &  \\
 \hline
-\textbf{46} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 & r31 &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\textbf{46} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 & r30 &  &  & s42 & s43 &  &  & s36 &  &  &  \\
 \hline
-\textbf{47} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\textbf{47} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
 \hline
-\textbf{48} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\textbf{48} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
 \hline
-\textbf{49} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r13 &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{49} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r13 &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{50} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s72 &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{50} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s72 &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
 \textbf{51} & s7 & s5 &  &  &  &  &  &  & s6 &  & s9 & s10 & s11 &  &  &  &  &  & s12 &  &  &  &  &  &  &  & r4 &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{52} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s75 &  &  &  &  &  &  &  &  \\
+\textbf{52} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s75 &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{53} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s76 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{53} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s76 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{54} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s77 &  &  &  &  &  & s55 &  &  &  &  \\
+\textbf{54} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s77 &  &  &  &  &  & s55 &  &  &  &  \\
 \hline
-        \end{longtable}
-        \label{tab:action1}
-    \end{table}
-
-\renewcommand{\arraystretch}{1.00}
-\begin{table}[H]
-    \fontsize{6.4}{9.6}\selectfont
-    \setlength{\tabcolsep}{1.0pt}
-    \begin{longtable}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+\textbf{55} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
 \hline
-\textbf{55} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\textbf{56} & r32 & r32 &  &  &  &  &  &  & r32 & r32 & r32 & r32 & r32 &  &  &  &  &  & r32 &  &  &  &  &  &  &  & r32 &  &  &  &  &  &  &  & r32 \\
 \hline
-\textbf{56} & r33 & r33 &  &  &  &  &  &  & r33 & r33 & r33 & r33 & r33 &  &  &  &  &  & r33 &  &  &  &  &  &  &  & r33 &  &  &  &  &  &  &  & r33 \\
+\textbf{57} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 & r30 &  &  & s42 & s43 &  &  & s36 &  &  &  \\
 \hline
-\textbf{57} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 & r31 &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\textbf{58} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s80 &  &  &  &  &  & s55 &  &  &  &  \\
 \hline
-\textbf{58} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s80 &  &  &  &  &  & s55 &  &  &  &  \\
+\textbf{59} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r47 & r47 &  & r47 &  &  & r47 &  & r47 & r47 &  & r47 & r47 &  \\
 \hline
-\textbf{59} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r48 & r48 &  & r48 &  &  & r48 &  & r48 & r48 &  & r48 & r48 &  \\
+\textbf{60} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
 \hline
-\textbf{60} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r49 & r49 &  & r49 &  &  & r49 &  & r49 & r49 &  & r49 & r49 &  \\
+\textbf{61} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
 \hline
-\textbf{61} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r50 & r50 &  & r50 &  &  & r50 &  & r50 & r50 &  & r50 & r50 &  \\
+\textbf{62} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
 \hline
-\textbf{62} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\textbf{63} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
 \hline
-\textbf{63} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\textbf{64} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r58 & r58 &  & r58 &  &  & r58 &  & r58 & r58 &  & r58 & r58 &  \\
 \hline
-\textbf{64} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\textbf{65} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r59 & r59 &  & r59 &  &  & r59 &  & r59 & r59 &  & r59 & r59 &  \\
 \hline
-\textbf{65} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\textbf{66} & r33 & r33 &  &  &  &  &  &  & r33 & r33 & r33 & r33 & r33 &  &  &  &  &  & r33 &  &  &  &  &  &  &  & r33 &  &  &  &  &  &  &  & r33 \\
 \hline
-\textbf{66} & r34 & r34 &  &  &  &  &  &  & r34 & r34 & r34 & r34 & r34 &  &  &  &  &  & r34 &  &  &  &  &  &  &  & r34 &  &  &  &  &  &  &  & r34 \\
+\textbf{67} & r34 & r34 &  &  &  &  &  &  & r34 & r34 & r34 & r34 & r34 &  &  &  &  &  & r34 &  &  &  &  &  &  &  & r34 &  &  &  &  &  &  &  & r34 \\
 \hline
-\textbf{67} & r35 & r35 &  &  &  &  &  &  & r35 & r35 & r35 & r35 & r35 &  &  &  &  &  & r35 &  &  &  &  &  &  &  & r35 &  &  &  &  &  &  &  & r35 \\
+\textbf{68} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s85 &  &  & r28 &  &  &  &  &  & s55 &  &  &  &  \\
 \hline
-\textbf{68} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s85 &  &  & r29 &  &  &  &  &  & s55 &  &  &  &  \\
+\textbf{69} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s87 &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{69} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s87 &  &  &  &  &  &  &  &  &  &  \\
+\textbf{70} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s88 &  &  &  &  &  &  &  & s55 &  &  &  &  \\
 \hline
-\textbf{70} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s88 &  &  &  &  &  &  &  & s55 &  &  &  &  \\
+\textbf{71} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s89 &  &  &  &  &  &  &  & s55 &  &  &  &  \\
 \hline
-\textbf{71} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s89 &  &  &  &  &  &  &  & s55 &  &  &  &  \\
+\textbf{72} &  &  &  & s22 & s21 & s19 & s20 & s90 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{72} & &  &  & s22 & s21 & s19 & s20 & s90 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{73} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s93 &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{73} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s93 &  &  &  &  &  &  &  &  &  \\
+\textbf{74} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r5 &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{74} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r5 &  &  &  &  &  &  &  &  \\
+\textbf{75} &  &  & s94 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{75} & &  & s94 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{76} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s95 &  &  & s96 &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{76} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s96 & s95 &  & s97 &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{77} &  &  &  &  &  &  &  &  &  &  & s9 & s10 & s11 &  &  &  &  &  & s12 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{77} & &  &  &  &  &  &  &  &  &  & s9 & s10 & s11 &  &  &  &  &  & s12 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{78} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r57 & r57 &  & r57 &  &  &  &  &  & r57 &  &  & s63 &  \\
 \hline
-\textbf{78} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r60 & r60 &  & r60 &  &  &  &  &  & r60 &  &  & s65 &  \\
+\textbf{79} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s98 &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{79} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s99 &  &  &  &  &  &  &  &  &  &  \\
+\textbf{80} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r44 & r44 &  & r44 &  &  & r44 &  & r44 & r44 &  & r44 & r44 &  \\
 \hline
-\textbf{80} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r45 & r45 &  & r45 &  &  & r45 &  & r45 & r45 &  & r45 & r45 &  \\
+\textbf{81} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r49 & r49 &  & r49 &  &  & r49 &  & r49 & r49 &  & r49 & r49 &  \\
 \hline
-\textbf{81} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r52 & r52 &  & r52 &  &  & r52 &  & r52 & r52 &  & r52 & r52 &  \\
+\textbf{82} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r51 & r51 &  & r51 &  &  & r51 &  & s60 & r51 &  & r51 & r51 &  \\
 \hline
-\textbf{82} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r54 & r54 &  & r54 &  &  & r54 &  & s62 & r54 &  & r54 & r54 &  \\
+\textbf{83} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r53 & r53 &  & r53 &  &  & s61 &  &  & r53 &  & r53 & r53 &  \\
 \hline
-\textbf{83} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r56 & r56 &  & r56 &  &  & s63 &  &  & r56 &  & r56 & r56 &  \\
+\textbf{84} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r55 & r55 &  & r55 &  &  &  &  &  & r55 &  & s62 & r55 &  \\
 \hline
-\textbf{84} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r58 & r58 &  & r58 &  &  &  &  &  & r58 &  & s64 & r58 &  \\
+\textbf{85} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
 \hline
-\textbf{85} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\textbf{86} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r31 &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{86} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r32 &  &  &  &  &  &  &  &  &  &  \\
+\textbf{87} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s100 &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{87} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s101 &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{88} & r36 & r36 &  &  &  &  &  &  & r36 & r36 & r36 & r36 & r36 &  &  &  &  &  & r36 &  &  &  &  &  &  &  & r36 &  &  &  &  &  &  &  & r36 \\
 \hline
-\textbf{88} & r37 & r37 &  &  &  &  &  &  & r37 & r37 & r37 & r37 & r37 &  &  &  &  &  & r37 &  &  &  &  &  &  &  & r37 &  &  &  &  &  &  &  & r37 \\
+\textbf{89} & r37 & r37 &  &  &  &  &  &  & r37 & r37 & r37 & r37 & r37 &  &  &  &  &  & r37 &  &  &  &  &  &  &  & r37 &  &  &  &  &  &  &  & r37 \\
 \hline
-\textbf{89} & r38 & r38 &  &  &  &  &  &  & r38 & r38 & r38 & r38 & r38 &  &  &  &  &  & r38 &  &  &  &  &  &  &  & r38 &  &  &  &  &  &  &  & r38 \\
+\textbf{90} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r8 &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{90} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r8 &  &  &  &  &  &  &  &  &  &  \\
+\textbf{91} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s101 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{91} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s102 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-\hline
-\textbf{92} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s103 &  &  &  &  &  &  &  &  &  &  \\
+\textbf{92} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s102 &  &  &  &  &  &  &  &  &  &  \\
 \hline
 \textbf{93} & s7 & s5 &  &  &  &  &  &  & s6 &  & s9 & s10 & s11 &  &  &  &  &  & s12 &  &  &  &  &  &  &  & r4 &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{94} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s105 &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{94} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s104 &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{95} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\textbf{95} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
 \hline
-\textbf{96} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\textbf{96} & r25 & r25 &  &  &  &  &  &  & r25 & r25 & r25 & r25 & r25 &  &  &  &  &  & r25 &  &  &  &  &  &  &  & r25 &  &  &  &  &  &  &  & r25 \\
 \hline
 \textbf{97} & r26 & r26 &  &  &  &  &  &  & r26 & r26 & r26 & r26 & r26 &  &  &  &  &  & r26 &  &  &  &  &  &  &  & r26 &  &  &  &  &  &  &  & r26 \\
 \hline
-\textbf{98} & r27 & r27 &  &  &  &  &  &  & r27 & r27 & r27 & r27 & r27 &  &  &  &  &  & r27 &  &  &  &  &  &  &  & r27 &  &  &  &  &  &  &  & r27 \\
+\textbf{98} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r45 & r45 &  & r45 &  &  & r45 &  & r45 & r45 &  & r45 & r45 &  \\
 \hline
-\textbf{99} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r46 & r46 &  & r46 &  &  & r46 &  & r46 & r46 &  & r46 & r46 &  \\
+\textbf{99} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s85 &  &  & r28 &  &  &  &  &  & s55 &  &  &  &  \\
 \hline
-\textbf{100} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s85 &  &  & r29 &  &  &  &  &  & s55 &  &  &  &  \\
+\textbf{100} & r35 & r35 &  &  &  &  &  &  & r35 & r35 & r35 & r35 & r35 &  &  &  &  &  & r35 &  &  &  &  &  &  &  & r35 &  &  &  &  &  &  &  & r35 \\
 \hline
-\textbf{101} & r36 & r36 &  &  &  &  &  &  & r36 & r36 & r36 & r36 & r36 &  &  &  &  &  & r36 &  &  &  &  &  &  &  & r36 &  &  &  &  &  &  &  & r36 \\
+\textbf{101} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s107 &  &  & r6 &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{102} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s109 &  &  & r6 &  &  &  &  &  &  &  &  &  &  \\
+\textbf{102} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r12 &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{103} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r12 &  &  &  &  &  &  &  &  &  \\
+\textbf{103} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s109 &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{104} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s111 &  &  &  &  &  &  &  &  \\
+\textbf{104} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
 \hline
-\textbf{105} & &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s37 & s38 &  &  & s36 &  &  &  \\
+\textbf{105} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s111 &  &  &  &  &  &  &  & s55 &  &  &  &  \\
 \hline
-\textbf{106} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s113 &  &  &  &  &  &  &  & s55 &  &  &  &  \\
+\textbf{106} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r29 &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{107} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s114 &  &  &  &  &  &  &  & s55 &  &  &  &  \\
+\textbf{107} &  &  &  & s22 & s21 & s19 & s20 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{108} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r30 &  &  &  &  &  &  &  &  &  &  \\
+\textbf{108} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r9 &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{109} & &  &  & s22 & s21 & s19 & s20 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{109} & r15 & r15 &  &  &  &  &  &  & r15 & r15 & r15 & r15 & r15 &  &  &  &  &  & r15 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r15 \\
 \hline
-\textbf{110} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r9 &  &  &  &  &  &  &  &  &  &  \\
+\textbf{110} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s113 &  &  &  &  &  & s55 &  &  &  &  \\
 \hline
-\textbf{111} & r15 & r15 &  &  &  &  &  &  & r15 & r15 & r15 & r15 & r15 &  &  &  &  &  & r15 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r15 \\
+\textbf{111} & r24 & r24 &  &  &  &  &  &  & r24 & r24 & r24 & r24 & r24 &  &  &  &  &  & r24 &  &  &  &  &  &  &  & r24 &  &  &  &  &  &  &  & r24 \\
 \hline
-\textbf{112} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s116 &  &  &  &  &  & s55 &  &  &  &  \\
+\textbf{112} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s114 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{113} & r24 & r24 &  &  &  &  &  &  & r24 & r24 & r24 & r24 & r24 &  &  &  &  &  & r24 &  &  &  &  &  &  &  & r24 &  &  &  &  &  &  &  & r24 \\
+\textbf{113} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s115 &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{114} & r25 & r25 &  &  &  &  &  &  & r25 & r25 & r25 & r25 & r25 &  &  &  &  &  & r25 &  &  &  &  &  &  &  & r25 &  &  &  &  &  &  &  & r25 \\
+\textbf{114} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s107 &  &  & r6 &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{115} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s117 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{115} & r23 & r23 &  &  &  &  &  &  & r23 & r23 & r23 & r23 & r23 &  &  &  &  &  & r23 &  &  &  &  &  &  &  & r23 &  &  &  &  &  &  &  & r23 \\
 \hline
-\textbf{116} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s118 &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{116} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r7 &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{117} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s109 &  &  & r6 &  &  &  &  &  &  &  &  &  &  \\
-\hline
-\textbf{118} & r23 & r23 &  &  &  &  &  &  & r23 & r23 & r23 & r23 & r23 &  &  &  &  &  & r23 &  &  &  &  &  &  &  & r23 &  &  &  &  &  &  &  & r23 \\
-\hline
-\textbf{119} &  &  &  & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r7 &  &  &  &  &  &  &  &  &  &  \\
-\hline
-        \end{longtable}
-        \label{tab:action2}
-    \end{table}
+    \end{longtable}
+}
 
-    \renewcommand{\arraystretch}{1.03}
-    \begin{table}[H]
+\newpage
+
+{
+        \renewcommand{\arraystretch}{1.1}
+        \footnotesize
+        \setlength{\tabcolsep}{4.81pt}
+        \begin{longtable}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
         \caption{Tabla de Goto}
-        \fontsize{8}{9.6}\selectfont
-        \setlength{\tabcolsep}{5.8pt}
-        \begin{longtable}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+        \label{tab:goto} \\
 \hline
-& $\mathbf{E_1}$ & $\mathbf{R_1}$ & $\mathbf{R_2}$ & $\mathbf{U_1}$ & $\mathbf{U_2}$ & $\mathbf{E_2}$ & $\mathbf{V}$ & $\mathbf{S}$ & $\mathbf{L}$ & $\mathbf{Q}$ & $\mathbf{X}$ & $\mathbf{B}$ & $\mathbf{T}$ & $\mathbf{M}$ & $\mathbf{F}$ & $\mathbf{F_1}$ & $\mathbf{F_2}$ & $\mathbf{F_3}$ & $\mathbf{H}$ & $\mathbf{A}$ & $\mathbf{K}$ & $\mathbf{C}$ & $\mathbf{P}$ \\
+& $\mathbf{E}$ & $\mathbf{R}$ & $\mathbf{RR}$ & $\mathbf{U}$ & $\mathbf{UU}$ & $\mathbf{EE}$ & $\mathbf{V}$ & $\mathbf{S}$ & $\mathbf{L}$ & $\mathbf{Q}$ & $\mathbf{X}$ & $\mathbf{B}$ & $\mathbf{T}$ & $\mathbf{M}$ & $\mathbf{F}$ & $\mathbf{F1}$ & $\mathbf{F2}$ & $\mathbf{F3}$ & $\mathbf{H}$ & $\mathbf{A}$ & $\mathbf{K}$ & $\mathbf{C}$ & $\mathbf{P}$ \\
 \hline
-\textbf{0} & &  &  &  &  &  &  & 8 &  &  &  & 3 &  &  & 2 &  &  &  &  &  &  &  & 1 \\
+\textbf{0} &  &  &  &  &  &  &  & 8 &  &  &  & 3 &  &  & 2 &  &  &  &  &  &  &  & 1 \\
 \hline
-\textbf{1} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{1} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{2} & &  &  &  &  &  &  & 8 &  &  &  & 3 &  &  & 2 &  &  &  &  &  &  &  & 13 \\
+\textbf{2} &  &  &  &  &  &  &  & 8 &  &  &  & 3 &  &  & 2 &  &  &  &  &  &  &  & 13 \\
 \hline
-\textbf{3} & &  &  &  &  &  &  & 8 &  &  &  & 3 &  &  & 2 &  &  &  &  &  &  &  & 14 \\
+\textbf{3} &  &  &  &  &  &  &  & 8 &  &  &  & 3 &  &  & 2 &  &  &  &  &  &  &  & 14 \\
 \hline
-\textbf{4} & &  &  &  &  &  &  &  &  &  &  &  & 16 &  &  & 18 &  &  & 17 &  &  &  &  \\
+\textbf{4} &  &  &  &  &  &  &  &  &  &  &  &  & 16 &  &  & 18 &  &  & 17 &  &  &  &  \\
 \hline
-\textbf{5} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{5} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{6} & &  &  &  &  &  &  &  &  &  &  &  &  & 24 &  &  &  &  &  &  &  &  &  \\
+\textbf{6} &  &  &  &  &  &  &  &  &  &  &  &  &  & 24 &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{7} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{7} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{8} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{8} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{9} & 26 & 43 & 42 & 41 & 40 & 39 & 35 &  &  &  & 27 &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{9} & 26 & 41 & 40 & 39 & 38 & 37 & 35 &  &  &  & 27 &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{10} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{10} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{11} & 45 & 43 & 42 & 41 & 40 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{11} & 45 & 41 & 40 & 39 & 38 & 37 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{12} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{12} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{13} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{13} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{14} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{14} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{15} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{15} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{16} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{16} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{17} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{17} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{18} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & 50 &  &  &  &  &  &  \\
+\textbf{18} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & 50 &  &  &  &  &  &  \\
 \hline
-\textbf{19} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{19} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{20} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{20} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{21} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{21} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{22} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{22} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{23} & &  &  &  &  &  &  & 8 &  &  &  & 51 &  &  &  &  &  &  &  &  &  & 52 &  \\
+\textbf{23} &  &  &  &  &  &  &  & 8 &  &  &  & 51 &  &  &  &  &  &  &  &  &  & 52 &  \\
 \hline
-\textbf{24} & &  &  &  &  &  &  &  &  &  &  &  & 53 &  &  &  &  &  &  &  &  &  &  \\
+\textbf{24} &  &  &  &  &  &  &  &  &  &  &  &  & 53 &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{25} & 54 & 43 & 42 & 41 & 40 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{25} & 54 & 41 & 40 & 39 & 38 & 37 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{26} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{26} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{27} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{27} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{28} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{28} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{29} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{29} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{30} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{30} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{31} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{31} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{32} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{32} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{33} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{33} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{34} & 58 & 43 & 42 & 41 & 40 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{34} & 58 & 41 & 40 & 39 & 38 & 37 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{35} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{35} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{36} & &  &  &  &  & 59 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{36} &  &  &  &  &  & 59 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{37} & &  &  &  &  & 60 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{37} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{38} & &  &  &  &  & 61 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{38} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{39} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{39} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{40} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{40} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{41} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{41} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{42} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{42} &  &  &  &  &  & 64 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{43} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{43} &  &  &  &  &  & 65 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{44} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{44} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{45} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{45} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{46} & 68 & 43 & 42 & 41 & 40 & 39 & 35 &  & 69 &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{46} & 68 & 41 & 40 & 39 & 38 & 37 & 35 &  & 69 &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{47} & 70 & 43 & 42 & 41 & 40 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{47} & 70 & 41 & 40 & 39 & 38 & 37 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{48} & 71 & 43 & 42 & 41 & 40 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{48} & 71 & 41 & 40 & 39 & 38 & 37 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{49} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{49} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{50} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & 73 &  &  &  &  &  \\
+\textbf{50} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & 73 &  &  &  &  &  \\
 \hline
-\textbf{51} & &  &  &  &  &  &  & 8 &  &  &  & 51 &  &  &  &  &  &  &  &  &  & 74 &  \\
+\textbf{51} &  &  &  &  &  &  &  & 8 &  &  &  & 51 &  &  &  &  &  &  &  &  &  & 74 &  \\
 \hline
-\textbf{52} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{52} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{53} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{53} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{54} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{54} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{55} & & 78 & 42 & 41 & 40 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{55} &  & 78 & 40 & 39 & 38 & 37 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{56} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{56} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{57} & 68 & 43 & 42 & 41 & 40 & 39 & 35 &  & 79 &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{57} & 68 & 41 & 40 & 39 & 38 & 37 & 35 &  & 79 &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{58} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{58} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{59} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{59} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{60} &  &  &  &  &  & 81 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{61} &  &  &  &  & 82 & 37 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{62} &  &  &  & 83 & 38 & 37 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{63} &  &  & 84 & 39 & 38 & 37 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{64} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{65} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{66} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{67} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{68} &  &  &  &  &  &  &  &  &  & 86 &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{69} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{70} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{71} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{72} &  &  &  &  &  &  &  &  &  &  &  &  & 91 &  &  &  &  &  &  & 92 &  &  &  \\
+\hline
+\textbf{73} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{74} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{75} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{76} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{77} &  &  &  &  &  &  &  & 97 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{78} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{79} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{80} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{81} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{82} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{83} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{84} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{85} & 99 & 41 & 40 & 39 & 38 & 37 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{86} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{87} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{88} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{89} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{90} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{91} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{92} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{93} &  &  &  &  &  &  &  & 8 &  &  &  & 51 &  &  &  &  &  &  &  &  &  & 103 &  \\
+\hline
+\textbf{94} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{95} & 105 & 41 & 40 & 39 & 38 & 37 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{96} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{97} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{98} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{99} &  &  &  &  &  &  &  &  &  & 106 &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{100} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{101} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & 108 &  &  \\
+\hline
+\textbf{102} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{103} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{104} & 110 & 41 & 40 & 39 & 38 & 37 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{105} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{106} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{107} &  &  &  &  &  &  &  &  &  &  &  &  & 112 &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{108} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{109} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{110} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{111} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{112} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{113} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{114} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & 116 &  &  \\
+\hline
+\textbf{115} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{116} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
         \end{longtable}
-        \label{tab:goto1}
-    \end{table}
-
-    \renewcommand{\arraystretch}{1.03}
-    \begin{table}[H]
-        \fontsize{8}{9.6}\selectfont
-        \setlength{\tabcolsep}{6.56pt}
-        \begin{longtable}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
-            \hline
-            \textbf{60} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{61} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{62} & &  &  &  &  & 81 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{63} & &  &  &  & 82 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{64} & &  &  & 83 & 40 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{65} & &  & 84 & 41 & 40 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{66} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{67} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{68} & &  &  &  &  &  &  &  &  & 86 &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{69} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{70} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{71} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{72} & &  &  &  &  &  &  &  &  &  &  &  & 91 &  &  &  &  &  &  & 92 &  &  &  \\
-            \hline
-            \textbf{73} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{74} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{75} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{76} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{77} & &  &  &  &  &  &  & 98 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{78} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{79} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{80} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{81} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{82} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{83} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{84} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{85} & 100 & 43 & 42 & 41 & 40 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{86} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{87} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{88} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{89} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{90} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{91} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{92} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{93} & &  &  &  &  &  &  & 8 &  &  &  & 51 &  &  &  &  &  &  &  &  &  & 104 &  \\
-            \hline
-            \textbf{94} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{95} & 106 & 43 & 42 & 41 & 40 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{96} & 107 & 43 & 42 & 41 & 40 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{97} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{98} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{99} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{100} & &  &  &  &  &  &  &  &  & 108 &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{101} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{102} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & 110 &  &  \\
-            \hline
-            \textbf{103} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{104} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{105} & 112 & 43 & 42 & 41 & 40 & 39 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{106} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{107} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{108} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{109} & &  &  &  &  &  &  &  &  &  &  &  & 115 &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{110} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{111} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{112} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{113} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{114} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{115} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{116} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{117} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & 119 &  &  \\
-            \hline
-            \textbf{118} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-            \textbf{119} & &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
-            \hline
-        \end{longtable}
-        \label{tab:goto2}
-    \end{table}
+}
 
     \newpage
 
@@ -1414,7 +1384,6 @@
     La lista de \textit{tokens} esperados se obtiene realizando una busqueda en profundidad en las tablas por cada \textit{token} con una celda no vacía en la fila del fallo. Los \textit{tokens} que desplazan siempre serán válidos, pero hay casos en los que un \textit{token} reduce una o varias veces pero acaba terminando en error, por lo que es necesario simular cada uno de ellos hasta llegar a un desplazamiento.
 
     \section{Diseño del Semanter}
-    Se detallará en la entrega final.
 
     \section{Diseño del Gestor de Errores}
     Se detallará en la entrega final.

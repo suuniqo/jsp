@@ -93,24 +93,24 @@ impl<'t, 'l, L: Lexer> Parser for ParserCore<'t, 'l, L> {
             let token_idx = token.kind.idx();
 
             let Some(action) = ACTION_TABLE[stack_idx][token_idx] else {
-                let expected_tok = Self::expected_tokens(stack.clone());
+                let expected_token = Self::expected_tokens(stack.clone());
 
-                let token = lexer.next().unwrap();
+                let curr_token = lexer.next().unwrap();
 
-                lexer.for_each(|_| {});
+                let prev_token = prev_token.unwrap_or(curr_token.clone());
 
-                let prev_token = prev_token.unwrap_or(token.clone());
-
-                let (span, kind, before) = if token.kind == TokenKind::Eof {
+                let (span, kind, before) = if curr_token.kind == TokenKind::Eof {
                     (prev_token.span, prev_token.kind, false)
                 } else {
-                    (token.span, token.kind, true)
+                    (curr_token.span, curr_token.kind, true)
                 };
 
                 self.reporter.borrow_mut().push(Diag::new(
-                    DiagKind::UnexpectedTok((kind, before, expected_tok)),
+                    DiagKind::UnexpectedTok((kind, before, expected_token)),
                     span,
                 ));
+
+                lexer.for_each(|_| {});
 
                 return None;
             };
