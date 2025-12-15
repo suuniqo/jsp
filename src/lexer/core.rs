@@ -1,8 +1,9 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::{symtable::SymTable, reporter::Reporter};
+use crate::reporter::Reporter;
 use crate::diag::{Diag, DiagKind};
+use crate::symtable::StrPool;
 use crate::target::Target;
 use crate::token::{Token, TokenKind};
 use crate::window::Window;
@@ -11,22 +12,22 @@ use crate::span::Span;
 use super::Lexer;
 
 
-pub struct LexerCore<'t, T: SymTable> {
+pub struct LexerCore<'t> {
     win: Window<'t>,
     trg: &'t Target,
     reporter: Rc<RefCell<Reporter<'t>>>,
-    symtable: Rc<RefCell<T>>,
+    strpool: Rc<RefCell<StrPool>>,
 }
 
-impl<'t, T: SymTable> LexerCore<'t, T> {
-    pub fn new(reporter: Rc<RefCell<Reporter<'t>>>, symtable: Rc<RefCell<T>>, trg: &'t Target) -> Self {
+impl<'t> LexerCore<'t> {
+    pub fn new(reporter: Rc<RefCell<Reporter<'t>>>, strpool: Rc<RefCell<StrPool>>, trg: &'t Target) -> Self {
         let win = Window::new(trg.src());
 
         Self {
             win,
             trg,
             reporter,
-            symtable,
+            strpool,
         }
     }
 
@@ -243,7 +244,7 @@ impl<'t, T: SymTable> LexerCore<'t, T> {
         if let Some(keyword) = TokenKind::as_keyword(lexeme) {
             keyword
         } else {
-            TokenKind::Id(self.symtable.borrow_mut().intern(lexeme))
+            TokenKind::Id(self.strpool.borrow_mut().intern(lexeme))
         }
     }
 
@@ -321,7 +322,7 @@ impl<'t, T: SymTable> LexerCore<'t, T> {
     }
 }
 
-impl<'t, T: SymTable> Iterator for LexerCore<'t, T> {
+impl Iterator for LexerCore<'_> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -338,4 +339,4 @@ impl<'t, T: SymTable> Iterator for LexerCore<'t, T> {
     }
 }
 
-impl<T: SymTable> Lexer for LexerCore<'_, T> {}
+impl Lexer for LexerCore<'_> {}

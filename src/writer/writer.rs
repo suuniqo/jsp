@@ -25,8 +25,8 @@ impl Writer {
         Ok(Self { file } )
     }
 
-    pub fn write<T: fmt::Display>(&mut self, item: &T) -> Result<(), WriterErr> {
-        writeln!(self.file, "{}", item)
+    pub fn write(&mut self, args: fmt::Arguments) -> Result<(), WriterErr> {
+        write!(self.file, "{}", args)
             .map_err(|e| WriterErr::Format(e))?;
 
         Ok(())

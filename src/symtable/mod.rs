@@ -1,8 +1,10 @@
-mod symbol;
+mod scope;
 mod core;
 mod tracer;
 mod traits;
+mod pool;
 
-pub use traits::SymTable;
+pub use pool::StrPool;
 pub use core::SymTableCore;
 pub use tracer::SymTableTracer;
+pub use traits::SymTable;

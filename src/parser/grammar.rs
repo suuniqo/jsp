@@ -164,7 +164,7 @@ pub const GRAMMAR: &[Rule] = &[
     (NotTerm::E, &[GramSym::N(NotTerm::R)]),
     (NotTerm::E, &[GramSym::N(NotTerm::E), GramSym::T(Term::And), GramSym::N(NotTerm::R)]),
 
-    // Para que draco funcione
+    // So that draco works with unary operators
     (NotTerm::EE, &[GramSym::T(Term::Sum), GramSym::N(NotTerm::EE)]),
     (NotTerm::EE, &[GramSym::T(Term::Sub), GramSym::N(NotTerm::EE)]),
 ];

@@ -1,6 +1,11 @@
 use std::{cell::RefCell, env, process, rc::Rc};
 
-use crate::{lexer::{LexerCore, LexerTracer}, parser::{Parser, ParserCore, ParserTracer}, reporter::Reporter, symtable::{SymTableCore, SymTableTracer}, target::Target};
+use crate::lexer::{LexerCore, LexerTracer};
+use crate::parser::{Parser, ParserCore, ParserTracer};
+use crate::reporter::Reporter;
+use crate::symtable::{SymTableTracer, StrPool};
+use crate::target::Target;
+use crate::writer::Tracer;
 
 mod target;
 mod window;
@@ -13,6 +18,7 @@ mod color;
 mod token;
 mod diag;
 mod span;
+mod langtype;
 
 
 fn fetch_args() -> (String, String, Option<String>, Option<String>, Option<String>) {
@@ -51,22 +57,16 @@ fn main() {
             process::exit(1);
         });
 
-    let symtable = Rc::new(RefCell::new(
-            SymTableTracer::new(SymTableCore::new(), dst_sym.as_deref())
-                .unwrap_or_else(|err| {
-                    eprintln!("{}: {}", name, err);
-                    process::exit(1);
-                })
-        ));
-
-
     let reporter = Rc::new(RefCell::new(Reporter::new(&target)));
+    let strpool = Rc::new(RefCell::new(StrPool::new()));
 
-    let mut lexer = LexerTracer::new(LexerCore::new(Rc::clone(&reporter), Rc::clone(&symtable), &target), dst_lexer.as_deref())
+    let mut lexer = LexerTracer::new(LexerCore::new(Rc::clone(&reporter), Rc::clone(&strpool), &target), dst_lexer.as_deref())
         .unwrap_or_else(|err| {
             eprintln!("{}: {}", name, err);
             process::exit(1);
         });
+
+    let symtable = SymTableTracer::new(strpool, dst_sym.as_deref());
 
     let mut parser = ParserTracer::new(ParserCore::new(Rc::clone(&reporter), &mut lexer), dst_parser.as_deref())
         .unwrap_or_else(|err| {
@@ -75,4 +75,16 @@ fn main() {
         });
 
     parser.parse();
+
+    parser.dump().unwrap_or_else(|err| {
+        eprintln!("{}: {}", name, err);
+        process::exit(1);
+    });
+
+    lexer.dump().unwrap_or_else(|err| {
+        eprintln!("{}: {}", name, err);
+        process::exit(1);
+    });
+
+    reporter.borrow().dump();
 }

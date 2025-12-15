@@ -1,16 +1,16 @@
-use crate::{symtable::SymTable, token::{Token, TokenKind}, writer::{Writer, WriterErr}};
+use crate::{token::{Token, TokenKind}, writer::{Writer, WriterErr, Tracer}};
 
 use super::{LexerCore, Lexer};
 
 
-pub struct LexerTracer<'t, T: SymTable> {
+pub struct LexerTracer<'t> {
     writer: Writer,
     trace: Vec<TokenKind>,
-    inner: LexerCore<'t, T>,
+    inner: LexerCore<'t>,
 }
 
-impl<'t, 'r, 's, T: SymTable> LexerTracer<'t, T> {
-    pub fn new(inner: LexerCore<'t, T>, dump_path: Option<&str>) -> Result<Self, WriterErr> {
+impl<'t> LexerTracer<'t> {
+    pub fn new(inner: LexerCore<'t>, dump_path: Option<&str>) -> Result<Self, WriterErr> {
         let writer = Writer::new(dump_path)?;
         let trace = Vec::new();
 
@@ -22,7 +22,7 @@ impl<'t, 'r, 's, T: SymTable> LexerTracer<'t, T> {
     }
 }
 
-impl<'t, 'r, 's, T: SymTable> Iterator for LexerTracer<'t, T> {
+impl Iterator for LexerTracer<'_> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -36,18 +36,12 @@ impl<'t, 'r, 's, T: SymTable> Iterator for LexerTracer<'t, T> {
     }
 }
 
-impl<T: SymTable> Lexer for LexerTracer<'_, T> {}
+impl Lexer for LexerTracer<'_> {}
 
-impl<T: SymTable> Drop for LexerTracer<'_, T> {
-    fn drop(&mut self) {
-        let lexer_trace = self.trace
+impl Tracer for LexerTracer<'_> {
+    fn dump(mut self) -> Result<(), WriterErr> {
+        self.trace
             .iter()
-            .map(|kind| kind.to_string())
-            .collect::<Vec<_>>()
-            .join("\n");
-
-        self.writer
-            .write(&lexer_trace)
-            .expect("error writing lexer output");
+            .try_for_each(|kind| self.writer.write(format_args!("{}\n", kind)))
     }
 }

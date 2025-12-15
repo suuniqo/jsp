@@ -55,10 +55,8 @@ impl<'t> Reporter<'t> {
     fn digits(row: usize) -> usize {
         (row as f64).log10() as usize + 1
     }
-}
 
-impl Drop for Reporter<'_> {
-    fn drop(&mut self) {
+    pub fn dump(&self) {
         let padding_len = self.padding_len();
         let padding_row = " ".repeat(padding_len);
 

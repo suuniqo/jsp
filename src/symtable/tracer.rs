@@ -1,60 +1,62 @@
-use std::rc::Rc;
+use std::{fmt, rc::Rc, cell::{RefCell, Ref}};
 
-use crate::writer::{Writer, WriterErr};
+use crate::{langtype::{TypeFunc, TypeVar}, writer::{Tracer, Writer, WriterErr}};
 
-use super::{SymTable, SymTableCore, symbol::Symbol};
+use super::{scope::{Scope, Sym}, SymTableCore, SymTable, StrPool};
 
 
 pub struct SymTableTracer {
     writer: Writer,
-    trace: Vec<Symbol>,
+    trace: Vec<Scope>,
     inner: SymTableCore,
-    pos: usize,
 }
 
 impl SymTableTracer {
-    pub fn new(inner: SymTableCore, dump_path: Option<&str>) -> Result<SymTableTracer, WriterErr> {
+    pub fn new(pool: Rc<RefCell<StrPool>>, dump_path: Option<&str>) -> Result<Self, WriterErr> {
         let writer = Writer::new(dump_path)?;
-        let trace = Vec::new();
-        let pos = 0;
 
         Ok(Self {
             writer,
-            trace,
-            inner,
-            pos,
+            trace: Vec::new(),
+            inner: SymTableCore::new(pool),
         })
     }
 }
 
 impl SymTable for SymTableTracer {
-    fn intern(&mut self, lexeme: &str) -> (usize, Rc<str>) {
-        let (pos, rc) = self.inner.intern(lexeme);
-
-        if pos == self.pos {
-            self.trace.push(self.inner.get(pos).expect("couldn't newly inserted id").clone());
-            self.pos += 1;
+    fn pop_scope(&mut self) {
+        if let Some(scope) = self.inner.pop_scope_inner() {
+            self.trace.push(scope);
         }
-
-        (pos, rc)
     }
 
-    fn get(&self, pos: usize) -> Option<&Symbol> {
-        self.inner.get(pos)
+    fn push_func(&mut self, pool_id: usize, ftype: TypeFunc) -> Result<(bool, Sym), ()> {
+        self.inner.push_func(pool_id, ftype)
     }
 
+    fn push_var(&mut self, pool_id: usize, vtype: TypeVar) -> (bool, Sym) {
+        self.inner.push_var(pool_id, vtype)
+    }
 }
 
-impl Drop for SymTableTracer {
-    fn drop(&mut self) {
-        let symtable_trace = self.trace
-            .iter()
-            .map(|sym| sym.to_string())
-            .collect::<Vec<_>>()
-            .join("\n");
+struct SymTableTracerDisplay<'a> {
+    trace: &'a [Scope],
+    pool: Ref<'a, StrPool>,
+}
 
-        self.writer
-            .write(&["table #0:", &symtable_trace].join("\n"))
-            .expect("error writing symtable output")
+impl<'a> fmt::Display for SymTableTracerDisplay<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.trace.iter().try_for_each(|scope| scope.fmt(f, &self.pool))
+    }
+}
+
+impl Tracer for SymTableTracer {
+    fn dump(mut self) -> Result<(), WriterErr> {
+        let display = SymTableTracerDisplay {
+            trace: &self.trace,
+            pool: self.inner.pool(),
+        };
+
+        self.writer.write(format_args!("{}", display))
     }
 }

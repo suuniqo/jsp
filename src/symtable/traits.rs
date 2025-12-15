@@ -1,9 +1,10 @@
-use std::rc::Rc;
+use crate::langtype::{TypeFunc, TypeVar};
 
-use super::symbol::Symbol;
+use super::scope::Sym;
 
 
 pub trait SymTable {
-    fn intern(&mut self, lexeme: &str) -> (usize, Rc<str>);
-    fn get(&self, pos: usize) -> Option<&Symbol>;
+    fn pop_scope(&mut self);
+    fn push_func(&mut self, pool_id: usize, ftype: TypeFunc) -> Result<(bool, Sym), ()>;
+    fn push_var(&mut self, pool_id: usize, vtype: TypeVar) -> (bool, Sym);
 }

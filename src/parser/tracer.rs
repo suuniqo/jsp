@@ -1,4 +1,4 @@
-use crate::{lexer::Lexer, writer::{Writer, WriterErr}};
+use crate::{lexer::Lexer, writer::{Tracer, Writer, WriterErr}};
 
 use super::{ParserCore, Parser};
 
@@ -30,25 +30,24 @@ impl<'t, 'l, L: Lexer> Parser for ParserTracer<'t, 'l, L> {
     }
 }
 
-impl<'t, 'l, L: Lexer> Drop for ParserTracer<'t, 'l, L> {
-    fn drop(&mut self) {
+impl<'t, 'l, L: Lexer> Tracer for ParserTracer<'t, 'l, L> {
+    fn dump(mut self) -> Result<(), WriterErr> {
         let Some(trace) = &self.trace else {
-            self.writer
-                .write(&"ascending")
-                .expect("error writing parser output");
-
-            return;
+            self.writer.write(format_args!("ascending\n"))?;
+            return  Ok(());
         };
 
-        let parse_trace = trace
-            .iter()
-            .map(|rule_idx| rule_idx.to_string())
-            .collect::<Vec<_>>()
-            .join(" ");
+        let len = trace.len();
 
-        self.writer
-            .write(&["ascending", &parse_trace].join(" "))
-            .expect("error writing parser output");
+        self.writer.write(format_args!("ascending"))?;
+
+        trace.iter()
+             .enumerate()
+             .try_for_each(|(i, rule)| if i + 1 != len {
+                 self.writer.write(format_args!(" {}", rule))
+             } else {
+                 self.writer.write(format_args!(" {}\n", rule))
+             })
     }
 }
 
