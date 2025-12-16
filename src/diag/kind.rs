@@ -29,7 +29,13 @@ impl DiagKind {
             DiagKind::OverflowInt => format!("maximum is {}", i16::MAX),
             DiagKind::OverflowFloat => format!("maximum is {:e}", f32::MAX),
             DiagKind::InvFmtFloat(num) => format!("perhaps you meant '{}.0'", num),
-            DiagKind::UnexpectedTok((_, before, _)) => format!("{} this token", if *before { "before" } else { "after" }),
+            DiagKind::UnexpectedTok((_, before, expected)) => {
+                if expected.len() == 0 {
+                    "here".to_string()
+                } else {
+                    format!("{} this token", if *before { "before" } else { "after" })
+                }
+            },
         }
     }
 }
@@ -65,6 +71,48 @@ impl fmt::Display for DiagKind {
                     write!(f, "expected {} {} '{}{}{}'", msg, if *before { "before" } else { "after" }, Color::HIGHLIGHT, found.lexeme_concrete(), Color::RESET)
                 }
             },
+        }
+    }
+}
+
+impl TokenKind {
+    pub fn show_before(&self) -> bool {
+        match self {
+            TokenKind::If => true,
+            TokenKind::Do => true,
+            TokenKind::While => true,
+            TokenKind::Int => true,
+            TokenKind::Float => true,
+            TokenKind::Str => true,
+            TokenKind::Bool => true,
+            TokenKind::Void => true,
+            TokenKind::Let => true,
+            TokenKind::Func => true,
+            TokenKind::Ret => true,
+            TokenKind::Read => true,
+            TokenKind::Write => true,
+            TokenKind::True => true,
+            TokenKind::False => true,
+            TokenKind::FloatLit(_) => true,
+            TokenKind::IntLit(_) => true,
+            TokenKind::StrLit(_) => true,
+            TokenKind::Id(_) => true,
+            TokenKind::Assign => true,
+            TokenKind::AndAssign => true,
+            TokenKind::Comma => false,
+            TokenKind::Semi => false,
+            TokenKind::LParen => true,
+            TokenKind::RParen => false,
+            TokenKind::LBrack => true,
+            TokenKind::RBrack => false,
+            TokenKind::Sub => true,
+            TokenKind::Sum => true,
+            TokenKind::Mul => true,
+            TokenKind::And => true,
+            TokenKind::Not => true,
+            TokenKind::Lt => true,
+            TokenKind::Eq => true,
+            TokenKind::Eof => true,
         }
     }
 }

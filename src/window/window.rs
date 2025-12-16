@@ -3,6 +3,7 @@ use std::str;
 use crate::span::Span;
 
 
+#[derive(Clone)]
 pub struct Window<'t> {
     chars: str::Chars<'t>,
     span: Span,

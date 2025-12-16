@@ -93,8 +93,6 @@ fn analyze_source(cli: &Cli, cmd: &Command, src: &str) {
     reporter.borrow().dump();
 }
 
-
-
 fn main() {
     let cmd = Cli::command();
     let cli = Cli::parse_args();

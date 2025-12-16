@@ -16,4 +16,11 @@ impl Token {
             span,
         }
     }
+
+    pub fn eof() -> Self {
+        Self {
+            kind: TokenKind::Eof,
+            span: Span::default(),
+        }
+    }
 }

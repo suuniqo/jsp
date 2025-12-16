@@ -12,6 +12,7 @@ use crate::span::Span;
 use super::Lexer;
 
 
+#[derive(Clone)]
 pub struct LexerCore<'t> {
     win: Window<'t>,
     trg: &'t Target,

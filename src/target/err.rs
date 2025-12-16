@@ -10,9 +10,9 @@ pub enum TargetErr {
 impl fmt::Display for TargetErr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            TargetErr::WrongExt(str) => writeln!(f, "wrong file extension: found '{}' but expected 'txt' or 'javascript'", str),
-            TargetErr::OpenFailed(e) => writeln!(f, "error opening target file: {}", e),
-            TargetErr::EmptyFile => writeln!(f, "target file is empty"),
+            TargetErr::WrongExt(str) => write!(f, "wrong file extension: found '{}' but expected 'txt' or 'javascript'", str),
+            TargetErr::OpenFailed(e) => write!(f, "error opening target file: {}", e),
+            TargetErr::EmptyFile => write!(f, "target file is empty"),
         }
     }
 }

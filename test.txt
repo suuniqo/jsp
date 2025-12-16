@@ -1,0 +1,9 @@
+int x = 4;
+let y = 6;
+
+if (x == y)
+    write("hello")
+
+do {
+
+} while (x == );

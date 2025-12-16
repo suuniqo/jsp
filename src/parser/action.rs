@@ -20,7 +20,7 @@ impl NotTerm {
 }
 
 impl TokenKind {
-    const COUNT: usize = TokenKind::Eof.idx() + 1;
+    pub(super) const COUNT: usize = TokenKind::Eof.idx() + 1;
 
     pub(super) fn from_idx(idx: usize) -> Self {
         match idx {
