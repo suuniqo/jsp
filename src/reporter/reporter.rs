@@ -1,3 +1,4 @@
+use crate::diag::DiagSever;
 use crate::span::Span;
 use crate::target::Target;
 
@@ -5,6 +6,7 @@ use crate::{diag::Diag, color::Color};
 
 
 pub struct Reporter<'t> {
+    found_err: bool,
     trg: &'t Target,
     diags: Vec<Diag>,
     max_span: Span,
@@ -13,6 +15,7 @@ pub struct Reporter<'t> {
 impl<'t> Reporter<'t> {
     pub fn new(target: &'t Target) -> Self {
         Self {
+            found_err: false,
             trg: target,
             diags: Vec::new(),
             max_span: Span::default(),
@@ -26,7 +29,15 @@ impl<'t> Reporter<'t> {
             self.max_span = span.clone();
         }
 
+        if !self.found_err && diag.kind.sever() == DiagSever::Error {
+            self.found_err = true;
+        }
+
         self.diags.push(diag);
+    }
+
+    pub fn found_err(&self) -> bool {
+        self.found_err
     }
     
     fn padding_len(&self) -> usize {

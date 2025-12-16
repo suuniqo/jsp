@@ -2,21 +2,24 @@ use std::cell::RefCell;
 use std::iter;
 use std::rc::Rc;
 
+use crate::symtable::SymTable;
 use crate::{lexer::Lexer, reporter::Reporter, span::Span};
 use crate::{token::{Token, TokenKind}, diag::{Diag, DiagKind}};
 
 use super::{Parser, grammar::GRAMMAR, action::{Action, ACTION_TABLE, GOTO_TABLE}};
 
-pub struct ParserCore<'t, 'l, L: Lexer> {
+pub struct ParserCore<'t, 'l, 's> {
     reporter: Rc<RefCell<Reporter<'t>>>,
-    lexer: &'l mut L,
+    lexer: &'l mut dyn Lexer,
+    symtable: &'s mut dyn SymTable,
 }
 
-impl<'t, 'l, L: Lexer> ParserCore<'t, 'l, L> {
-    pub fn new(reporter: Rc<RefCell<Reporter<'t>>>, lexer: &'l mut L) -> Self {
+impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
+    pub fn new(reporter: Rc<RefCell<Reporter<'t>>>, lexer: &'l mut dyn Lexer, symtable: &'s mut dyn SymTable) -> Self {
         Self {
             reporter,
             lexer,
+            symtable,
         }
     }
 
@@ -77,7 +80,7 @@ impl<'t, 'l, L: Lexer> ParserCore<'t, 'l, L> {
     }
 }
 
-impl<'t, 'l, L: Lexer> Parser for ParserCore<'t, 'l, L> {
+impl<'t, 'l, 's> Parser for ParserCore<'t, 'l, 's> {
     fn parse(&mut self) -> Option<Vec<usize>> {
         let mut stack = vec![0usize];
         let mut parse = vec![];

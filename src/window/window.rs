@@ -8,8 +8,8 @@ pub struct Window<'t> {
     span: Span,
 }
 
-impl<'a> Window<'a> {
-    pub fn new(slice: &'a str) -> Self {
+impl<'t> Window<'t> {
+    pub fn new(slice: &'t str) -> Self {
         Self {
             chars: slice.chars(),
             span: Span::default(),

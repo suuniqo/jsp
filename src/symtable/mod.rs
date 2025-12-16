@@ -6,5 +6,4 @@ mod pool;
 
 pub use pool::StrPool;
 pub use core::SymTableCore;
-pub use tracer::SymTableTracer;
 pub use traits::SymTable;

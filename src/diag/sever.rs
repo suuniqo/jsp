@@ -3,6 +3,8 @@ use std::fmt;
 use super::DiagKind;
 
 
+#[repr(u8)]
+#[derive(PartialEq, Eq)]
 pub enum DiagSever {
     Warning,
     Error,

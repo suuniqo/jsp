@@ -1,6 +1,6 @@
-use std::{fmt, rc::Rc, cell::{RefCell, Ref}};
+use std::{fmt, cell::Ref};
 
-use crate::{langtype::{TypeFunc, TypeVar}, writer::{Tracer, Writer, WriterErr}};
+use crate::{langtype::{TypeFunc, TypeVar}, writer::{Tracer, HasTracer, Writer, WriterErr}};
 
 use super::{scope::{Scope, Sym}, SymTableCore, SymTable, StrPool};
 
@@ -9,18 +9,6 @@ pub struct SymTableTracer {
     writer: Writer,
     trace: Vec<Scope>,
     inner: SymTableCore,
-}
-
-impl SymTableTracer {
-    pub fn new(pool: Rc<RefCell<StrPool>>, dump_path: Option<&str>) -> Result<Self, WriterErr> {
-        let writer = Writer::new(dump_path)?;
-
-        Ok(Self {
-            writer,
-            trace: Vec::new(),
-            inner: SymTableCore::new(pool),
-        })
-    }
 }
 
 impl SymTable for SymTableTracer {
@@ -37,6 +25,10 @@ impl SymTable for SymTableTracer {
     fn push_var(&mut self, pool_id: usize, vtype: TypeVar) -> (bool, Sym) {
         self.inner.push_var(pool_id, vtype)
     }
+
+    fn before_drop(&mut self) -> Option<Result<(), WriterErr>> {
+        Some(self.dump())
+    }
 }
 
 struct SymTableTracerDisplay<'a> {
@@ -50,13 +42,31 @@ impl<'a> fmt::Display for SymTableTracerDisplay<'a> {
     }
 }
 
-impl Tracer for SymTableTracer {
-    fn dump(mut self) -> Result<(), WriterErr> {
+impl Tracer<SymTableCore> for SymTableTracer {
+    fn new(inner: SymTableCore, dump_path: Option<&str>) -> Result<Box<Self>, WriterErr> {
+        let writer = Writer::new(dump_path)?;
+
+        Ok(Box::new(Self {
+            writer,
+            trace: Vec::new(),
+            inner,
+        }))
+    }
+
+    fn dump(&mut self) -> Result<(), WriterErr> {
         let display = SymTableTracerDisplay {
             trace: &self.trace,
             pool: self.inner.pool(),
         };
 
         self.writer.write(format_args!("{}", display))
+    }
+}
+
+impl HasTracer for SymTableCore {
+    type Tracer = SymTableTracer;
+
+    fn tracer(self, dump_path: Option<&str>) -> Result<Box<Self::Tracer>, WriterErr> {
+        SymTableTracer::new(self, dump_path)
     }
 }

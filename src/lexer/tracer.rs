@@ -1,4 +1,4 @@
-use crate::{token::{Token, TokenKind}, writer::{Writer, WriterErr, Tracer}};
+use crate::{token::{Token, TokenKind}, writer::{HasTracer, Tracer, Writer, WriterErr}};
 
 use super::{LexerCore, Lexer};
 
@@ -7,19 +7,6 @@ pub struct LexerTracer<'t> {
     writer: Writer,
     trace: Vec<TokenKind>,
     inner: LexerCore<'t>,
-}
-
-impl<'t> LexerTracer<'t> {
-    pub fn new(inner: LexerCore<'t>, dump_path: Option<&str>) -> Result<Self, WriterErr> {
-        let writer = Writer::new(dump_path)?;
-        let trace = Vec::new();
-
-        Ok(Self {
-            writer,
-            trace,
-            inner,
-        })
-    }
 }
 
 impl Iterator for LexerTracer<'_> {
@@ -36,12 +23,35 @@ impl Iterator for LexerTracer<'_> {
     }
 }
 
-impl Lexer for LexerTracer<'_> {}
+impl Lexer for LexerTracer<'_> {
+    fn before_drop(&mut self) -> Option<Result<(), WriterErr>> {
+        Some(self.dump())
+    }
+}
 
-impl Tracer for LexerTracer<'_> {
-    fn dump(mut self) -> Result<(), WriterErr> {
+impl<'t> Tracer<LexerCore<'t>> for LexerTracer<'t> {
+    fn new(inner: LexerCore<'t>, dump_path: Option<&str>) -> Result<Box<Self>, WriterErr> {
+        let writer = Writer::new(dump_path)?;
+        let trace = Vec::new();
+
+        Ok(Box::new(Self {
+            writer,
+            trace,
+            inner,
+        }))
+    }
+
+    fn dump(&mut self) -> Result<(), WriterErr> {
         self.trace
             .iter()
             .try_for_each(|kind| self.writer.write(format_args!("{}\n", kind)))
+    }
+}
+
+impl<'t> HasTracer for LexerCore<'t> {
+    type Tracer = LexerTracer<'t>;
+
+    fn tracer(self, dump_path: Option<&str>) -> Result<Box<Self::Tracer>, WriterErr> {
+        LexerTracer::new(self, dump_path)
     }
 }

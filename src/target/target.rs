@@ -11,7 +11,7 @@ pub struct Target {
 impl Target {
     const EXT: [&'static str; 2] = ["txt", "javascript"];
 
-    pub fn from_path(path: String) -> Result<Self, TargetErr> {
+    pub fn from_path(path: &str) -> Result<Self, TargetErr> {
         let extension = match Path::new(&path).extension() {
             Some(ext) => ext.to_str().unwrap_or(""),
             None => "",
@@ -41,7 +41,7 @@ impl Target {
         }
 
         Ok(Self {
-            path,
+            path: path.to_string(),
             src,
             offsets,
         })
