@@ -23,6 +23,7 @@ mod token;
 mod diag;
 mod span;
 mod langtype;
+mod grammar;
 mod cli;
 
 

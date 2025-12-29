@@ -159,7 +159,7 @@ impl TokenKind {
             TokenKind::Lt => "<",
             TokenKind::Eq => "==",
 
-            TokenKind::Eof => "EOF",
+            TokenKind::Eof => "end of file",
         }
     }
 
@@ -181,9 +181,17 @@ impl TokenKind {
             TokenKind::True => "true",
             TokenKind::False => "false",
 
-            TokenKind::FloatLit(inner) => return inner.to_string(),
-            TokenKind::IntLit(inner) => return inner.to_string(),
-            TokenKind::StrLit(inner) => return inner.to_string(),
+            TokenKind::FloatLit(inner) => if *inner == f32::MAX {
+                return self.lexeme_general().to_string()
+            } else {
+                return inner.to_string()
+            },
+            TokenKind::IntLit(inner) => if *inner == i16::MAX {
+                return self.lexeme_general().to_string();
+            } else {
+                return inner.to_string();
+            },
+            TokenKind::StrLit(inner) => return format!("\"{}\"", inner),
             TokenKind::Id((_, lexeme)) => return lexeme.to_string(),
 
             TokenKind::Assign => "=",
@@ -203,7 +211,7 @@ impl TokenKind {
             TokenKind::Lt => "<",
             TokenKind::Eq => "==",
 
-            TokenKind::Eof => "EOF",
+            TokenKind::Eof => "end of file",
         };
 
         str.to_string()
@@ -228,5 +236,44 @@ impl TokenKind {
             "false" => 14,
             _ => return None,
         }].clone())
+    }
+
+    pub fn is_keyword(&self) -> bool {
+        match self {
+            TokenKind::If
+            | TokenKind::Do
+            | TokenKind::While
+            | TokenKind::Int
+            | TokenKind::Float
+            | TokenKind::Str
+            | TokenKind::Bool
+            | TokenKind::Void
+            | TokenKind::Let
+            | TokenKind::Func
+            | TokenKind::Ret
+            | TokenKind::Read
+            | TokenKind::Write
+            | TokenKind::True
+            | TokenKind::False => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_type(&self) -> bool {
+        match self {
+            TokenKind::Int
+            | TokenKind::Bool
+            | TokenKind::Str
+            | TokenKind::Float => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_left_delim(&self) -> bool {
+        matches!(self, TokenKind::LBrack | TokenKind::LParen)
+    }
+
+    pub fn is_right_delim(&self) -> bool {
+        matches!(self, TokenKind::RBrack | TokenKind::RParen)
     }
 }

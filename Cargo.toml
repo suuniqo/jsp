@@ -6,3 +6,4 @@ about = "Modular and efficient language processor for a subset of Javascript"
 
 [dependencies]
 clap = { version = "4.5.53", features = ["derive"] }
+itertools = "0.14.0"

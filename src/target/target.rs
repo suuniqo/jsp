@@ -17,12 +17,12 @@ impl Target {
             None => "",
         };
 
+        let src = fs::read_to_string(&path)
+            .map_err(|e| TargetErr::OpenFailed(e))?;
+
         if !Self::EXT.contains(&extension) {
             return Err(TargetErr::WrongExt(extension.to_string()));
         }
-
-        let src = fs::read_to_string(&path)
-            .map_err(|e| TargetErr::OpenFailed(e))?;
 
         if src.is_empty() {
             return Err(TargetErr::EmptyFile);
@@ -36,7 +36,7 @@ impl Target {
             }
         }
 
-        if *offsets.last().unwrap() != src.len() {
+        if *offsets.last().expect("source file is empty") != src.len() {
             offsets.push(src.len());
         }
 
@@ -68,5 +68,9 @@ impl Target {
 
             Some((slice, self.offsets[idx]))
         }
+    }
+
+    pub fn lines(&self) -> usize {
+        self.offsets.len() - 1
     }
 }

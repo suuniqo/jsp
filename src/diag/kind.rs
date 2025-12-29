@@ -1,41 +1,55 @@
-use std::fmt;
+use std::{collections::HashSet, fmt};
 
-use crate::{token::TokenKind, color::Color};
-
+use crate::{color::Color, grammar::MetaSym, token::TokenKind};
 
 #[derive(Clone)]
 pub enum DiagKind {
+    // lexer
     StrayChar(char),
     UntermComm,
-    UntermStr,
-    MalformedStr(char),
-    OverflowStr(usize),
+    UntermStr(String),
+    MalformedStr(char, String),
+    OverflowStr(String),
     InvEscSeq(char),
     OverflowInt,
     OverflowFloat,
-    InvFmtFloat(String),
-    UnexpectedTok((TokenKind, bool, Vec<TokenKind>))
+    InvFmtFloat(f32),
+
+    // parser
+    UnexpectedTok(TokenKind, HashSet<MetaSym>),
+    MismatchedDelim(TokenKind),
+    UnclosedDelim,
+    KeywordAsId(TokenKind),
+    MissingSemi,
+    TrailingComma,
+    MissingVarType,
+    MissingRetType,
+    MissingParamList,
+    EmptyParamList,
 }
 
 impl DiagKind {
-    pub fn afterword(&self) -> String {
+    pub fn msg(&self) -> String {
         match self {
             DiagKind::StrayChar(_) => "here".to_string(),
             DiagKind::UntermComm => "started here".to_string(),
-            DiagKind::UntermStr => "started here".to_string(),
-            DiagKind::MalformedStr(_) => "remove this character".to_string(),
-            DiagKind::OverflowStr(len) => format!("length is {} but maximum is {}", len, TokenKind::MAX_STR_LEN),
+            DiagKind::UntermStr(_) => "started here".to_string(),
+            DiagKind::MalformedStr(..) => "help: remove this character".to_string(),
+            DiagKind::OverflowStr(str) => format!("length is {} but maximum is {}", str.len(), TokenKind::MAX_STR_LEN),
             DiagKind::InvEscSeq(c) => format!("interpreted as \\\\{}", c),
             DiagKind::OverflowInt => format!("maximum is {}", i16::MAX),
             DiagKind::OverflowFloat => format!("maximum is {:e}", f32::MAX),
-            DiagKind::InvFmtFloat(num) => format!("perhaps you meant '{}.0'", num),
-            DiagKind::UnexpectedTok((_, before, expected)) => {
-                if expected.len() == 0 {
-                    "here".to_string()
-                } else {
-                    format!("{} this token", if *before { "before" } else { "after" })
-                }
-            },
+            DiagKind::InvFmtFloat(_) => "expected digit after '.'".to_string(),
+            DiagKind::UnexpectedTok(_, _) => "expected here".to_string(),
+            DiagKind::MismatchedDelim(_) => "mismatched closing delimiter".to_string(),
+            DiagKind::UnclosedDelim => "expected closing delimiter".to_string(),
+            DiagKind::KeywordAsId(_) => "expected identifier".to_string(),
+            DiagKind::MissingSemi => "expected `;`".to_string(),
+            DiagKind::TrailingComma => "here".to_string(),
+            DiagKind::MissingVarType => "expected type".to_string(),
+            DiagKind::MissingRetType => "expected return type".to_string(),
+            DiagKind::MissingParamList => "expected parameter list".to_string(),
+            DiagKind::EmptyParamList => "empty parameter list".to_string(),
         }
     }
 }
@@ -43,23 +57,23 @@ impl DiagKind {
 impl fmt::Display for DiagKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            DiagKind::StrayChar(c) => write!(f, "illegal character '{}{}{}' in program", Color::HIGHLIGHT, c.escape_default(), Color::RESET),
+            DiagKind::StrayChar(c) => write!(f, "illegal character `{}{}{}` in program", Color::HIGHLIGHT, c.escape_default(), Color::RESET),
             DiagKind::UntermComm => write!(f, "unterminated block comment"),
-            DiagKind::UntermStr => write!(f, "missing terminating character '{}\"{}' on string literal", Color::HIGHLIGHT, Color::RESET),
+            DiagKind::UntermStr(_) => write!(f, "missing terminating character `{}\"{}` on string literal", Color::HIGHLIGHT, Color::RESET),
             DiagKind::OverflowStr(_) => write!(f, "string literal is too long"),
-            DiagKind::InvEscSeq(c) => write!(f, "unknown escape sequence '{}\\{c}{}'", Color::HIGHLIGHT, Color::RESET),
+            DiagKind::InvEscSeq(c) => write!(f, "unknown escape sequence `{}\\{c}{}`", Color::HIGHLIGHT, Color::RESET),
             DiagKind::OverflowInt => write!(f, "integer literal out of range for 16-byte type"),
             DiagKind::OverflowFloat => write!(f, "float literal out of range for 32-byte type"),
-            DiagKind::InvFmtFloat(_) => write!(f, "expected digit after '{}.{}' in float literal", Color::HIGHLIGHT, Color::RESET),
-            DiagKind::MalformedStr(c) => write!(f, "malformed string literal, contains control character '{}{}{}'", Color::HIGHLIGHT, c.escape_default(), Color::RESET),
-            DiagKind::UnexpectedTok((found, before, expected)) => {
+            DiagKind::InvFmtFloat(_) => write!(f, "missing decimal part after `{}.{}` in float literal", Color::HIGHLIGHT, Color::RESET),
+            DiagKind::MalformedStr(c, _) => write!(f, "malformed string literal, contains control character `{}{}{}`", Color::HIGHLIGHT, c.escape_default(), Color::RESET),
+            DiagKind::UnexpectedTok(found, expected) => {
                 if expected.is_empty() {
-                    write!(f, "unexpected token '{}{}{}'", Color::HIGHLIGHT, found.lexeme_concrete(), Color::RESET)
+                    write!(f, "unexpected `{}{}{}`", Color::HIGHLIGHT, found.lexeme_concrete(), Color::RESET)
                 } else {
                     let mut msg = String::new();
 
                     for (i, tok) in expected.iter().enumerate() {
-                        msg.push_str(&format!("'{}{}{}'", Color::HIGHLIGHT, tok.lexeme_general(), Color::RESET));
+                        msg.push_str(&format!("`{}{}{}`", Color::HIGHLIGHT, tok, Color::RESET));
 
                         if i + 2 < expected.len() {
                             msg.push_str(", ");
@@ -68,51 +82,34 @@ impl fmt::Display for DiagKind {
                         }
                     }
 
-                    write!(f, "expected {} {} '{}{}{}'", msg, if *before { "before" } else { "after" }, Color::HIGHLIGHT, found.lexeme_concrete(), Color::RESET)
+                    write!(
+                        f,
+                        "expected {}, found `{}{}{}`",
+                        msg,
+                        Color::HIGHLIGHT, found.lexeme_concrete(), Color::RESET
+                    )
                 }
             },
-        }
-    }
-}
-
-impl TokenKind {
-    pub fn show_before(&self) -> bool {
-        match self {
-            TokenKind::If => true,
-            TokenKind::Do => true,
-            TokenKind::While => true,
-            TokenKind::Int => true,
-            TokenKind::Float => true,
-            TokenKind::Str => true,
-            TokenKind::Bool => true,
-            TokenKind::Void => true,
-            TokenKind::Let => true,
-            TokenKind::Func => true,
-            TokenKind::Ret => true,
-            TokenKind::Read => true,
-            TokenKind::Write => true,
-            TokenKind::True => true,
-            TokenKind::False => true,
-            TokenKind::FloatLit(_) => true,
-            TokenKind::IntLit(_) => true,
-            TokenKind::StrLit(_) => true,
-            TokenKind::Id(_) => true,
-            TokenKind::Assign => true,
-            TokenKind::AndAssign => true,
-            TokenKind::Comma => false,
-            TokenKind::Semi => false,
-            TokenKind::LParen => true,
-            TokenKind::RParen => false,
-            TokenKind::LBrack => true,
-            TokenKind::RBrack => false,
-            TokenKind::Sub => true,
-            TokenKind::Sum => true,
-            TokenKind::Mul => true,
-            TokenKind::And => true,
-            TokenKind::Not => true,
-            TokenKind::Lt => true,
-            TokenKind::Eq => true,
-            TokenKind::Eof => true,
+            DiagKind::MismatchedDelim(kind) => write!(
+                f,
+                "mismatched closing delimiter `{}{}{}`",
+                Color::HIGHLIGHT, kind.lexeme_concrete(), Color::RESET),
+            DiagKind::UnclosedDelim => write!(f, "unclosed delimiter"),
+            DiagKind::KeywordAsId(kw) => write!(
+                f,
+                "keyword `{}{}{}` used as an identifier",
+                Color::HIGHLIGHT, kw.lexeme_concrete(), Color::RESET),
+            DiagKind::MissingSemi => write!(
+                f,
+                "missing `{};{}` at the end of a statement",
+                Color::HIGHLIGHT,
+                Color::RESET
+            ),
+            DiagKind::TrailingComma => write!(f, "trailing comma on a function parameter list"),
+            DiagKind::MissingVarType => write!(f, "missing type in variable declaration"),
+            DiagKind::MissingRetType => write!(f, "missing return type in function declaration"),
+            DiagKind::MissingParamList => write!(f, "missing parameter list in function declaration"),
+            DiagKind::EmptyParamList => write!(f, "empty parameter list in function declaration"),
         }
     }
 }

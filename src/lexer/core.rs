@@ -1,8 +1,10 @@
+use core::f32;
 use std::cell::RefCell;
+use std::i16;
 use std::rc::Rc;
 
 use crate::reporter::Reporter;
-use crate::diag::{Diag, DiagKind};
+use crate::diag::{Diag, DiagHelp, DiagKind};
 use crate::symtable::StrPool;
 use crate::target::Target;
 use crate::token::{Token, TokenKind};
@@ -45,7 +47,7 @@ impl<'t> LexerCore<'t> {
             if self.win.peek_two() == ('*', '/') {
                 break;
             } else if self.win.finished() {
-                return Err(Diag::new(DiagKind::UntermComm, span));
+                return Err(Diag::make(DiagKind::UntermComm, span, true));
             }
 
             self.win.consume();
@@ -131,7 +133,7 @@ impl<'t> LexerCore<'t> {
 
                     let slice = self.trg.slice_from_span(&span);
 
-                    return Err(DiagKind::InvFmtFloat(slice.to_string()));
+                    return Err(DiagKind::InvFmtFloat(slice.to_string().parse::<f32>().unwrap_or(0.0)));
                 }
             } else if !next.is_ascii_digit() {
                 break;
@@ -156,7 +158,7 @@ impl<'t> LexerCore<'t> {
 
         loop {
             match self.win.peek_one() {
-                '\n' => return Err(Diag::new(DiagKind::UntermStr, quote_span)),
+                '\n' => return Err(Diag::make(DiagKind::UntermStr(string), quote_span, true)),
                 '\\' => {
                     let start = self.win.span().end;
 
@@ -166,7 +168,7 @@ impl<'t> LexerCore<'t> {
                     let next = self.win.peek_one();
 
                     if self.win.finished() || next == '\n' {
-                        return Err(Diag::new(DiagKind::UntermStr, quote_span));
+                        return Err(Diag::make(DiagKind::UntermStr(string), quote_span, true));
                     }
 
                     if next.is_control() {
@@ -179,7 +181,7 @@ impl<'t> LexerCore<'t> {
                         // to recover from the error the line is skipped
                         self.win.consume_while(|next| next != '\n');
 
-                        return Err(Diag::new(DiagKind::MalformedStr(next), span));
+                        return Err(Diag::make(DiagKind::MalformedStr(next, string), span, true));
                     }
 
                     if let Some(esc_seq) = Self::esc_seq(next) {
@@ -190,9 +192,10 @@ impl<'t> LexerCore<'t> {
                         // consume escape character
                         self.win.consume();
 
-                        self.reporter.borrow_mut().push(Diag::new(
+                        self.reporter.borrow_mut().push(Diag::make(
                             DiagKind::InvEscSeq(next),
-                            Span::new(start, self.win.span().end)
+                            Span::new(start, self.win.span().end),
+                            true,
                         ));
 
                         string.push('\\');
@@ -205,7 +208,7 @@ impl<'t> LexerCore<'t> {
                 },
                 other => {
                     if self.win.finished() {
-                        return Err(Diag::new(DiagKind::UntermStr, quote_span));
+                        return Err(Diag::make(DiagKind::UntermStr(string), quote_span, true));
                     }
 
                     if other.is_control() {
@@ -218,7 +221,7 @@ impl<'t> LexerCore<'t> {
                         // to recover from the error the line is skipped
                         self.win.consume_while(|next| next != '\n');
 
-                        return Err(Diag::new(DiagKind::MalformedStr(other), span));
+                        return Err(Diag::make(DiagKind::MalformedStr(other, string), span, true));
                     }
 
                     // consume the character
@@ -231,7 +234,7 @@ impl<'t> LexerCore<'t> {
         let span = self.win.span();
 
         if string.len() > TokenKind::MAX_STR_LEN {
-            Err(Diag::new(DiagKind::OverflowStr(string.len()), span))
+            Err(Diag::make(DiagKind::OverflowStr(string[..TokenKind::MAX_STR_LEN].to_string()), span, true))
         } else {
             Ok(Token::new(TokenKind::StrLit(string), span))
         }
@@ -264,7 +267,7 @@ impl<'t> LexerCore<'t> {
         self.win.collapse();
 
         let Some(curr) = self.win.consume() else {
-            return Ok(Token::new(TokenKind::Eof, self.win.span()));
+            return Ok(Token::eof());
         };
 
         let kind = match curr {
@@ -310,7 +313,7 @@ impl<'t> LexerCore<'t> {
 
         match kind {
             Ok(kind) => Ok(Token::new(kind, span)),
-            Err(kind) => Err(Diag::new(kind, span)),
+            Err(kind) => Err(Diag::make(kind, span, true)),
         }
     }
 
@@ -334,7 +337,29 @@ impl Iterator for LexerCore<'_> {
                 } else {
                     Some(token)
                 },
-                Err(diag) => self.reporter.borrow_mut().push(diag),
+                Err(mut diag) => {
+                    let dummy = match diag.kind.clone() {
+                        DiagKind::UntermStr(str) => Some(TokenKind::StrLit(str)),
+                        DiagKind::MalformedStr(_, str) => Some(TokenKind::StrLit(str)),
+                        DiagKind::OverflowStr(str) => Some(TokenKind::StrLit(str)),
+                        DiagKind::OverflowInt => Some(TokenKind::IntLit(i16::MAX)),
+                        DiagKind::OverflowFloat => Some(TokenKind::FloatLit(f32::MAX)),
+                        DiagKind::InvFmtFloat(num) => Some(TokenKind::FloatLit(num)),
+                        _ => None,
+                    };
+
+
+                    if matches!(diag.kind, DiagKind::InvFmtFloat(_)) {
+                        diag.add_help(DiagHelp::InsDecimal(diag.main_span()));
+                    }
+
+                    let span = diag.main_span();
+                    self.reporter.borrow_mut().push(diag);
+
+                    if let Some(dummy) = dummy {
+                        return Some(Token::new(dummy, span));
+                    }
+                },
             }
         }
     }

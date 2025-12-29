@@ -2,7 +2,7 @@ mod core;
 mod tracer;
 mod traits;
 mod action;
-mod grammar;
+mod heuristic;
 
 pub use core::ParserCore;
 pub use traits::Parser;

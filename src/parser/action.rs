@@ -1,13 +1,64 @@
 use std::{f32, i16, rc::Rc, usize};
 
+use crate::grammar::{GramSym, NotTerm, Term};
 use crate::token::TokenKind;
-use super::grammar::NotTerm;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Action {
     Reduce(usize),
     Shift(usize),
     Accept,
+}
+
+impl GramSym {
+    pub(super) fn as_token_kind(&self) -> Option<TokenKind> {
+        match self {
+            GramSym::T(term) => Some(TokenKind::from_idx(*term as usize)),
+            GramSym::N(_) => None,
+        }
+    }
+}
+
+impl Term {
+    pub(super) fn from_idx(idx: usize) -> Self {
+        match idx {
+             0 => Term::If, 
+             1 => Term::Do,
+             2 => Term::While,
+             3 => Term::Int,
+             4 => Term::Float,
+             5 => Term::Str,
+             6 => Term::Bool,
+             7 => Term::Void,
+             8 => Term::Let,
+             9 => Term::Func,
+            10 => Term::Ret,
+            11 => Term::Read,
+            12 => Term::Write,
+            13 => Term::True,
+            14 => Term::False,
+            15 => Term::FloatLit,
+            16 => Term::IntLit,
+            17 => Term::StrLit,
+            18 => Term::Id,
+            19 => Term::Assign,
+            20 => Term::AndAssign,
+            21 => Term::Comma,
+            22 => Term::Semi,
+            23 => Term::LParen,
+            24 => Term::RParen,
+            25 => Term::LBrack,
+            26 => Term::RBrack,
+            27 => Term::Sum,
+            28 => Term::Sub,
+            29 => Term::Mul,
+            30 => Term::And,
+            31 => Term::Not,
+            32 => Term::Lt,
+            33 => Term::Eq,
+            other => unreachable!("should always be a valid TokenKind index, but got {other}"),
+        }
+    }
 }
 
 impl NotTerm {
@@ -17,14 +68,44 @@ impl NotTerm {
     pub(super) fn idx(&self) -> usize {
         *self as usize
     }
-}
-
-impl TokenKind {
-    pub(super) const COUNT: usize = TokenKind::Eof.idx() + 1;
 
     pub(super) fn from_idx(idx: usize) -> Self {
         match idx {
-            0 => TokenKind::If, 
+            0 => Self::E,
+            1 => Self::R,
+            2 => Self::RR,
+            3 => Self::U,
+            4 => Self::UU,
+            5 => Self::EE,
+            6 => Self::V,
+            7 => Self::S,
+            8 => Self::L,
+            9 => Self::Q,
+            10 => Self::X,
+            11 => Self::B,
+            12 => Self::T,
+            13 => Self::M,
+            14 => Self::F,
+            15 => Self::F1,
+            16 => Self::F2,
+            17 => Self::F3,
+            18 => Self::H,
+            19 => Self::A,
+            20 => Self::K,
+            21 => Self::C,
+            22 => Self::P,
+            23 => Self::PP,
+            other => unreachable!("should always be a valid NotTerm index, but got {other}"),
+        }
+    }
+}
+
+impl TokenKind {
+    pub(super) const COUNT: usize = TokenKind::Eof.idx();
+
+    pub(super) fn from_idx(idx: usize) -> Self {
+        match idx {
+            0 => TokenKind::If,
             1 => TokenKind::Do,
             2 => TokenKind::While,
             3 => TokenKind::Int,
@@ -65,7 +146,7 @@ impl TokenKind {
 
     pub(super) const fn idx(&self) -> usize {
         match self {
-            TokenKind::If => 0, 
+            TokenKind::If => 0,
             TokenKind::Do => 1,
             TokenKind::While => 2,
             TokenKind::Int => 3,
@@ -106,59 +187,27 @@ impl TokenKind {
 
 const STATES: usize = 117;
 
-pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
+pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT + 1]; STATES] = [
     [
-        Some(
-            Action::Shift(
-                7,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                5,
-            ),
-        ),
+        Some(Action::Shift(7)),
+        Some(Action::Shift(5)),
         None,
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                6,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                4,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                9,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                10,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                11,
-            ),
-        ),
+        Some(Action::Shift(6)),
+        Some(Action::Shift(4)),
+        Some(Action::Shift(9)),
+        Some(Action::Shift(10)),
+        Some(Action::Shift(11)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                12,
-            ),
-        ),
+        Some(Action::Shift(12)),
         None,
         None,
         None,
@@ -174,11 +223,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                1,
-            ),
-        ),
+        Some(Action::Reduce(1)),
     ],
     [
         None,
@@ -215,62 +260,28 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Accept,
-        ),
+        Some(Action::Accept),
     ],
     [
-        Some(
-            Action::Shift(
-                7,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                5,
-            ),
-        ),
+        Some(Action::Shift(7)),
+        Some(Action::Shift(5)),
         None,
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                6,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                4,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                9,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                10,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                11,
-            ),
-        ),
+        Some(Action::Shift(6)),
+        Some(Action::Shift(4)),
+        Some(Action::Shift(9)),
+        Some(Action::Shift(10)),
+        Some(Action::Shift(11)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                12,
-            ),
-        ),
+        Some(Action::Shift(12)),
         None,
         None,
         None,
@@ -286,64 +297,28 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                1,
-            ),
-        ),
+        Some(Action::Reduce(1)),
     ],
     [
-        Some(
-            Action::Shift(
-                7,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                5,
-            ),
-        ),
+        Some(Action::Shift(7)),
+        Some(Action::Shift(5)),
         None,
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                6,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                4,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                9,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                10,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                11,
-            ),
-        ),
+        Some(Action::Shift(6)),
+        Some(Action::Shift(4)),
+        Some(Action::Shift(9)),
+        Some(Action::Shift(10)),
+        Some(Action::Shift(11)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                12,
-            ),
-        ),
+        Some(Action::Shift(12)),
         None,
         None,
         None,
@@ -359,41 +334,17 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                1,
-            ),
-        ),
+        Some(Action::Reduce(1)),
     ],
     [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                22,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                21,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                19,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                20,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                15,
-            ),
-        ),
+        Some(Action::Shift(22)),
+        Some(Action::Shift(21)),
+        Some(Action::Shift(19)),
+        Some(Action::Shift(20)),
+        Some(Action::Shift(15)),
         None,
         None,
         None,
@@ -448,11 +399,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                23,
-            ),
-        ),
+        Some(Action::Shift(23)),
         None,
         None,
         None,
@@ -467,26 +414,10 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                18,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                18,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                18,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                18,
-            ),
-        ),
+        Some(Action::Reduce(18)),
+        Some(Action::Reduce(18)),
+        Some(Action::Reduce(18)),
+        Some(Action::Reduce(18)),
         None,
         None,
         None,
@@ -540,11 +471,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                25,
-            ),
-        ),
+        Some(Action::Shift(25)),
         None,
         None,
         None,
@@ -558,57 +485,25 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
     ],
     [
-        Some(
-            Action::Reduce(
-                27,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                27,
-            ),
-        ),
+        Some(Action::Reduce(27)),
+        Some(Action::Reduce(27)),
         None,
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                27,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                27,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                27,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                27,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                27,
-            ),
-        ),
+        Some(Action::Reduce(27)),
+        Some(Action::Reduce(27)),
+        Some(Action::Reduce(27)),
+        Some(Action::Reduce(27)),
+        Some(Action::Reduce(27)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                27,
-            ),
-        ),
+        Some(Action::Reduce(27)),
         None,
         None,
         None,
@@ -616,11 +511,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                27,
-            ),
-        ),
+        Some(Action::Reduce(27)),
         None,
         None,
         None,
@@ -628,11 +519,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                27,
-            ),
-        ),
+        Some(Action::Reduce(27)),
     ],
     [
         None,
@@ -648,69 +535,25 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                30,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                29,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                32,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                33,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                31,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                28,
-            ),
-        ),
+        Some(Action::Shift(30)),
+        Some(Action::Shift(29)),
+        Some(Action::Shift(32)),
+        Some(Action::Shift(33)),
+        Some(Action::Shift(31)),
+        Some(Action::Shift(28)),
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                16,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                34,
-            ),
-        ),
+        Some(Action::Reduce(16)),
+        Some(Action::Shift(34)),
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                42,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                43,
-            ),
-        ),
+        Some(Action::Shift(42)),
+        Some(Action::Shift(43)),
         None,
         None,
-        Some(
-            Action::Shift(
-                36,
-            ),
-        ),
+        Some(Action::Shift(36)),
         None,
         None,
         None,
@@ -734,11 +577,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                44,
-            ),
-        ),
+        Some(Action::Shift(44)),
         None,
         None,
         None,
@@ -770,65 +609,25 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                30,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                29,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                32,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                33,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                31,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                28,
-            ),
-        ),
+        Some(Action::Shift(30)),
+        Some(Action::Shift(29)),
+        Some(Action::Shift(32)),
+        Some(Action::Shift(33)),
+        Some(Action::Shift(31)),
+        Some(Action::Shift(28)),
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                34,
-            ),
-        ),
+        Some(Action::Shift(34)),
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                42,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                43,
-            ),
-        ),
+        Some(Action::Shift(42)),
+        Some(Action::Shift(43)),
         None,
         None,
-        Some(
-            Action::Shift(
-                36,
-            ),
-        ),
+        Some(Action::Shift(36)),
         None,
         None,
         None,
@@ -853,23 +652,11 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                48,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                47,
-            ),
-        ),
+        Some(Action::Shift(48)),
+        Some(Action::Shift(47)),
         None,
         None,
-        Some(
-            Action::Shift(
-                46,
-            ),
-        ),
+        Some(Action::Shift(46)),
         None,
         None,
         None,
@@ -917,11 +704,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                2,
-            ),
-        ),
+        Some(Action::Reduce(2)),
     ],
     [
         None,
@@ -958,11 +741,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                3,
-            ),
-        ),
+        Some(Action::Reduce(3)),
     ],
     [
         None,
@@ -983,11 +762,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                10,
-            ),
-        ),
+        Some(Action::Reduce(10)),
         None,
         None,
         None,
@@ -1024,11 +799,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                11,
-            ),
-        ),
+        Some(Action::Reduce(11)),
         None,
         None,
         None,
@@ -1065,11 +836,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                14,
-            ),
-        ),
+        Some(Action::Reduce(14)),
         None,
         None,
         None,
@@ -1106,11 +873,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                49,
-            ),
-        ),
+        Some(Action::Shift(49)),
         None,
         None,
         None,
@@ -1147,11 +910,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                19,
-            ),
-        ),
+        Some(Action::Reduce(19)),
         None,
         None,
         None,
@@ -1188,11 +947,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                20,
-            ),
-        ),
+        Some(Action::Reduce(20)),
         None,
         None,
         None,
@@ -1229,11 +984,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                21,
-            ),
-        ),
+        Some(Action::Reduce(21)),
         None,
         None,
         None,
@@ -1270,11 +1021,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                22,
-            ),
-        ),
+        Some(Action::Reduce(22)),
         None,
         None,
         None,
@@ -1293,53 +1040,25 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
     ],
     [
-        Some(
-            Action::Shift(
-                7,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                5,
-            ),
-        ),
+        Some(Action::Shift(7)),
+        Some(Action::Shift(5)),
         None,
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                6,
-            ),
-        ),
+        Some(Action::Shift(6)),
         None,
-        Some(
-            Action::Shift(
-                9,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                10,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                11,
-            ),
-        ),
+        Some(Action::Shift(9)),
+        Some(Action::Shift(10)),
+        Some(Action::Shift(11)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                12,
-            ),
-        ),
+        Some(Action::Shift(12)),
         None,
         None,
         None,
@@ -1347,11 +1066,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                4,
-            ),
-        ),
+        Some(Action::Reduce(4)),
         None,
         None,
         None,
@@ -1365,26 +1080,10 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                22,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                21,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                19,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                20,
-            ),
-        ),
+        Some(Action::Shift(22)),
+        Some(Action::Shift(21)),
+        Some(Action::Shift(19)),
+        Some(Action::Shift(20)),
         None,
         None,
         None,
@@ -1428,65 +1127,25 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                30,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                29,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                32,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                33,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                31,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                28,
-            ),
-        ),
+        Some(Action::Shift(30)),
+        Some(Action::Shift(29)),
+        Some(Action::Shift(32)),
+        Some(Action::Shift(33)),
+        Some(Action::Shift(31)),
+        Some(Action::Shift(28)),
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                34,
-            ),
-        ),
+        Some(Action::Shift(34)),
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                42,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                43,
-            ),
-        ),
+        Some(Action::Shift(42)),
+        Some(Action::Shift(43)),
         None,
         None,
-        Some(
-            Action::Shift(
-                36,
-            ),
-        ),
+        Some(Action::Shift(36)),
         None,
         None,
         None,
@@ -1514,11 +1173,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                17,
-            ),
-        ),
+        Some(Action::Reduce(17)),
         None,
         None,
         None,
@@ -1526,11 +1181,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                55,
-            ),
-        ),
+        Some(Action::Shift(55)),
         None,
         None,
         None,
@@ -1559,11 +1210,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                56,
-            ),
-        ),
+        Some(Action::Shift(56)),
         None,
         None,
         None,
@@ -1599,55 +1246,19 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                38,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                38,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                57,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                38,
-            ),
-        ),
+        Some(Action::Reduce(38)),
+        Some(Action::Reduce(38)),
+        Some(Action::Shift(57)),
+        Some(Action::Reduce(38)),
         None,
         None,
-        Some(
-            Action::Reduce(
-                38,
-            ),
-        ),
+        Some(Action::Reduce(38)),
         None,
-        Some(
-            Action::Reduce(
-                38,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                38,
-            ),
-        ),
+        Some(Action::Reduce(38)),
+        Some(Action::Reduce(38)),
         None,
-        Some(
-            Action::Reduce(
-                38,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                38,
-            ),
-        ),
+        Some(Action::Reduce(38)),
+        Some(Action::Reduce(38)),
         None,
     ],
     [
@@ -1672,51 +1283,19 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                39,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                39,
-            ),
-        ),
+        Some(Action::Reduce(39)),
+        Some(Action::Reduce(39)),
         None,
-        Some(
-            Action::Reduce(
-                39,
-            ),
-        ),
+        Some(Action::Reduce(39)),
         None,
         None,
-        Some(
-            Action::Reduce(
-                39,
-            ),
-        ),
+        Some(Action::Reduce(39)),
         None,
-        Some(
-            Action::Reduce(
-                39,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                39,
-            ),
-        ),
+        Some(Action::Reduce(39)),
+        Some(Action::Reduce(39)),
         None,
-        Some(
-            Action::Reduce(
-                39,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                39,
-            ),
-        ),
+        Some(Action::Reduce(39)),
+        Some(Action::Reduce(39)),
         None,
     ],
     [
@@ -1741,51 +1320,19 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                40,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                40,
-            ),
-        ),
+        Some(Action::Reduce(40)),
+        Some(Action::Reduce(40)),
         None,
-        Some(
-            Action::Reduce(
-                40,
-            ),
-        ),
+        Some(Action::Reduce(40)),
         None,
         None,
-        Some(
-            Action::Reduce(
-                40,
-            ),
-        ),
+        Some(Action::Reduce(40)),
         None,
-        Some(
-            Action::Reduce(
-                40,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                40,
-            ),
-        ),
+        Some(Action::Reduce(40)),
+        Some(Action::Reduce(40)),
         None,
-        Some(
-            Action::Reduce(
-                40,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                40,
-            ),
-        ),
+        Some(Action::Reduce(40)),
+        Some(Action::Reduce(40)),
         None,
     ],
     [
@@ -1810,51 +1357,19 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                41,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                41,
-            ),
-        ),
+        Some(Action::Reduce(41)),
+        Some(Action::Reduce(41)),
         None,
-        Some(
-            Action::Reduce(
-                41,
-            ),
-        ),
+        Some(Action::Reduce(41)),
         None,
         None,
-        Some(
-            Action::Reduce(
-                41,
-            ),
-        ),
+        Some(Action::Reduce(41)),
         None,
-        Some(
-            Action::Reduce(
-                41,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                41,
-            ),
-        ),
+        Some(Action::Reduce(41)),
+        Some(Action::Reduce(41)),
         None,
-        Some(
-            Action::Reduce(
-                41,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                41,
-            ),
-        ),
+        Some(Action::Reduce(41)),
+        Some(Action::Reduce(41)),
         None,
     ],
     [
@@ -1879,51 +1394,19 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                42,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                42,
-            ),
-        ),
+        Some(Action::Reduce(42)),
+        Some(Action::Reduce(42)),
         None,
-        Some(
-            Action::Reduce(
-                42,
-            ),
-        ),
+        Some(Action::Reduce(42)),
         None,
         None,
-        Some(
-            Action::Reduce(
-                42,
-            ),
-        ),
+        Some(Action::Reduce(42)),
         None,
-        Some(
-            Action::Reduce(
-                42,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                42,
-            ),
-        ),
+        Some(Action::Reduce(42)),
+        Some(Action::Reduce(42)),
         None,
-        Some(
-            Action::Reduce(
-                42,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                42,
-            ),
-        ),
+        Some(Action::Reduce(42)),
+        Some(Action::Reduce(42)),
         None,
     ],
     [
@@ -1948,51 +1431,19 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                43,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                43,
-            ),
-        ),
+        Some(Action::Reduce(43)),
+        Some(Action::Reduce(43)),
         None,
-        Some(
-            Action::Reduce(
-                43,
-            ),
-        ),
+        Some(Action::Reduce(43)),
         None,
         None,
-        Some(
-            Action::Reduce(
-                43,
-            ),
-        ),
+        Some(Action::Reduce(43)),
         None,
-        Some(
-            Action::Reduce(
-                43,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                43,
-            ),
-        ),
+        Some(Action::Reduce(43)),
+        Some(Action::Reduce(43)),
         None,
-        Some(
-            Action::Reduce(
-                43,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                43,
-            ),
-        ),
+        Some(Action::Reduce(43)),
+        Some(Action::Reduce(43)),
         None,
     ],
     [
@@ -2009,65 +1460,25 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                30,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                29,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                32,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                33,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                31,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                28,
-            ),
-        ),
+        Some(Action::Shift(30)),
+        Some(Action::Shift(29)),
+        Some(Action::Shift(32)),
+        Some(Action::Shift(33)),
+        Some(Action::Shift(31)),
+        Some(Action::Shift(28)),
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                34,
-            ),
-        ),
+        Some(Action::Shift(34)),
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                42,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                43,
-            ),
-        ),
+        Some(Action::Shift(42)),
+        Some(Action::Shift(43)),
         None,
         None,
-        Some(
-            Action::Shift(
-                36,
-            ),
-        ),
+        Some(Action::Shift(36)),
         None,
         None,
         None,
@@ -2094,51 +1505,19 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                46,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                46,
-            ),
-        ),
+        Some(Action::Reduce(46)),
+        Some(Action::Reduce(46)),
         None,
-        Some(
-            Action::Reduce(
-                46,
-            ),
-        ),
+        Some(Action::Reduce(46)),
         None,
         None,
-        Some(
-            Action::Reduce(
-                46,
-            ),
-        ),
+        Some(Action::Reduce(46)),
         None,
-        Some(
-            Action::Reduce(
-                46,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                46,
-            ),
-        ),
+        Some(Action::Reduce(46)),
+        Some(Action::Reduce(46)),
         None,
-        Some(
-            Action::Reduce(
-                46,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                46,
-            ),
-        ),
+        Some(Action::Reduce(46)),
+        Some(Action::Reduce(46)),
         None,
     ],
     [
@@ -2155,65 +1534,25 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                30,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                29,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                32,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                33,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                31,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                28,
-            ),
-        ),
+        Some(Action::Shift(30)),
+        Some(Action::Shift(29)),
+        Some(Action::Shift(32)),
+        Some(Action::Shift(33)),
+        Some(Action::Shift(31)),
+        Some(Action::Shift(28)),
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                34,
-            ),
-        ),
+        Some(Action::Shift(34)),
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                42,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                43,
-            ),
-        ),
+        Some(Action::Shift(42)),
+        Some(Action::Shift(43)),
         None,
         None,
-        Some(
-            Action::Shift(
-                36,
-            ),
-        ),
+        Some(Action::Shift(36)),
         None,
         None,
         None,
@@ -2240,51 +1579,19 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                48,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                48,
-            ),
-        ),
+        Some(Action::Reduce(48)),
+        Some(Action::Reduce(48)),
         None,
-        Some(
-            Action::Reduce(
-                48,
-            ),
-        ),
+        Some(Action::Reduce(48)),
         None,
         None,
-        Some(
-            Action::Reduce(
-                48,
-            ),
-        ),
+        Some(Action::Reduce(48)),
         None,
-        Some(
-            Action::Reduce(
-                48,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                48,
-            ),
-        ),
+        Some(Action::Reduce(48)),
+        Some(Action::Reduce(48)),
         None,
-        Some(
-            Action::Reduce(
-                48,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                48,
-            ),
-        ),
+        Some(Action::Reduce(48)),
+        Some(Action::Reduce(48)),
         None,
     ],
     [
@@ -2309,51 +1616,19 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                50,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                50,
-            ),
-        ),
+        Some(Action::Reduce(50)),
+        Some(Action::Reduce(50)),
         None,
-        Some(
-            Action::Reduce(
-                50,
-            ),
-        ),
+        Some(Action::Reduce(50)),
         None,
         None,
-        Some(
-            Action::Reduce(
-                50,
-            ),
-        ),
+        Some(Action::Reduce(50)),
         None,
-        Some(
-            Action::Shift(
-                60,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                50,
-            ),
-        ),
+        Some(Action::Shift(60)),
+        Some(Action::Reduce(50)),
         None,
-        Some(
-            Action::Reduce(
-                50,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                50,
-            ),
-        ),
+        Some(Action::Reduce(50)),
+        Some(Action::Reduce(50)),
         None,
     ],
     [
@@ -2378,47 +1653,19 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                52,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                52,
-            ),
-        ),
+        Some(Action::Reduce(52)),
+        Some(Action::Reduce(52)),
         None,
-        Some(
-            Action::Reduce(
-                52,
-            ),
-        ),
+        Some(Action::Reduce(52)),
         None,
         None,
-        Some(
-            Action::Shift(
-                61,
-            ),
-        ),
+        Some(Action::Shift(61)),
         None,
         None,
-        Some(
-            Action::Reduce(
-                52,
-            ),
-        ),
+        Some(Action::Reduce(52)),
         None,
-        Some(
-            Action::Reduce(
-                52,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                52,
-            ),
-        ),
+        Some(Action::Reduce(52)),
+        Some(Action::Reduce(52)),
         None,
     ],
     [
@@ -2443,43 +1690,19 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                54,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                54,
-            ),
-        ),
+        Some(Action::Reduce(54)),
+        Some(Action::Reduce(54)),
         None,
-        Some(
-            Action::Reduce(
-                54,
-            ),
-        ),
+        Some(Action::Reduce(54)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                54,
-            ),
-        ),
+        Some(Action::Reduce(54)),
         None,
-        Some(
-            Action::Shift(
-                62,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                54,
-            ),
-        ),
+        Some(Action::Shift(62)),
+        Some(Action::Reduce(54)),
         None,
     ],
     [
@@ -2504,39 +1727,19 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                56,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                56,
-            ),
-        ),
+        Some(Action::Reduce(56)),
+        Some(Action::Reduce(56)),
         None,
-        Some(
-            Action::Reduce(
-                56,
-            ),
-        ),
+        Some(Action::Reduce(56)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                56,
-            ),
-        ),
+        Some(Action::Reduce(56)),
         None,
         None,
-        Some(
-            Action::Shift(
-                63,
-            ),
-        ),
+        Some(Action::Shift(63)),
         None,
     ],
     [
@@ -2553,65 +1756,25 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                30,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                29,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                32,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                33,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                31,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                28,
-            ),
-        ),
+        Some(Action::Shift(30)),
+        Some(Action::Shift(29)),
+        Some(Action::Shift(32)),
+        Some(Action::Shift(33)),
+        Some(Action::Shift(31)),
+        Some(Action::Shift(28)),
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                34,
-            ),
-        ),
+        Some(Action::Shift(34)),
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                42,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                43,
-            ),
-        ),
+        Some(Action::Shift(42)),
+        Some(Action::Shift(43)),
         None,
         None,
-        Some(
-            Action::Shift(
-                36,
-            ),
-        ),
+        Some(Action::Shift(36)),
         None,
         None,
         None,
@@ -2630,65 +1793,25 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                30,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                29,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                32,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                33,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                31,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                28,
-            ),
-        ),
+        Some(Action::Shift(30)),
+        Some(Action::Shift(29)),
+        Some(Action::Shift(32)),
+        Some(Action::Shift(33)),
+        Some(Action::Shift(31)),
+        Some(Action::Shift(28)),
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                34,
-            ),
-        ),
+        Some(Action::Shift(34)),
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                42,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                43,
-            ),
-        ),
+        Some(Action::Shift(42)),
+        Some(Action::Shift(43)),
         None,
         None,
-        Some(
-            Action::Shift(
-                36,
-            ),
-        ),
+        Some(Action::Shift(36)),
         None,
         None,
         None,
@@ -2716,11 +1839,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                66,
-            ),
-        ),
+        Some(Action::Shift(66)),
         None,
         None,
         None,
@@ -2757,11 +1876,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                67,
-            ),
-        ),
+        Some(Action::Shift(67)),
         None,
         None,
         None,
@@ -2769,11 +1884,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                55,
-            ),
-        ),
+        Some(Action::Shift(55)),
         None,
         None,
         None,
@@ -2793,69 +1904,25 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                30,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                29,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                32,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                33,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                31,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                28,
-            ),
-        ),
+        Some(Action::Shift(30)),
+        Some(Action::Shift(29)),
+        Some(Action::Shift(32)),
+        Some(Action::Shift(33)),
+        Some(Action::Shift(31)),
+        Some(Action::Shift(28)),
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                34,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                30,
-            ),
-        ),
+        Some(Action::Shift(34)),
+        Some(Action::Reduce(30)),
         None,
         None,
-        Some(
-            Action::Shift(
-                42,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                43,
-            ),
-        ),
+        Some(Action::Shift(42)),
+        Some(Action::Shift(43)),
         None,
         None,
-        Some(
-            Action::Shift(
-                36,
-            ),
-        ),
+        Some(Action::Shift(36)),
         None,
         None,
         None,
@@ -2874,65 +1941,25 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                30,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                29,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                32,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                33,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                31,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                28,
-            ),
-        ),
+        Some(Action::Shift(30)),
+        Some(Action::Shift(29)),
+        Some(Action::Shift(32)),
+        Some(Action::Shift(33)),
+        Some(Action::Shift(31)),
+        Some(Action::Shift(28)),
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                34,
-            ),
-        ),
+        Some(Action::Shift(34)),
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                42,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                43,
-            ),
-        ),
+        Some(Action::Shift(42)),
+        Some(Action::Shift(43)),
         None,
         None,
-        Some(
-            Action::Shift(
-                36,
-            ),
-        ),
+        Some(Action::Shift(36)),
         None,
         None,
         None,
@@ -2951,65 +1978,25 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                30,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                29,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                32,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                33,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                31,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                28,
-            ),
-        ),
+        Some(Action::Shift(30)),
+        Some(Action::Shift(29)),
+        Some(Action::Shift(32)),
+        Some(Action::Shift(33)),
+        Some(Action::Shift(31)),
+        Some(Action::Shift(28)),
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                34,
-            ),
-        ),
+        Some(Action::Shift(34)),
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                42,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                43,
-            ),
-        ),
+        Some(Action::Shift(42)),
+        Some(Action::Shift(43)),
         None,
         None,
-        Some(
-            Action::Shift(
-                36,
-            ),
-        ),
+        Some(Action::Shift(36)),
         None,
         None,
         None,
@@ -3038,11 +2025,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                13,
-            ),
-        ),
+        Some(Action::Reduce(13)),
         None,
         None,
         None,
@@ -3079,11 +2062,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                72,
-            ),
-        ),
+        Some(Action::Shift(72)),
         None,
         None,
         None,
@@ -3097,53 +2076,25 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
     ],
     [
-        Some(
-            Action::Shift(
-                7,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                5,
-            ),
-        ),
+        Some(Action::Shift(7)),
+        Some(Action::Shift(5)),
         None,
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                6,
-            ),
-        ),
+        Some(Action::Shift(6)),
         None,
-        Some(
-            Action::Shift(
-                9,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                10,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                11,
-            ),
-        ),
+        Some(Action::Shift(9)),
+        Some(Action::Shift(10)),
+        Some(Action::Shift(11)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                12,
-            ),
-        ),
+        Some(Action::Shift(12)),
         None,
         None,
         None,
@@ -3151,11 +2102,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                4,
-            ),
-        ),
+        Some(Action::Reduce(4)),
         None,
         None,
         None,
@@ -3192,11 +2139,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                75,
-            ),
-        ),
+        Some(Action::Shift(75)),
         None,
         None,
         None,
@@ -3225,11 +2168,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                76,
-            ),
-        ),
+        Some(Action::Shift(76)),
         None,
         None,
         None,
@@ -3272,21 +2211,13 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                77,
-            ),
-        ),
+        Some(Action::Shift(77)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                55,
-            ),
-        ),
+        Some(Action::Shift(55)),
         None,
         None,
         None,
@@ -3306,121 +2237,49 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                30,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                29,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                32,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                33,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                31,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                28,
-            ),
-        ),
+        Some(Action::Shift(30)),
+        Some(Action::Shift(29)),
+        Some(Action::Shift(32)),
+        Some(Action::Shift(33)),
+        Some(Action::Shift(31)),
+        Some(Action::Shift(28)),
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                34,
-            ),
-        ),
+        Some(Action::Shift(34)),
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                42,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                43,
-            ),
-        ),
+        Some(Action::Shift(42)),
+        Some(Action::Shift(43)),
         None,
         None,
-        Some(
-            Action::Shift(
-                36,
-            ),
-        ),
+        Some(Action::Shift(36)),
         None,
         None,
         None,
     ],
     [
-        Some(
-            Action::Reduce(
-                32,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                32,
-            ),
-        ),
+        Some(Action::Reduce(32)),
+        Some(Action::Reduce(32)),
         None,
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                32,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                32,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                32,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                32,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                32,
-            ),
-        ),
+        Some(Action::Reduce(32)),
+        Some(Action::Reduce(32)),
+        Some(Action::Reduce(32)),
+        Some(Action::Reduce(32)),
+        Some(Action::Reduce(32)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                32,
-            ),
-        ),
+        Some(Action::Reduce(32)),
         None,
         None,
         None,
@@ -3428,11 +2287,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                32,
-            ),
-        ),
+        Some(Action::Reduce(32)),
         None,
         None,
         None,
@@ -3440,11 +2295,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                32,
-            ),
-        ),
+        Some(Action::Reduce(32)),
     ],
     [
         None,
@@ -3460,69 +2311,25 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                30,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                29,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                32,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                33,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                31,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                28,
-            ),
-        ),
+        Some(Action::Shift(30)),
+        Some(Action::Shift(29)),
+        Some(Action::Shift(32)),
+        Some(Action::Shift(33)),
+        Some(Action::Shift(31)),
+        Some(Action::Shift(28)),
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                34,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                30,
-            ),
-        ),
+        Some(Action::Shift(34)),
+        Some(Action::Reduce(30)),
         None,
         None,
-        Some(
-            Action::Shift(
-                42,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                43,
-            ),
-        ),
+        Some(Action::Shift(42)),
+        Some(Action::Shift(43)),
         None,
         None,
-        Some(
-            Action::Shift(
-                36,
-            ),
-        ),
+        Some(Action::Shift(36)),
         None,
         None,
         None,
@@ -3552,21 +2359,13 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                80,
-            ),
-        ),
+        Some(Action::Shift(80)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                55,
-            ),
-        ),
+        Some(Action::Shift(55)),
         None,
         None,
         None,
@@ -3594,51 +2393,19 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                47,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                47,
-            ),
-        ),
+        Some(Action::Reduce(47)),
+        Some(Action::Reduce(47)),
         None,
-        Some(
-            Action::Reduce(
-                47,
-            ),
-        ),
+        Some(Action::Reduce(47)),
         None,
         None,
-        Some(
-            Action::Reduce(
-                47,
-            ),
-        ),
+        Some(Action::Reduce(47)),
         None,
-        Some(
-            Action::Reduce(
-                47,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                47,
-            ),
-        ),
+        Some(Action::Reduce(47)),
+        Some(Action::Reduce(47)),
         None,
-        Some(
-            Action::Reduce(
-                47,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                47,
-            ),
-        ),
+        Some(Action::Reduce(47)),
+        Some(Action::Reduce(47)),
         None,
     ],
     [
@@ -3655,65 +2422,25 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                30,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                29,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                32,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                33,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                31,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                28,
-            ),
-        ),
+        Some(Action::Shift(30)),
+        Some(Action::Shift(29)),
+        Some(Action::Shift(32)),
+        Some(Action::Shift(33)),
+        Some(Action::Shift(31)),
+        Some(Action::Shift(28)),
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                34,
-            ),
-        ),
+        Some(Action::Shift(34)),
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                42,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                43,
-            ),
-        ),
+        Some(Action::Shift(42)),
+        Some(Action::Shift(43)),
         None,
         None,
-        Some(
-            Action::Shift(
-                36,
-            ),
-        ),
+        Some(Action::Shift(36)),
         None,
         None,
         None,
@@ -3732,65 +2459,25 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                30,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                29,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                32,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                33,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                31,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                28,
-            ),
-        ),
+        Some(Action::Shift(30)),
+        Some(Action::Shift(29)),
+        Some(Action::Shift(32)),
+        Some(Action::Shift(33)),
+        Some(Action::Shift(31)),
+        Some(Action::Shift(28)),
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                34,
-            ),
-        ),
+        Some(Action::Shift(34)),
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                42,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                43,
-            ),
-        ),
+        Some(Action::Shift(42)),
+        Some(Action::Shift(43)),
         None,
         None,
-        Some(
-            Action::Shift(
-                36,
-            ),
-        ),
+        Some(Action::Shift(36)),
         None,
         None,
         None,
@@ -3809,65 +2496,25 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                30,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                29,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                32,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                33,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                31,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                28,
-            ),
-        ),
+        Some(Action::Shift(30)),
+        Some(Action::Shift(29)),
+        Some(Action::Shift(32)),
+        Some(Action::Shift(33)),
+        Some(Action::Shift(31)),
+        Some(Action::Shift(28)),
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                34,
-            ),
-        ),
+        Some(Action::Shift(34)),
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                42,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                43,
-            ),
-        ),
+        Some(Action::Shift(42)),
+        Some(Action::Shift(43)),
         None,
         None,
-        Some(
-            Action::Shift(
-                36,
-            ),
-        ),
+        Some(Action::Shift(36)),
         None,
         None,
         None,
@@ -3886,65 +2533,25 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                30,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                29,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                32,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                33,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                31,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                28,
-            ),
-        ),
+        Some(Action::Shift(30)),
+        Some(Action::Shift(29)),
+        Some(Action::Shift(32)),
+        Some(Action::Shift(33)),
+        Some(Action::Shift(31)),
+        Some(Action::Shift(28)),
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                34,
-            ),
-        ),
+        Some(Action::Shift(34)),
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                42,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                43,
-            ),
-        ),
+        Some(Action::Shift(42)),
+        Some(Action::Shift(43)),
         None,
         None,
-        Some(
-            Action::Shift(
-                36,
-            ),
-        ),
+        Some(Action::Shift(36)),
         None,
         None,
         None,
@@ -3971,51 +2578,19 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                58,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                58,
-            ),
-        ),
+        Some(Action::Reduce(58)),
+        Some(Action::Reduce(58)),
         None,
-        Some(
-            Action::Reduce(
-                58,
-            ),
-        ),
+        Some(Action::Reduce(58)),
         None,
         None,
-        Some(
-            Action::Reduce(
-                58,
-            ),
-        ),
+        Some(Action::Reduce(58)),
         None,
-        Some(
-            Action::Reduce(
-                58,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                58,
-            ),
-        ),
+        Some(Action::Reduce(58)),
+        Some(Action::Reduce(58)),
         None,
-        Some(
-            Action::Reduce(
-                58,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                58,
-            ),
-        ),
+        Some(Action::Reduce(58)),
+        Some(Action::Reduce(58)),
         None,
     ],
     [
@@ -4040,105 +2615,41 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                59,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                59,
-            ),
-        ),
+        Some(Action::Reduce(59)),
+        Some(Action::Reduce(59)),
         None,
-        Some(
-            Action::Reduce(
-                59,
-            ),
-        ),
+        Some(Action::Reduce(59)),
         None,
         None,
-        Some(
-            Action::Reduce(
-                59,
-            ),
-        ),
+        Some(Action::Reduce(59)),
         None,
-        Some(
-            Action::Reduce(
-                59,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                59,
-            ),
-        ),
+        Some(Action::Reduce(59)),
+        Some(Action::Reduce(59)),
         None,
-        Some(
-            Action::Reduce(
-                59,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                59,
-            ),
-        ),
+        Some(Action::Reduce(59)),
+        Some(Action::Reduce(59)),
         None,
     ],
     [
-        Some(
-            Action::Reduce(
-                33,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                33,
-            ),
-        ),
+        Some(Action::Reduce(33)),
+        Some(Action::Reduce(33)),
         None,
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                33,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                33,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                33,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                33,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                33,
-            ),
-        ),
+        Some(Action::Reduce(33)),
+        Some(Action::Reduce(33)),
+        Some(Action::Reduce(33)),
+        Some(Action::Reduce(33)),
+        Some(Action::Reduce(33)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                33,
-            ),
-        ),
+        Some(Action::Reduce(33)),
         None,
         None,
         None,
@@ -4146,11 +2657,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                33,
-            ),
-        ),
+        Some(Action::Reduce(33)),
         None,
         None,
         None,
@@ -4158,64 +2665,28 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                33,
-            ),
-        ),
+        Some(Action::Reduce(33)),
     ],
     [
-        Some(
-            Action::Reduce(
-                34,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                34,
-            ),
-        ),
+        Some(Action::Reduce(34)),
+        Some(Action::Reduce(34)),
         None,
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                34,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                34,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                34,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                34,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                34,
-            ),
-        ),
+        Some(Action::Reduce(34)),
+        Some(Action::Reduce(34)),
+        Some(Action::Reduce(34)),
+        Some(Action::Reduce(34)),
+        Some(Action::Reduce(34)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                34,
-            ),
-        ),
+        Some(Action::Reduce(34)),
         None,
         None,
         None,
@@ -4223,11 +2694,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                34,
-            ),
-        ),
+        Some(Action::Reduce(34)),
         None,
         None,
         None,
@@ -4235,11 +2702,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                34,
-            ),
-        ),
+        Some(Action::Reduce(34)),
     ],
     [
         None,
@@ -4263,28 +2726,16 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                85,
-            ),
-        ),
+        Some(Action::Shift(85)),
         None,
         None,
-        Some(
-            Action::Reduce(
-                28,
-            ),
-        ),
+        Some(Action::Reduce(28)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                55,
-            ),
-        ),
+        Some(Action::Shift(55)),
         None,
         None,
         None,
@@ -4315,11 +2766,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                87,
-            ),
-        ),
+        Some(Action::Shift(87)),
         None,
         None,
         None,
@@ -4354,11 +2801,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                88,
-            ),
-        ),
+        Some(Action::Shift(88)),
         None,
         None,
         None,
@@ -4366,11 +2809,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                55,
-            ),
-        ),
+        Some(Action::Shift(55)),
         None,
         None,
         None,
@@ -4399,11 +2838,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                89,
-            ),
-        ),
+        Some(Action::Shift(89)),
         None,
         None,
         None,
@@ -4411,11 +2846,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                55,
-            ),
-        ),
+        Some(Action::Shift(55)),
         None,
         None,
         None,
@@ -4425,31 +2856,11 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                22,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                21,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                19,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                20,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                90,
-            ),
-        ),
+        Some(Action::Shift(22)),
+        Some(Action::Shift(21)),
+        Some(Action::Shift(19)),
+        Some(Action::Shift(20)),
+        Some(Action::Shift(90)),
         None,
         None,
         None,
@@ -4504,11 +2915,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                93,
-            ),
-        ),
+        Some(Action::Shift(93)),
         None,
         None,
         None,
@@ -4546,11 +2953,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                5,
-            ),
-        ),
+        Some(Action::Reduce(5)),
         None,
         None,
         None,
@@ -4563,11 +2966,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
     [
         None,
         None,
-        Some(
-            Action::Shift(
-                94,
-            ),
-        ),
+        Some(Action::Shift(94)),
         None,
         None,
         None,
@@ -4621,18 +3020,10 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                95,
-            ),
-        ),
+        Some(Action::Shift(95)),
         None,
         None,
-        Some(
-            Action::Shift(
-                96,
-            ),
-        ),
+        Some(Action::Shift(96)),
         None,
         None,
         None,
@@ -4657,31 +3048,15 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                9,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                10,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                11,
-            ),
-        ),
+        Some(Action::Shift(9)),
+        Some(Action::Shift(10)),
+        Some(Action::Shift(11)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                12,
-            ),
-        ),
+        Some(Action::Shift(12)),
         None,
         None,
         None,
@@ -4721,39 +3096,19 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                57,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                57,
-            ),
-        ),
+        Some(Action::Reduce(57)),
+        Some(Action::Reduce(57)),
         None,
-        Some(
-            Action::Reduce(
-                57,
-            ),
-        ),
+        Some(Action::Reduce(57)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                57,
-            ),
-        ),
+        Some(Action::Reduce(57)),
         None,
         None,
-        Some(
-            Action::Shift(
-                63,
-            ),
-        ),
+        Some(Action::Shift(63)),
         None,
     ],
     [
@@ -4781,11 +3136,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                98,
-            ),
-        ),
+        Some(Action::Shift(98)),
         None,
         None,
         None,
@@ -4819,51 +3170,19 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                44,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                44,
-            ),
-        ),
+        Some(Action::Reduce(44)),
+        Some(Action::Reduce(44)),
         None,
-        Some(
-            Action::Reduce(
-                44,
-            ),
-        ),
+        Some(Action::Reduce(44)),
         None,
         None,
-        Some(
-            Action::Reduce(
-                44,
-            ),
-        ),
+        Some(Action::Reduce(44)),
         None,
-        Some(
-            Action::Reduce(
-                44,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                44,
-            ),
-        ),
+        Some(Action::Reduce(44)),
+        Some(Action::Reduce(44)),
         None,
-        Some(
-            Action::Reduce(
-                44,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                44,
-            ),
-        ),
+        Some(Action::Reduce(44)),
+        Some(Action::Reduce(44)),
         None,
     ],
     [
@@ -4888,51 +3207,19 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                49,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                49,
-            ),
-        ),
+        Some(Action::Reduce(49)),
+        Some(Action::Reduce(49)),
         None,
-        Some(
-            Action::Reduce(
-                49,
-            ),
-        ),
+        Some(Action::Reduce(49)),
         None,
         None,
-        Some(
-            Action::Reduce(
-                49,
-            ),
-        ),
+        Some(Action::Reduce(49)),
         None,
-        Some(
-            Action::Reduce(
-                49,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                49,
-            ),
-        ),
+        Some(Action::Reduce(49)),
+        Some(Action::Reduce(49)),
         None,
-        Some(
-            Action::Reduce(
-                49,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                49,
-            ),
-        ),
+        Some(Action::Reduce(49)),
+        Some(Action::Reduce(49)),
         None,
     ],
     [
@@ -4957,51 +3244,19 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                51,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                51,
-            ),
-        ),
+        Some(Action::Reduce(51)),
+        Some(Action::Reduce(51)),
         None,
-        Some(
-            Action::Reduce(
-                51,
-            ),
-        ),
+        Some(Action::Reduce(51)),
         None,
         None,
-        Some(
-            Action::Reduce(
-                51,
-            ),
-        ),
+        Some(Action::Reduce(51)),
         None,
-        Some(
-            Action::Shift(
-                60,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                51,
-            ),
-        ),
+        Some(Action::Shift(60)),
+        Some(Action::Reduce(51)),
         None,
-        Some(
-            Action::Reduce(
-                51,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                51,
-            ),
-        ),
+        Some(Action::Reduce(51)),
+        Some(Action::Reduce(51)),
         None,
     ],
     [
@@ -5026,47 +3281,19 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                53,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                53,
-            ),
-        ),
+        Some(Action::Reduce(53)),
+        Some(Action::Reduce(53)),
         None,
-        Some(
-            Action::Reduce(
-                53,
-            ),
-        ),
+        Some(Action::Reduce(53)),
         None,
         None,
-        Some(
-            Action::Shift(
-                61,
-            ),
-        ),
+        Some(Action::Shift(61)),
         None,
         None,
-        Some(
-            Action::Reduce(
-                53,
-            ),
-        ),
+        Some(Action::Reduce(53)),
         None,
-        Some(
-            Action::Reduce(
-                53,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                53,
-            ),
-        ),
+        Some(Action::Reduce(53)),
+        Some(Action::Reduce(53)),
         None,
     ],
     [
@@ -5091,43 +3318,19 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                55,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                55,
-            ),
-        ),
+        Some(Action::Reduce(55)),
+        Some(Action::Reduce(55)),
         None,
-        Some(
-            Action::Reduce(
-                55,
-            ),
-        ),
+        Some(Action::Reduce(55)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                55,
-            ),
-        ),
+        Some(Action::Reduce(55)),
         None,
-        Some(
-            Action::Shift(
-                62,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                55,
-            ),
-        ),
+        Some(Action::Shift(62)),
+        Some(Action::Reduce(55)),
         None,
     ],
     [
@@ -5144,65 +3347,25 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                30,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                29,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                32,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                33,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                31,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                28,
-            ),
-        ),
+        Some(Action::Shift(30)),
+        Some(Action::Shift(29)),
+        Some(Action::Shift(32)),
+        Some(Action::Shift(33)),
+        Some(Action::Shift(31)),
+        Some(Action::Shift(28)),
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                34,
-            ),
-        ),
+        Some(Action::Shift(34)),
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                42,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                43,
-            ),
-        ),
+        Some(Action::Shift(42)),
+        Some(Action::Shift(43)),
         None,
         None,
-        Some(
-            Action::Shift(
-                36,
-            ),
-        ),
+        Some(Action::Shift(36)),
         None,
         None,
         None,
@@ -5232,11 +3395,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                31,
-            ),
-        ),
+        Some(Action::Reduce(31)),
         None,
         None,
         None,
@@ -5271,11 +3430,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                100,
-            ),
-        ),
+        Some(Action::Shift(100)),
         None,
         None,
         None,
@@ -5290,57 +3445,25 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
     ],
     [
-        Some(
-            Action::Reduce(
-                36,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                36,
-            ),
-        ),
+        Some(Action::Reduce(36)),
+        Some(Action::Reduce(36)),
         None,
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                36,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                36,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                36,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                36,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                36,
-            ),
-        ),
+        Some(Action::Reduce(36)),
+        Some(Action::Reduce(36)),
+        Some(Action::Reduce(36)),
+        Some(Action::Reduce(36)),
+        Some(Action::Reduce(36)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                36,
-            ),
-        ),
+        Some(Action::Reduce(36)),
         None,
         None,
         None,
@@ -5348,11 +3471,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                36,
-            ),
-        ),
+        Some(Action::Reduce(36)),
         None,
         None,
         None,
@@ -5360,64 +3479,28 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                36,
-            ),
-        ),
+        Some(Action::Reduce(36)),
     ],
     [
-        Some(
-            Action::Reduce(
-                37,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                37,
-            ),
-        ),
+        Some(Action::Reduce(37)),
+        Some(Action::Reduce(37)),
         None,
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                37,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                37,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                37,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                37,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                37,
-            ),
-        ),
+        Some(Action::Reduce(37)),
+        Some(Action::Reduce(37)),
+        Some(Action::Reduce(37)),
+        Some(Action::Reduce(37)),
+        Some(Action::Reduce(37)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                37,
-            ),
-        ),
+        Some(Action::Reduce(37)),
         None,
         None,
         None,
@@ -5425,11 +3508,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                37,
-            ),
-        ),
+        Some(Action::Reduce(37)),
         None,
         None,
         None,
@@ -5437,11 +3516,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                37,
-            ),
-        ),
+        Some(Action::Reduce(37)),
     ],
     [
         None,
@@ -5468,11 +3543,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                8,
-            ),
-        ),
+        Some(Action::Reduce(8)),
         None,
         None,
         None,
@@ -5503,11 +3574,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                101,
-            ),
-        ),
+        Some(Action::Shift(101)),
         None,
         None,
         None,
@@ -5550,11 +3617,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                102,
-            ),
-        ),
+        Some(Action::Shift(102)),
         None,
         None,
         None,
@@ -5567,53 +3630,25 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
     ],
     [
-        Some(
-            Action::Shift(
-                7,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                5,
-            ),
-        ),
+        Some(Action::Shift(7)),
+        Some(Action::Shift(5)),
         None,
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                6,
-            ),
-        ),
+        Some(Action::Shift(6)),
         None,
-        Some(
-            Action::Shift(
-                9,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                10,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                11,
-            ),
-        ),
+        Some(Action::Shift(9)),
+        Some(Action::Shift(10)),
+        Some(Action::Shift(11)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                12,
-            ),
-        ),
+        Some(Action::Shift(12)),
         None,
         None,
         None,
@@ -5621,11 +3656,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                4,
-            ),
-        ),
+        Some(Action::Reduce(4)),
         None,
         None,
         None,
@@ -5659,11 +3690,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                104,
-            ),
-        ),
+        Some(Action::Shift(104)),
         None,
         None,
         None,
@@ -5690,121 +3717,49 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                30,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                29,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                32,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                33,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                31,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                28,
-            ),
-        ),
+        Some(Action::Shift(30)),
+        Some(Action::Shift(29)),
+        Some(Action::Shift(32)),
+        Some(Action::Shift(33)),
+        Some(Action::Shift(31)),
+        Some(Action::Shift(28)),
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                34,
-            ),
-        ),
+        Some(Action::Shift(34)),
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                42,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                43,
-            ),
-        ),
+        Some(Action::Shift(42)),
+        Some(Action::Shift(43)),
         None,
         None,
-        Some(
-            Action::Shift(
-                36,
-            ),
-        ),
+        Some(Action::Shift(36)),
         None,
         None,
         None,
     ],
     [
-        Some(
-            Action::Reduce(
-                25,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                25,
-            ),
-        ),
+        Some(Action::Reduce(25)),
+        Some(Action::Reduce(25)),
         None,
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                25,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                25,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                25,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                25,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                25,
-            ),
-        ),
+        Some(Action::Reduce(25)),
+        Some(Action::Reduce(25)),
+        Some(Action::Reduce(25)),
+        Some(Action::Reduce(25)),
+        Some(Action::Reduce(25)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                25,
-            ),
-        ),
+        Some(Action::Reduce(25)),
         None,
         None,
         None,
@@ -5812,11 +3767,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                25,
-            ),
-        ),
+        Some(Action::Reduce(25)),
         None,
         None,
         None,
@@ -5824,64 +3775,28 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                25,
-            ),
-        ),
+        Some(Action::Reduce(25)),
     ],
     [
-        Some(
-            Action::Reduce(
-                26,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                26,
-            ),
-        ),
+        Some(Action::Reduce(26)),
+        Some(Action::Reduce(26)),
         None,
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                26,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                26,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                26,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                26,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                26,
-            ),
-        ),
+        Some(Action::Reduce(26)),
+        Some(Action::Reduce(26)),
+        Some(Action::Reduce(26)),
+        Some(Action::Reduce(26)),
+        Some(Action::Reduce(26)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                26,
-            ),
-        ),
+        Some(Action::Reduce(26)),
         None,
         None,
         None,
@@ -5889,11 +3804,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                26,
-            ),
-        ),
+        Some(Action::Reduce(26)),
         None,
         None,
         None,
@@ -5901,11 +3812,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                26,
-            ),
-        ),
+        Some(Action::Reduce(26)),
     ],
     [
         None,
@@ -5929,51 +3836,19 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                45,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                45,
-            ),
-        ),
+        Some(Action::Reduce(45)),
+        Some(Action::Reduce(45)),
         None,
-        Some(
-            Action::Reduce(
-                45,
-            ),
-        ),
+        Some(Action::Reduce(45)),
         None,
         None,
-        Some(
-            Action::Reduce(
-                45,
-            ),
-        ),
+        Some(Action::Reduce(45)),
         None,
-        Some(
-            Action::Reduce(
-                45,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                45,
-            ),
-        ),
+        Some(Action::Reduce(45)),
+        Some(Action::Reduce(45)),
         None,
-        Some(
-            Action::Reduce(
-                45,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                45,
-            ),
-        ),
+        Some(Action::Reduce(45)),
+        Some(Action::Reduce(45)),
         None,
     ],
     [
@@ -5998,85 +3873,41 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                85,
-            ),
-        ),
+        Some(Action::Shift(85)),
         None,
         None,
-        Some(
-            Action::Reduce(
-                28,
-            ),
-        ),
+        Some(Action::Reduce(28)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                55,
-            ),
-        ),
+        Some(Action::Shift(55)),
         None,
         None,
         None,
         None,
     ],
     [
-        Some(
-            Action::Reduce(
-                35,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                35,
-            ),
-        ),
+        Some(Action::Reduce(35)),
+        Some(Action::Reduce(35)),
         None,
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                35,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                35,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                35,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                35,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                35,
-            ),
-        ),
+        Some(Action::Reduce(35)),
+        Some(Action::Reduce(35)),
+        Some(Action::Reduce(35)),
+        Some(Action::Reduce(35)),
+        Some(Action::Reduce(35)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                35,
-            ),
-        ),
+        Some(Action::Reduce(35)),
         None,
         None,
         None,
@@ -6084,11 +3915,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                35,
-            ),
-        ),
+        Some(Action::Reduce(35)),
         None,
         None,
         None,
@@ -6096,11 +3923,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                35,
-            ),
-        ),
+        Some(Action::Reduce(35)),
     ],
     [
         None,
@@ -6124,18 +3947,10 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                107,
-            ),
-        ),
+        Some(Action::Shift(107)),
         None,
         None,
-        Some(
-            Action::Reduce(
-                6,
-            ),
-        ),
+        Some(Action::Reduce(6)),
         None,
         None,
         None,
@@ -6173,11 +3988,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                12,
-            ),
-        ),
+        Some(Action::Reduce(12)),
         None,
         None,
         None,
@@ -6215,11 +4026,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                109,
-            ),
-        ),
+        Some(Action::Shift(109)),
         None,
         None,
         None,
@@ -6243,65 +4050,25 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                30,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                29,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                32,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                33,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                31,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                28,
-            ),
-        ),
+        Some(Action::Shift(30)),
+        Some(Action::Shift(29)),
+        Some(Action::Shift(32)),
+        Some(Action::Shift(33)),
+        Some(Action::Shift(31)),
+        Some(Action::Shift(28)),
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                34,
-            ),
-        ),
+        Some(Action::Shift(34)),
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                42,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                43,
-            ),
-        ),
+        Some(Action::Shift(42)),
+        Some(Action::Shift(43)),
         None,
         None,
-        Some(
-            Action::Shift(
-                36,
-            ),
-        ),
+        Some(Action::Shift(36)),
         None,
         None,
         None,
@@ -6329,11 +4096,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                111,
-            ),
-        ),
+        Some(Action::Shift(111)),
         None,
         None,
         None,
@@ -6341,11 +4104,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                55,
-            ),
-        ),
+        Some(Action::Shift(55)),
         None,
         None,
         None,
@@ -6376,11 +4135,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                29,
-            ),
-        ),
+        Some(Action::Reduce(29)),
         None,
         None,
         None,
@@ -6396,26 +4151,10 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                22,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                21,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                19,
-            ),
-        ),
-        Some(
-            Action::Shift(
-                20,
-            ),
-        ),
+        Some(Action::Shift(22)),
+        Some(Action::Shift(21)),
+        Some(Action::Shift(19)),
+        Some(Action::Shift(20)),
         None,
         None,
         None,
@@ -6470,11 +4209,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                9,
-            ),
-        ),
+        Some(Action::Reduce(9)),
         None,
         None,
         None,
@@ -6487,57 +4222,25 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
     ],
     [
-        Some(
-            Action::Reduce(
-                15,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                15,
-            ),
-        ),
+        Some(Action::Reduce(15)),
+        Some(Action::Reduce(15)),
         None,
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                15,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                15,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                15,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                15,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                15,
-            ),
-        ),
+        Some(Action::Reduce(15)),
+        Some(Action::Reduce(15)),
+        Some(Action::Reduce(15)),
+        Some(Action::Reduce(15)),
+        Some(Action::Reduce(15)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                15,
-            ),
-        ),
+        Some(Action::Reduce(15)),
         None,
         None,
         None,
@@ -6553,11 +4256,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                15,
-            ),
-        ),
+        Some(Action::Reduce(15)),
     ],
     [
         None,
@@ -6584,78 +4283,38 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                113,
-            ),
-        ),
+        Some(Action::Shift(113)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                55,
-            ),
-        ),
+        Some(Action::Shift(55)),
         None,
         None,
         None,
         None,
     ],
     [
-        Some(
-            Action::Reduce(
-                24,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                24,
-            ),
-        ),
+        Some(Action::Reduce(24)),
+        Some(Action::Reduce(24)),
         None,
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                24,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                24,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                24,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                24,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                24,
-            ),
-        ),
+        Some(Action::Reduce(24)),
+        Some(Action::Reduce(24)),
+        Some(Action::Reduce(24)),
+        Some(Action::Reduce(24)),
+        Some(Action::Reduce(24)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                24,
-            ),
-        ),
+        Some(Action::Reduce(24)),
         None,
         None,
         None,
@@ -6663,11 +4322,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                24,
-            ),
-        ),
+        Some(Action::Reduce(24)),
         None,
         None,
         None,
@@ -6675,11 +4330,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                24,
-            ),
-        ),
+        Some(Action::Reduce(24)),
     ],
     [
         None,
@@ -6700,11 +4351,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                114,
-            ),
-        ),
+        Some(Action::Shift(114)),
         None,
         None,
         None,
@@ -6745,11 +4392,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                115,
-            ),
-        ),
+        Some(Action::Shift(115)),
         None,
         None,
         None,
@@ -6785,18 +4428,10 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Shift(
-                107,
-            ),
-        ),
+        Some(Action::Shift(107)),
         None,
         None,
-        Some(
-            Action::Reduce(
-                6,
-            ),
-        ),
+        Some(Action::Reduce(6)),
         None,
         None,
         None,
@@ -6809,57 +4444,25 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
     ],
     [
-        Some(
-            Action::Reduce(
-                23,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                23,
-            ),
-        ),
+        Some(Action::Reduce(23)),
+        Some(Action::Reduce(23)),
         None,
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                23,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                23,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                23,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                23,
-            ),
-        ),
-        Some(
-            Action::Reduce(
-                23,
-            ),
-        ),
+        Some(Action::Reduce(23)),
+        Some(Action::Reduce(23)),
+        Some(Action::Reduce(23)),
+        Some(Action::Reduce(23)),
+        Some(Action::Reduce(23)),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                23,
-            ),
-        ),
+        Some(Action::Reduce(23)),
         None,
         None,
         None,
@@ -6867,11 +4470,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                23,
-            ),
-        ),
+        Some(Action::Reduce(23)),
         None,
         None,
         None,
@@ -6879,11 +4478,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                23,
-            ),
-        ),
+        Some(Action::Reduce(23)),
     ],
     [
         None,
@@ -6910,11 +4505,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
         None,
         None,
         None,
-        Some(
-            Action::Reduce(
-                7,
-            ),
-        ),
+        Some(Action::Reduce(7)),
         None,
         None,
         None,
@@ -6928,7 +4519,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT]; STATES] = [
     ],
 ];
 
-pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
+pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES] = [
     [
         None,
         None,
@@ -6937,20 +4528,14 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
-        Some(
-            8,
-        ),
+        Some(8),
         None,
         None,
         None,
-        Some(
-            3,
-        ),
+        Some(3),
         None,
         None,
-        Some(
-            2,
-        ),
+        Some(2),
         None,
         None,
         None,
@@ -6958,15 +4543,13 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
-        Some(
-            1,
-        ),
+        Some(1),
     ],
     [
-        None,
-        None,
-        None,
-        None,
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
         None,
         None,
         None,
@@ -6974,11 +4557,14 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
+        Some(8),
         None,
         None,
         None,
+        Some(3),
         None,
         None,
+        Some(2),
         None,
         None,
         None,
@@ -6986,6 +4572,7 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
+        Some(13),
     ],
     [
         None,
@@ -6995,20 +4582,14 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
-        Some(
-            8,
-        ),
+        Some(8),
         None,
         None,
         None,
-        Some(
-            3,
-        ),
+        Some(3),
         None,
         None,
-        Some(
-            2,
-        ),
+        Some(2),
         None,
         None,
         None,
@@ -7016,9 +4597,7 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
-        Some(
-            13,
-        ),
+        Some(14),
     ],
     [
         None,
@@ -7028,63 +4607,43 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
-        Some(
-            8,
-        ),
         None,
         None,
         None,
-        Some(
-            3,
-        ),
         None,
         None,
-        Some(
-            2,
-        ),
+        Some(16),
         None,
         None,
+        Some(18),
         None,
         None,
+        Some(17),
         None,
         None,
         None,
-        Some(
-            14,
-        ),
+        None,
     ],
     [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
         None,
         None,
         None,
         None,
         None,
         None,
-        Some(
-            16,
-        ),
         None,
         None,
-        Some(
-            18,
-        ),
         None,
         None,
-        Some(
-            17,
-        ),
         None,
         None,
         None,
+        Some(24),
         None,
-    ],
-    [
         None,
         None,
         None,
@@ -7093,9 +4652,27 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        Some(26),
+        Some(41),
+        Some(40),
+        Some(39),
+        Some(38),
+        Some(37),
+        Some(35),
         None,
         None,
         None,
+        Some(27),
         None,
         None,
         None,
@@ -7110,12 +4687,17 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
     ],
     [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        Some(45),
+        Some(41),
+        Some(40),
+        Some(39),
+        Some(38),
+        Some(37),
+        Some(35),
         None,
         None,
         None,
@@ -7123,9 +4705,6 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
-        Some(
-            24,
-        ),
         None,
         None,
         None,
@@ -7137,7 +4716,30 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
     ],
     [
-        None,
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
         None,
         None,
         None,
@@ -7154,6 +4756,7 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
+        Some(50),
         None,
         None,
         None,
@@ -7162,9 +4765,22 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
     ],
     [
-        None,
-        None,
-        None,
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
         None,
         None,
         None,
@@ -7172,9 +4788,11 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
+        Some(8),
         None,
         None,
         None,
+        Some(51),
         None,
         None,
         None,
@@ -7184,36 +4802,13 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
+        Some(52),
         None,
     ],
     [
-        Some(
-            26,
-        ),
-        Some(
-            41,
-        ),
-        Some(
-            40,
-        ),
-        Some(
-            39,
-        ),
-        Some(
-            38,
-        ),
-        Some(
-            37,
-        ),
-        Some(
-            35,
-        ),
         None,
         None,
         None,
-        Some(
-            27,
-        ),
         None,
         None,
         None,
@@ -7223,11 +4818,10 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
+        Some(53),
         None,
         None,
         None,
-    ],
-    [
         None,
         None,
         None,
@@ -7235,6 +4829,15 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
+    ],
+    [
+        Some(54),
+        Some(41),
+        Some(40),
+        Some(39),
+        Some(38),
+        Some(37),
+        Some(35),
         None,
         None,
         None,
@@ -7251,29 +4854,47 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
     ],
     [
-        Some(
-            45,
-        ),
-        Some(
-            41,
-        ),
-        Some(
-            40,
-        ),
-        Some(
-            39,
-        ),
-        Some(
-            38,
-        ),
-        Some(
-            37,
-        ),
-        Some(
-            35,
-        ),
+        Some(58),
+        Some(41),
+        Some(40),
+        Some(39),
+        Some(38),
+        Some(37),
+        Some(35),
         None,
         None,
         None,
@@ -7292,13 +4913,17 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
     ],
     [
-        None,
-        None,
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
         None,
         None,
         None,
         None,
         None,
+        Some(59),
+        Some(35),
         None,
         None,
         None,
@@ -7317,13 +4942,33 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
     ],
     [
-        None,
-        None,
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
         None,
         None,
         None,
         None,
         None,
+        Some(64),
+        Some(35),
         None,
         None,
         None,
@@ -7342,12 +4987,13 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
     ],
     [
-        None,
         None,
         None,
         None,
         None,
         None,
+        Some(65),
+        Some(35),
         None,
         None,
         None,
@@ -7364,10 +5010,25 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
-        None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
     ],
     [
+        Some(68),
+        Some(41),
+        Some(40),
+        Some(39),
+        Some(38),
+        Some(37),
+        Some(35),
         None,
+        Some(69),
         None,
         None,
         None,
@@ -7382,6 +5043,15 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
+    ],
+    [
+        Some(70),
+        Some(41),
+        Some(40),
+        Some(39),
+        Some(38),
+        Some(37),
+        Some(35),
         None,
         None,
         None,
@@ -7390,8 +5060,7 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
-    ],
-    [
+        None,
         None,
         None,
         None,
@@ -7399,6 +5068,15 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
+    ],
+    [
+        Some(71),
+        Some(41),
+        Some(40),
+        Some(39),
+        Some(38),
+        Some(37),
+        Some(35),
         None,
         None,
         None,
@@ -7417,7 +5095,10 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
     ],
     [
-        None,
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
         None,
         None,
         None,
@@ -7435,6 +5116,7 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
+        Some(73),
         None,
         None,
         None,
@@ -7442,7 +5124,6 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
     ],
     [
-        None,
         None,
         None,
         None,
@@ -7450,32 +5131,43 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
+        Some(8),
         None,
         None,
         None,
+        Some(51),
         None,
         None,
         None,
         None,
         None,
-        Some(
-            50,
-        ),
         None,
         None,
         None,
         None,
+        Some(74),
         None,
-        None,
     ],
     [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
         None,
+        Some(78),
+        Some(40),
+        Some(39),
+        Some(38),
+        Some(37),
+        Some(35),
         None,
         None,
         None,
@@ -7494,15 +5186,19 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
     ],
     [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        Some(68),
+        Some(41),
+        Some(40),
+        Some(39),
+        Some(38),
+        Some(37),
+        Some(35),
         None,
+        Some(79),
         None,
         None,
         None,
@@ -7519,13 +5215,21 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
     ],
     [
-        None,
-        None,
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
         None,
         None,
         None,
         None,
         None,
+        Some(81),
+        Some(35),
         None,
         None,
         None,
@@ -7544,13 +5248,13 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
     ],
     [
-        None,
-        None,
-        None,
         None,
         None,
         None,
         None,
+        Some(82),
+        Some(37),
+        Some(35),
         None,
         None,
         None,
@@ -7572,19 +5276,17 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
+        Some(83),
+        Some(38),
+        Some(37),
+        Some(35),
         None,
         None,
         None,
         None,
-        Some(
-            8,
-        ),
         None,
         None,
         None,
-        Some(
-            51,
-        ),
         None,
         None,
         None,
@@ -7594,13 +5296,15 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
-        Some(
-            52,
-        ),
-        None,
     ],
     [
+        None,
         None,
+        Some(84),
+        Some(39),
+        Some(38),
+        Some(37),
+        Some(35),
         None,
         None,
         None,
@@ -7612,45 +5316,39 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
-        Some(
-            53,
-        ),
         None,
         None,
         None,
         None,
+        None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
         None,
         None,
         None,
         None,
         None,
         None,
-    ],
-    [
-        Some(
-            54,
-        ),
-        Some(
-            41,
-        ),
-        Some(
-            40,
-        ),
-        Some(
-            39,
-        ),
-        Some(
-            38,
-        ),
-        Some(
-            37,
-        ),
-        Some(
-            35,
-        ),
         None,
         None,
         None,
+        Some(86),
         None,
         None,
         None,
@@ -7666,8 +5364,18 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
     ],
     [
-        None,
-        None,
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
         None,
         None,
         None,
@@ -7680,18 +5388,35 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
+        Some(91),
         None,
         None,
         None,
         None,
         None,
         None,
+        Some(92),
         None,
         None,
         None,
     ],
     [
-        None,
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
         None,
         None,
         None,
@@ -7699,6 +5424,7 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
+        Some(97),
         None,
         None,
         None,
@@ -7716,13 +5442,41 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
     ],
     [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        Some(99),
+        Some(41),
+        Some(40),
+        Some(39),
+        Some(38),
+        Some(37),
+        Some(35),
         None,
         None,
         None,
@@ -7741,9 +5495,34 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
     ],
     [
-        None,
-        None,
-        None,
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
         None,
         None,
         None,
@@ -7751,9 +5530,11 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
+        Some(8),
         None,
         None,
         None,
+        Some(51),
         None,
         None,
         None,
@@ -7763,16 +5544,21 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
+        Some(103),
         None,
     ],
     [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        Some(105),
+        Some(41),
+        Some(40),
+        Some(39),
+        Some(38),
+        Some(37),
+        Some(35),
         None,
         None,
         None,
@@ -7791,7 +5577,18 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
     ],
     [
-        None,
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
         None,
         None,
         None,
@@ -7801,6 +5598,7 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
+        Some(106),
         None,
         None,
         None,
@@ -7816,7 +5614,10 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
     ],
     [
-        None,
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
         None,
         None,
         None,
@@ -7837,11 +5638,26 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
+        Some(108),
         None,
         None,
     ],
     [
-        None,
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        Some(110),
+        Some(41),
+        Some(40),
+        Some(39),
+        Some(38),
+        Some(37),
+        Some(35),
         None,
         None,
         None,
@@ -7858,41 +5674,29 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
         None,
         None,
         None,
         None,
         None,
         None,
-    ],
-    [
-        Some(
-            58,
-        ),
-        Some(
-            41,
-        ),
-        Some(
-            40,
-        ),
-        Some(
-            39,
-        ),
-        Some(
-            38,
-        ),
-        Some(
-            37,
-        ),
-        Some(
-            35,
-        ),
         None,
         None,
         None,
         None,
         None,
         None,
+        Some(112),
         None,
         None,
         None,
@@ -7905,7 +5709,30 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
     ],
     [
-        None,
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
+    ],
+    [
         None,
         None,
         None,
@@ -7926,2216 +5753,16 @@ pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES]= [
         None,
         None,
         None,
+        Some(116),
         None,
         None,
     ],
     [
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(
-            59,
-        ),
-        Some(
-            35,
-        ),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(
-            64,
-        ),
-        Some(
-            35,
-        ),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(
-            65,
-        ),
-        Some(
-            35,
-        ),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        Some(
-            68,
-        ),
-        Some(
-            41,
-        ),
-        Some(
-            40,
-        ),
-        Some(
-            39,
-        ),
-        Some(
-            38,
-        ),
-        Some(
-            37,
-        ),
-        Some(
-            35,
-        ),
-        None,
-        Some(
-            69,
-        ),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        Some(
-            70,
-        ),
-        Some(
-            41,
-        ),
-        Some(
-            40,
-        ),
-        Some(
-            39,
-        ),
-        Some(
-            38,
-        ),
-        Some(
-            37,
-        ),
-        Some(
-            35,
-        ),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        Some(
-            71,
-        ),
-        Some(
-            41,
-        ),
-        Some(
-            40,
-        ),
-        Some(
-            39,
-        ),
-        Some(
-            38,
-        ),
-        Some(
-            37,
-        ),
-        Some(
-            35,
-        ),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(
-            73,
-        ),
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(
-            8,
-        ),
-        None,
-        None,
-        None,
-        Some(
-            51,
-        ),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(
-            74,
-        ),
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        Some(
-            78,
-        ),
-        Some(
-            40,
-        ),
-        Some(
-            39,
-        ),
-        Some(
-            38,
-        ),
-        Some(
-            37,
-        ),
-        Some(
-            35,
-        ),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        Some(
-            68,
-        ),
-        Some(
-            41,
-        ),
-        Some(
-            40,
-        ),
-        Some(
-            39,
-        ),
-        Some(
-            38,
-        ),
-        Some(
-            37,
-        ),
-        Some(
-            35,
-        ),
-        None,
-        Some(
-            79,
-        ),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(
-            81,
-        ),
-        Some(
-            35,
-        ),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        Some(
-            82,
-        ),
-        Some(
-            37,
-        ),
-        Some(
-            35,
-        ),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        Some(
-            83,
-        ),
-        Some(
-            38,
-        ),
-        Some(
-            37,
-        ),
-        Some(
-            35,
-        ),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        Some(
-            84,
-        ),
-        Some(
-            39,
-        ),
-        Some(
-            38,
-        ),
-        Some(
-            37,
-        ),
-        Some(
-            35,
-        ),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(
-            86,
-        ),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(
-            91,
-        ),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(
-            92,
-        ),
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(
-            97,
-        ),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        Some(
-            99,
-        ),
-        Some(
-            41,
-        ),
-        Some(
-            40,
-        ),
-        Some(
-            39,
-        ),
-        Some(
-            38,
-        ),
-        Some(
-            37,
-        ),
-        Some(
-            35,
-        ),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(
-            8,
-        ),
-        None,
-        None,
-        None,
-        Some(
-            51,
-        ),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(
-            103,
-        ),
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        Some(
-            105,
-        ),
-        Some(
-            41,
-        ),
-        Some(
-            40,
-        ),
-        Some(
-            39,
-        ),
-        Some(
-            38,
-        ),
-        Some(
-            37,
-        ),
-        Some(
-            35,
-        ),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(
-            106,
-        ),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(
-            108,
-        ),
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        Some(
-            110,
-        ),
-        Some(
-            41,
-        ),
-        Some(
-            40,
-        ),
-        Some(
-            39,
-        ),
-        Some(
-            38,
-        ),
-        Some(
-            37,
-        ),
-        Some(
-            35,
-        ),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(
-            112,
-        ),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(
-            116,
-        ),
-        None,
-        None,
-    ],
-    [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
     ],
     [
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None,
     ],
 ];

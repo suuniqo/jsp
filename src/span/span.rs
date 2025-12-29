@@ -1,7 +1,7 @@
 use crate::target::Target;
 
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Span {
     pub start: usize,
     pub end: usize,
@@ -13,6 +13,10 @@ impl Span {
             start,
             end,
         }
+    }
+
+    pub fn len(&self) -> usize {
+        self.end - self.start
     }
 }
 
@@ -43,5 +47,17 @@ impl Target {
 impl Default for Span {
     fn default() -> Self {
         Self { start: Default::default(), end: Default::default() }
+    }
+}
+
+impl PartialOrd for Span {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Span {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.start.cmp(&other.start)
     }
 }

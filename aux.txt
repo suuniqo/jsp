@@ -1,0 +1,5 @@
+function void hola {}
+
+function void hola() {
+    hello{}
+}
