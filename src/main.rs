@@ -1,8 +1,6 @@
 use std::fmt;
 use std::{cell::RefCell, process, rc::Rc};
 
-use clap::{Command, CommandFactory};
-
 use crate::cli::Cli;
 use crate::lexer::{Lexer, LexerCore};
 use crate::parser::{Parser, ParserCore};
@@ -11,7 +9,6 @@ use crate::style::Style;
 use crate::symtable::{StrPool, SymTable, SymTableCore};
 use crate::target::Target;
 use crate::writer::HasTracer;
-
 
 mod target;
 mod window;
@@ -27,6 +24,7 @@ mod span;
 mod langtype;
 mod grammar;
 mod cli;
+
 
 fn dump_err(err: impl fmt::Display) {
     eprintln!("{}error: {}{}", Style::Red, Style::Reset, err)

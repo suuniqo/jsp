@@ -44,6 +44,8 @@ impl Scope {
         }
     }
 
+    /// Searches an entry by it's pool id
+    /// There can't be collisions as variables can't be redeclared
     pub fn get(&self, pos: usize) -> Option<&Sym> {
         self.vec.get(pos)
     }

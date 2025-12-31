@@ -32,14 +32,19 @@ impl Sym {
                 self.offset
             ),
             LangType::Func(func) => {
+                let lexeme = pool.get(self.pool_id)
+                    .expect("couldn't find symbol pool id");
+
                 writeln!(
                     f,
                     "\
 * lexema: '{}'
+  + etiqFuncion: '__etiq_{}'
   + tipo: '{}'
     + tipoRetorno: '{}'
     + numParam: {}",
-                    pool.get(self.pool_id).expect("couldn't find symbol pool id"),
+                    lexeme,
+                    lexeme,
                     Type::Func,
                     func.ret_type,
                     func.arg_type.len()

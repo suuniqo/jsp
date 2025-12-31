@@ -18,12 +18,16 @@ impl SymTable for SymTableTracer {
         }
     }
 
-    fn push_func(&mut self, pool_id: usize, ftype: TypeFunc) -> Result<(bool, Sym), ()> {
+    fn push_func(&mut self, pool_id: usize, ftype: TypeFunc) -> Option<(bool, Sym)> {
         self.inner.push_func(pool_id, ftype)
     }
 
     fn push_var(&mut self, pool_id: usize, vtype: TypeVar) -> (bool, Sym) {
         self.inner.push_var(pool_id, vtype)
+    }
+
+    fn search(&self, pool_id: usize) -> Option<&Sym> {
+        self.inner.search(pool_id)
     }
 
     fn before_drop(&mut self) -> Option<Result<(), WriterErr>> {

@@ -1,4 +1,4 @@
-use clap::{ColorChoice, Command, CommandFactory, Parser};
+use clap::Parser;
 use clap::builder::styling::{Ansi256Color, Styles, Style};
 
 use crate::style::Color;

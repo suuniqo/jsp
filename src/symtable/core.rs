@@ -47,12 +47,12 @@ impl SymTable for SymTableCore {
         self.scopes.pop();
     }
 
-    fn push_func(&mut self, pool_id: usize, ftype: TypeFunc) -> Result<(bool, Sym), ()> {
+    fn push_func(&mut self, pool_id: usize, ftype: TypeFunc) -> Option<(bool, Sym)> {
         if self.pool().get(pool_id).is_none() {
             unreachable!("tried to push function with invalid pool id");
         }
         if self.scopes.len() >= Self::MAX_NESTED_FUNCS {
-            return Err(());
+            return None;
         }
 
         let ltype = LangType::Func(ftype);
@@ -62,7 +62,7 @@ impl SymTable for SymTableCore {
             self.push_scope();
         }
 
-        Ok((inserted, sym))
+        Some((inserted, sym))
     }
 
     fn push_var(&mut self, pool_id: usize, vtype: TypeVar) -> (bool, Sym) {
@@ -76,5 +76,12 @@ impl SymTable for SymTableCore {
         let result = scope.intern(pool_id, ltype);
 
         result 
+    }
+
+    fn search(&self, pool_id: usize) -> Option<&Sym> {
+        self.scopes
+            .iter()
+            .rev()
+            .find_map(|scope| scope.get(pool_id))
     }
 }
