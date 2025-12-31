@@ -1,14 +1,14 @@
 use std::{collections::BTreeMap, fmt};
 
-use crate::{color::Color, diag::{Diag, DiagHelp, DiagKind, DiagSever, DiagSpan, HelpAction}, grammar::MetaSym, span::Span, target::Target};
+use crate::{style::Style, diag::{Diag, DiagHelp, DiagKind, DiagSever, DiagSpan, HelpAction}, grammar::MetaSym, span::Span, target::Target};
 
 pub struct ReporterFmt;
 
 impl ReporterFmt {
     pub fn dump_failure(trg: &Target, errs: usize) {
         eprintln!("{}{}: {}error: {}couldn't process file due to {} previous error{}",
-            Color::HIGHLIGHT, trg.path(),
-            DiagSever::Error.color(), Color::RESET,
+            Style::High, trg.path(),
+            DiagSever::Error.color(), Style::Reset,
             errs, if errs > 1 { "s" } else { "" },
         );
     }
@@ -16,8 +16,8 @@ impl ReporterFmt {
     pub fn dump_warns(trg: &Target, warns: usize) {
         if warns > 0 {
             eprintln!("{}{}: {}warning: {}file generated {} warning{}",
-                Color::HIGHLIGHT, trg.path(),
-                DiagSever::Warning.color(), Color::RESET,
+                Style::High, trg.path(),
+                DiagSever::Warning.color(), Style::Reset,
                 warns, if warns == 1 { "" } else { "s" },
             );
             eprintln!()
@@ -26,8 +26,8 @@ impl ReporterFmt {
 
     pub fn dump_success(trg: &Target) {
         eprintln!("{}{}: {}info: {}file successfully processed",
-            Color::HIGHLIGHT, trg.path(),
-            DiagSever::Note.color(), Color::RESET,
+            Style::High, trg.path(),
+            DiagSever::Note.color(), Style::Reset,
         );
     }
 
@@ -60,8 +60,8 @@ impl ReporterFmt {
             .expect("invalid span when fetching diag coords");
 
         eprintln!("{}{}:{}:{}: {}{}: {}{}",
-            Color::HIGHLIGHT, trg.path(), row + 1, col + 1,
-            diag.kind.sever().color(), diag.kind.sever(), Color::RESET, diag.kind
+            Style::High, trg.path(), row + 1, col + 1,
+            diag.kind.sever().color(), diag.kind.sever(), Style::Reset, diag.kind
         );
 
         let max_padding = " ".repeat(ReporterFmt::max_padding(trg));
@@ -70,7 +70,7 @@ impl ReporterFmt {
 
         for (row, spans) in span_map {
             if last_row.is_some_and(|last_row| last_row + 1 != row) {
-                eprintln!("{} {}:", max_padding, Color::HIGHLIGHT)
+                eprintln!("{} {}:", max_padding, Style::High)
             }
 
             let (line, offset) = trg.nth_line(row)
@@ -152,19 +152,19 @@ impl ReporterFmt {
 
             last_row = Some(row);
 
-            eprintln!("{}{} |", Color::HIGHLIGHT, max_padding);
+            eprintln!("{}{} |", Style::High, max_padding);
 
             eprintln!(
                 "{}{}{} | {}{}",
                 row_padding,
-                Color::HIGHLIGHT,
+                Style::High,
                 row + 1,
-                Color::RESET,
+                Style::Reset,
                 formatted,
             );
 
             for line in underline {
-                eprintln!("{}{} | {}", max_padding, Color::HIGHLIGHT, line);
+                eprintln!("{}{} | {}", max_padding, Style::High, line);
             }
         }
 
@@ -189,14 +189,14 @@ impl ReporterFmt {
 
             let row_padding = " ".repeat(ReporterFmt::row_padding(row, trg));
 
-            eprintln!("{}{} |{}", Color::HIGHLIGHT, max_padding, Color::RESET);
+            eprintln!("{}{} |{}", Style::High, max_padding, Style::Reset);
 
             eprintln!("{}{}--> {}help: {}{}",
-                max_padding, Color::HIGHLIGHT,
-                Color::BLUE, Color::RESET, Fmt(help),
+                max_padding, Style::High,
+                Style::Blue, Style::Reset, Fmt(help),
             );
 
-            eprintln!("{}{} |", Color::HIGHLIGHT, max_padding);
+            eprintln!("{}{} |", Style::High, max_padding);
 
             match action {
                 HelpAction::Insert(_, before, insert) => {
@@ -207,49 +207,49 @@ impl ReporterFmt {
 
                     if before {
                         eprintln!("{}{}{} | {}{}{}{}{}{}{}",
-                            Color::HIGHLIGHT, row_padding, row + 1, Color::RESET, prefix,
-                            Color::BLUE, insert, Color::RESET, context, suffix
+                            Style::High, row_padding, row + 1, Style::Reset, prefix,
+                            Style::Blue, insert, Style::Reset, context, suffix
                         );
 
                         eprintln!("{}{} | {}{}{}{}",
-                            Color::HIGHLIGHT, max_padding, prefix_padding,
-                            Color::BLUE, underline, Color::RESET,
+                            Style::High, max_padding, prefix_padding,
+                            Style::Blue, underline, Style::Reset,
                         );
                     } else {
                         let prefix_padding = format!("{}{}", prefix_padding, " ".repeat(context_len));
 
                         eprintln!("{}{}{} | {}{}{}{}{}{}{}",
-                            Color::HIGHLIGHT, row_padding, row + 1, Color::RESET, prefix,
-                            context, Color::BLUE, insert, Color::RESET, suffix
+                            Style::High, row_padding, row + 1, Style::Reset, prefix,
+                            context, Style::Blue, insert, Style::Reset, suffix
                         );
 
                         eprintln!("{}{} | {}{}{}{}",
-                            Color::HIGHLIGHT, max_padding, prefix_padding,
-                            Color::BLUE, underline, Color::RESET
+                            Style::High, max_padding, prefix_padding,
+                            Style::Blue, underline, Style::Reset
                         );
                     }
                 },
                 HelpAction::Delete(_) => {
                     eprintln!("{}{}{} {}- {}{}{}{}{}{}",
-                        Color::HIGHLIGHT, row_padding, row + 1, Color::RED,
-                        Color::RESET, prefix, Color::RED, context, Color::RESET, suffix
+                        Style::High, row_padding, row + 1, Style::Red,
+                        Style::Reset, prefix, Style::Red, context, Style::Reset, suffix
                     );
                     eprintln!("{}{}{} {}+ {}{}{}",
-                        Color::HIGHLIGHT, row_padding, row + 1, Color::BLUE,
-                        Color::RESET, prefix, suffix.trim_start()
+                        Style::High, row_padding, row + 1, Style::Blue,
+                        Style::Reset, prefix, suffix.trim_start()
                     );
-                    eprintln!("{}{} |{}", Color::HIGHLIGHT, max_padding, Color::RESET);
+                    eprintln!("{}{} |{}", Style::High, max_padding, Style::Reset);
                 },
                 HelpAction::Replace(_, replace) => {
                     eprintln!("{}{}{} {}- {}{}{}{}{}{}",
-                        Color::HIGHLIGHT, row_padding, row + 1, Color::RED,
-                        Color::RESET, prefix, Color::RED, context, Color::RESET, suffix
+                        Style::High, row_padding, row + 1, Style::Red,
+                        Style::Reset, prefix, Style::Red, context, Style::Reset, suffix
                     );
                     eprintln!("{}{}{} {}+ {}{}{}{}{}{}",
-                        Color::HIGHLIGHT, row_padding, row + 1, Color::BLUE,
-                        Color::RESET, prefix, Color::BLUE, replace, Color::RESET, suffix
+                        Style::High, row_padding, row + 1, Style::Blue,
+                        Style::Reset, prefix, Style::Blue, replace, Style::Reset, suffix
                     );
-                    eprintln!("{}{} |{}", Color::HIGHLIGHT, max_padding, Color::RESET);
+                    eprintln!("{}{} |{}", Style::High, max_padding, Style::Reset);
                 },
             }
         }
@@ -313,7 +313,7 @@ impl DiagSpan {
             "{}{}{}",
             self.sever.color(),
             sym.repeat(len),
-            Color::RESET
+            Style::Reset
         )
     }
 
@@ -321,14 +321,14 @@ impl DiagSpan {
         let highlight = if self.highlight {
             self.sever.color()
         } else {
-            ""
+            Style::None
         };
 
         format!(
             "{}{}{}",
             highlight,
             ReporterFmt::human_redable(&line[self.span.start-offset..self.span.end-offset]),
-            Color::RESET
+            Style::Reset
         )
     }
 }
@@ -339,85 +339,85 @@ impl<'a> fmt::Display for Fmt<'a, MetaSym> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.0 {
             MetaSym::Stmnt => write!(f, "{}a {}statement{}",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::FuncBlock => write!(f, "{}a {}function{}",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::Expr => write!(f, "{}an {}expression{}",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::Type => write!(f, "{}a {}type{}",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::Id => write!(f, "{}an {}identifier{}",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::Assign => write!(f, "{}an {}assignment{}",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::Comma => write!(f, "{}`{},{}`",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::Semi => write!(f, "{}`{};{}`",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::LParen => write!(f, "{}`{}({}`",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::RParen => write!(f, "{}`{}){}`",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::LBrack => write!(f, "{}`{}{{{}`",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::RBrack => write!(f, "{}`{}}}{}`",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::OperBinary => write!(f, "{}a {}binary operator{}",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::OperUnary => write!(f, "{}an {}unary operator{}",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::FuncArgs => write!(f, "{}an {}argument list{}",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::FuncParams => write!(f, "{}a {}parameter list{}",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::FuncType => write!(f, "{}a {}return type{}",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::FuncId => write!(f, "{}a {}function name{}",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::FuncParam => write!(f, "{}a {}parameter{}",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::Func => write!(f, "{}`{}function{}`",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::While => write!(f, "{}`{}while{}`",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::If => write!(f, "{}`{}if{}`",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::Do => write!(f, "{}`{}do{}`",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::Let => write!(f, "{}`{}let{}`",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::Read => write!(f, "{}`{}read{}`",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::Write => write!(f, "{}`{}write{}`",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             MetaSym::Ret => write!(f, "{}`{}return{}`",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
         }
     }
@@ -426,7 +426,7 @@ impl<'a> fmt::Display for Fmt<'a, MetaSym> {
 impl<'a> fmt::Display for Fmt<'a, DiagHelp> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.0 {
-            DiagHelp::InsDecimal(..) => write!(f, "{}add a decimal part", Color::RESET),
+            DiagHelp::InsDecimal(..) => write!(f, "{}add a decimal part", Style::Reset),
             DiagHelp::InsToken(found, before, insertion) => {
                 if insertion.is_empty() {
                     unreachable!("insertion can't be empty");
@@ -445,26 +445,26 @@ impl<'a> fmt::Display for Fmt<'a, DiagHelp> {
 
                     write!(f, " {} `{}{}{}`",
                         if *before { "before" } else { "after" },
-                        Color::HIGHLIGHT, found.kind.lexeme(), Color::RESET,
+                        Style::High, found.kind.lexeme(), Style::Reset,
                     )
                 }
             },
             DiagHelp::DelToken(found) => write!(
                 f,
                 "{}remove the unnecessary `{}{}{}`",
-                Color::RESET, Color::HIGHLIGHT, found.kind.lexeme(), Color::RESET
+                Style::Reset, Style::High, found.kind.lexeme(), Style::Reset
             ),
             DiagHelp::RepToken(found, rep) => write!(
                 f,
                 "{}replace `{}{}{}` by {}",
-                Color::RESET, Color::HIGHLIGHT, found.kind.lexeme(), Color::RESET, Fmt(rep),
+                Style::Reset, Style::High, found.kind.lexeme(), Style::Reset, Fmt(rep),
             ),
-            DiagHelp::RepKw(_) => write!(f, "{}change the name to use it as an identifier", Color::RESET),
-            DiagHelp::DelTrailingComma(_) => write!(f, "{}remove the trailing comma", Color::RESET),
-            DiagHelp::InsVarType(_) => write!(f, "{}add the missing type", Color::RESET),
-            DiagHelp::InsRetType(_) => write!(f, "{}add a {}return type", Color::RESET, Color::HIGHLIGHT),
-            DiagHelp::InsParamList(..) => write!(f, "{}add a {}parameter list", Color::RESET, Color::HIGHLIGHT),
-            DiagHelp::InsParam(_) => write!(f, "{}perhaps you meant to have no parameters", Color::RESET),
+            DiagHelp::RepKw(_) => write!(f, "{}change the name to use it as an identifier", Style::Reset),
+            DiagHelp::DelTrailingComma(_) => write!(f, "{}remove the trailing comma", Style::Reset),
+            DiagHelp::InsVarType(_) => write!(f, "{}add the missing type", Style::Reset),
+            DiagHelp::InsRetType(_) => write!(f, "{}add a {}return type", Style::Reset, Style::High),
+            DiagHelp::InsParamList(..) => write!(f, "{}add a {}parameter list", Style::Reset, Style::High),
+            DiagHelp::InsParam(_) => write!(f, "{}perhaps you meant to have no parameters", Style::Reset),
         }
     }
 }
@@ -473,33 +473,33 @@ impl fmt::Display for DiagKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             DiagKind::StrayChar(c) => write!(f, "{}illegal character `{}{}{}` in program",
-                Color::RESET, Color::HIGHLIGHT,
+                Style::Reset, Style::High,
                 if c.is_control() {
                     c.escape_default().to_string()
                 } else {
                     c.to_string()
                 },
-                Color::RESET
+                Style::Reset
             ),
-            DiagKind::UntermComm => write!(f, "{}unterminated block comment", Color::RESET),
+            DiagKind::UntermComm => write!(f, "{}unterminated block comment", Style::Reset),
             DiagKind::UntermStr(_) => write!(f, "{}missing terminating character `{}\"{}` on string literal",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
-            DiagKind::OverflowStr(_) => write!(f, "{}string literal is too long", Color::RESET),
+            DiagKind::OverflowStr(_) => write!(f, "{}string literal is too long", Style::Reset),
             DiagKind::InvEscSeq(c) => write!(f, "{}unknown escape sequence `{}\\{c}{}`",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
-            DiagKind::OverflowInt => write!(f, "{}integer literal out of range for 16-byte type", Color::RESET),
-            DiagKind::OverflowFloat => write!(f, "{}float literal out of range for 32-byte type", Color::RESET),
+            DiagKind::OverflowInt => write!(f, "{}integer literal out of range for 16-byte type", Style::Reset),
+            DiagKind::OverflowFloat => write!(f, "{}float literal out of range for 32-byte type", Style::Reset),
             DiagKind::InvFmtFloat(_) => write!(f, "{}missing decimal part after `{}.{}` in float literal",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             DiagKind::MalformedStr(c, _) => write!(f, "{}malformed string literal, contains control character `{}{}{}`",
-                Color::RESET, Color::HIGHLIGHT, c.escape_default(), Color::RESET
+                Style::Reset, Style::High, c.escape_default(), Style::Reset
             ),
             DiagKind::UnexpectedTok(found, expected) => {
                 if expected.is_empty() {
-                    return write!(f, "unexpected `{}{}{}`", Color::HIGHLIGHT, found.lexeme(), Color::RESET);
+                    return write!(f, "unexpected `{}{}{}`", Style::High, found.lexeme(), Style::Reset);
                 }
 
                 write!(f, "expected ")?;
@@ -514,30 +514,30 @@ impl fmt::Display for DiagKind {
                     }
                 }
 
-                write!(f, ", found `{}{}{}`", Color::HIGHLIGHT, found.lexeme(), Color::RESET)
+                write!(f, ", found `{}{}{}`", Style::High, found.lexeme(), Style::Reset)
             },
             DiagKind::MismatchedDelim(kind) => write!(f, "{}mismatched closing delimiter `{}{}{}`",
-                Color::RESET, Color::HIGHLIGHT, kind.lexeme(), Color::RESET
+                Style::Reset, Style::High, kind.lexeme(), Style::Reset
             ),
-            DiagKind::UnclosedDelim => write!(f, "{}unclosed delimiter", Color::RESET),
+            DiagKind::UnclosedDelim => write!(f, "{}unclosed delimiter", Style::Reset),
             DiagKind::KeywordAsId(kw) => write!(f, "{}keyword `{}{}{}` used as an identifier",
-                Color::RESET, Color::HIGHLIGHT, kw.lexeme(), Color::RESET),
+                Style::Reset, Style::High, kw.lexeme(), Style::Reset),
             DiagKind::MissingSemi => write!(f, "{}missing `{};{}` at the end of a statement",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
-            DiagKind::TrailingCommaParam => write!(f, "{}trailing comma in a function parameter list", Color::RESET),
-            DiagKind::TrailingCommaArg => write!(f, "{}trailing comma in a function call", Color::RESET),
+            DiagKind::TrailingCommaParam => write!(f, "{}trailing comma in a function parameter list", Style::Reset),
+            DiagKind::TrailingCommaArg => write!(f, "{}trailing comma in a function call", Style::Reset),
             DiagKind::MissingVarType => write!(f, "{}missing {}type{} in a variable declaration",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             DiagKind::MissingRetType => write!(f, "{}missing {}return type{} in a function declaration",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             DiagKind::MissingParamList => write!(f, "{}missing {}parameter list{} in a function declaration",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
             DiagKind::EmptyParamList => write!(f, "{}empty {}parameter list{} in a function declaration",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
+                Style::Reset, Style::High, Style::Reset
             ),
         }
     }

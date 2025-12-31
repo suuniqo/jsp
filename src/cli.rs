@@ -1,11 +1,25 @@
-use clap::Parser;
+use clap::{ColorChoice, Command, CommandFactory, Parser};
+use clap::builder::styling::{Ansi256Color, Styles, Style};
 
+use crate::style::Color;
+
+
+fn get_style() -> Styles {
+    Styles::styled()
+        .usage(Style::default())
+        .placeholder(Style::default().bold())
+        .literal(Ansi256Color(Color::White.code()).on_default().bold())
+        .error(Ansi256Color(Color::Red.code()).on_default().bold())
+        .valid(Ansi256Color(Color::White.code()).on_default().bold())
+        .invalid(Ansi256Color(Color::Red.code()).on_default().bold())
+}
 
 #[derive(Parser)]
 #[command(
     version,
     about = "Modular and efficient language processor for MyJS",
-    long_about = None
+    long_about = None,
+    styles=get_style(),
 )]
 pub struct Cli {
     /// Source file to compile
@@ -26,6 +40,7 @@ pub struct Cli {
 }
 
 impl Cli {
+
     pub fn parse_args() -> Self {
         Cli::parse()
     }

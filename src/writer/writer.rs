@@ -27,7 +27,7 @@ impl Writer {
 
     pub fn write(&mut self, args: fmt::Arguments) -> Result<(), WriterErr> {
         write!(self.file, "{}", args)
-            .map_err(|e| WriterErr::Format(e))?;
+            .map_err(|e| WriterErr::Write(e))?;
 
         Ok(())
     }
