@@ -157,7 +157,13 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
         }
 
         if *candidate == MetaSym::Semi {
-            return (Diag::make(DiagKind::MissingSemi, curr_span, false), None)
+            let mut diag = Diag::make(DiagKind::MissingSemi, curr_span, false);
+
+            if let Some(prev) = prev {
+                diag.add_span(prev.span.clone(), DiagSever::Note, Some("after this".to_string()), false);
+            }
+
+            return (diag, None)
         }
 
         if let Some(prev) = prev

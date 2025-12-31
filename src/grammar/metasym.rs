@@ -6,9 +6,9 @@ use super::{Term, NotTerm, GramSym, GRAMMAR};
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum MetaSym {
     Stmnt,
-    Func,
     Expr,
     
+    FuncBlock,
     FuncArgs,
     FuncParams,
     FuncType,
@@ -26,6 +26,7 @@ pub enum MetaSym {
     LBrack,
     RBrack,
 
+    Func,
     While,
     If,
     Do,
@@ -96,6 +97,7 @@ impl MetaSym {
             MetaSym::Read => Term::Read,
             MetaSym::Write => Term::Write,
             MetaSym::Ret => Term::Ret,
+            MetaSym::Func => Term::Func,
             _ => return None,
         })
     }
@@ -169,7 +171,7 @@ impl MetaSym {
 
             NotTerm::L => Self::FuncArgs,
             NotTerm::T => Self::Type,
-            NotTerm::F => Self::Func,
+            NotTerm::F => Self::FuncBlock,
             NotTerm::F2 => Self::FuncId,
             NotTerm::K => Self::FuncParam,
 
@@ -215,13 +217,18 @@ impl MetaSym {
             set.remove(&Self::LParen);
         }
 
+        if set.contains(&Self::Func) && set.contains(&Self::Stmnt) {
+            set.remove(&Self::Func);
+            set.insert(Self::FuncBlock);
+        }
+
         set
     }
 
     pub fn show_before(&self) -> bool {
         match self {
             MetaSym::Stmnt => true,
-            MetaSym::Func => true,
+            MetaSym::FuncBlock => true,
             MetaSym::Expr => true,
             MetaSym::FuncArgs => false,
             MetaSym::FuncParams => false,
@@ -237,6 +244,7 @@ impl MetaSym {
             MetaSym::RParen => false,
             MetaSym::LBrack => false,
             MetaSym::RBrack => false,
+            MetaSym::Func => true,
             MetaSym::While => false,
             MetaSym::If => true,
             MetaSym::Do => true,
@@ -270,6 +278,7 @@ impl fmt::Display for Quoted<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", match self.0 {
             MetaSym::Stmnt => "a statement",
+            MetaSym::FuncBlock => "a function",
             MetaSym::Expr => "an expression",
             MetaSym::Type => "a type",
             MetaSym::Id => "an identifier",
@@ -282,12 +291,12 @@ impl fmt::Display for Quoted<'_> {
             MetaSym::RBrack => "`}`",
             MetaSym::OperBinary => "a binary operator",
             MetaSym::OperUnary => "an unary operator",
-            MetaSym::Func => "a function",
             MetaSym::FuncArgs => "an argument list",
             MetaSym::FuncParams => "a parameter list",
             MetaSym::FuncType => "a return type",
             MetaSym::FuncId => "a function name",
             MetaSym::FuncParam => "a parameter",
+            MetaSym::Func => "`function`",
             MetaSym::While => "`while`",
             MetaSym::If => "`if`",
             MetaSym::Do => "`do`",
@@ -305,7 +314,7 @@ impl fmt::Display for Insert<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", match self.0 {
             MetaSym::Stmnt => "statement",
-            MetaSym::Func => "function",
+            MetaSym::FuncBlock => "function void foo(void) {}",
             MetaSym::Expr => "expression",
             MetaSym::FuncArgs => "(foo)",
             MetaSym::FuncParams => "(void)",
@@ -321,6 +330,7 @@ impl fmt::Display for Insert<'_> {
             MetaSym::RParen => ")",
             MetaSym::LBrack => "{",
             MetaSym::RBrack => "}",
+            MetaSym::Func => "function",
             MetaSym::While => "while",
             MetaSym::If => "if",
             MetaSym::Do => "do",

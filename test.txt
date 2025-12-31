@@ -32,7 +32,7 @@ id = 3;
 int a = 4;
 int wellwell(void) {}
 
-let int hola = 4;;;;
+let int hola = "∆∂åßˆƒ∂ø∆åƒ";;
 
 let int hey = 5;
 

@@ -66,7 +66,7 @@ impl DiagHelp {
             ),
             DiagHelp::RepKw(token) => HelpAction::Replace(
                 token.span.clone(),
-                format!("not_{}", token.kind.lexeme()),
+                format!("my_{}", token.kind.lexeme()),
             ),
             DiagHelp::DelTrailingComma(span) => HelpAction::Delete(span.clone()),
             DiagHelp::InsVarType(span) => HelpAction::Insert(

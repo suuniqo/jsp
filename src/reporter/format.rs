@@ -100,21 +100,23 @@ impl ReporterFmt {
                 let rel_span = Span::new(span.start - offset, span.end - offset);
 
                 if pos < span.start {
-                    formatted.push_str(&line[pos..rel_span.start]);
+                    let frag = &line[pos..rel_span.start];
+
+                    formatted.push_str(frag);
 
                     for j in 0..=underline_col {
-                        underline[j].push_str(&" ".repeat(rel_span.start - pos));
+                        underline[j].push_str(&" ".repeat(frag.chars().count()));
                     }
                 }
 
                 formatted.push_str(&diag_span.highlight(line, offset));
-                underline[0].push_str(&diag_span.underline());
+                underline[0].push_str(&diag_span.underline(trg));
 
                 pos = rel_span.end;
 
                 let context_len = ReporterFmt::human_redable(
                     &line[rel_span.start..rel_span.end]
-                ).len();
+                ).chars().count();
 
                 if let Some(msg) = &diag_span.msg {
                     for j in 1..underline_col {
@@ -256,7 +258,7 @@ impl ReporterFmt {
     }
 
     fn normalize_map(kind: &DiagKind, span_map: &mut BTreeMap<usize, Vec<&DiagSpan>>) {
-        if !matches!(kind, DiagKind::UnexpectedTok(..)) {
+        if !matches!(kind, DiagKind::UnexpectedTok(..) | DiagKind::MissingSemi) {
             return;
         }
 
@@ -295,16 +297,22 @@ impl ReporterFmt {
 }
 
 impl DiagSpan {
-    fn underline(&self) -> String {
+    fn underline(&self, trg: &Target) -> String {
         let sym = match self.sever {
             DiagSever::Note => "-",
             DiagSever::Error | DiagSever::Warning => "^",
         };
 
+        let len = if let Some(frag) = trg.slice_from_span(&self.span) {
+            frag.chars().count()
+        } else {
+            self.span.len()
+        }.max(1);
+
         format!(
             "{}{}{}",
             self.sever.color(),
-            sym.repeat(self.span.len().max(1)),
+            sym.repeat(len),
             Color::RESET
         )
     }
@@ -331,6 +339,9 @@ impl<'a> fmt::Display for Fmt<'a, MetaSym> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.0 {
             MetaSym::Stmnt => write!(f, "{}a {}statement{}",
+                Color::RESET, Color::HIGHLIGHT, Color::RESET
+            ),
+            MetaSym::FuncBlock => write!(f, "{}a {}function{}",
                 Color::RESET, Color::HIGHLIGHT, Color::RESET
             ),
             MetaSym::Expr => write!(f, "{}an {}expression{}",
@@ -369,9 +380,6 @@ impl<'a> fmt::Display for Fmt<'a, MetaSym> {
             MetaSym::OperUnary => write!(f, "{}an {}unary operator{}",
                 Color::RESET, Color::HIGHLIGHT, Color::RESET
             ),
-            MetaSym::Func => write!(f, "{}a {}function{}",
-                Color::RESET, Color::HIGHLIGHT, Color::RESET
-            ),
             MetaSym::FuncArgs => write!(f, "{}an {}argument list{}",
                 Color::RESET, Color::HIGHLIGHT, Color::RESET
             ),
@@ -385,6 +393,9 @@ impl<'a> fmt::Display for Fmt<'a, MetaSym> {
                 Color::RESET, Color::HIGHLIGHT, Color::RESET
             ),
             MetaSym::FuncParam => write!(f, "{}a {}parameter{}",
+                Color::RESET, Color::HIGHLIGHT, Color::RESET
+            ),
+            MetaSym::Func => write!(f, "{}`{}function{}`",
                 Color::RESET, Color::HIGHLIGHT, Color::RESET
             ),
             MetaSym::While => write!(f, "{}`{}while{}`",
@@ -462,7 +473,13 @@ impl fmt::Display for DiagKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             DiagKind::StrayChar(c) => write!(f, "{}illegal character `{}{}{}` in program",
-                Color::RESET, Color::HIGHLIGHT, c.escape_default(), Color::RESET
+                Color::RESET, Color::HIGHLIGHT,
+                if c.is_control() {
+                    c.escape_default().to_string()
+                } else {
+                    c.to_string()
+                },
+                Color::RESET
             ),
             DiagKind::UntermComm => write!(f, "{}unterminated block comment", Color::RESET),
             DiagKind::UntermStr(_) => write!(f, "{}missing terminating character `{}\"{}` on string literal",
@@ -508,18 +525,18 @@ impl fmt::Display for DiagKind {
             DiagKind::MissingSemi => write!(f, "{}missing `{};{}` at the end of a statement",
                 Color::RESET, Color::HIGHLIGHT, Color::RESET
             ),
-            DiagKind::TrailingCommaParam => write!(f, "{}trailing comma on a function parameter list", Color::RESET),
-            DiagKind::TrailingCommaArg => write!(f, "{}trailing comma on a function call", Color::RESET),
-            DiagKind::MissingVarType => write!(f, "{}missing {}type{} in variable declaration",
+            DiagKind::TrailingCommaParam => write!(f, "{}trailing comma in a function parameter list", Color::RESET),
+            DiagKind::TrailingCommaArg => write!(f, "{}trailing comma in a function call", Color::RESET),
+            DiagKind::MissingVarType => write!(f, "{}missing {}type{} in a variable declaration",
                 Color::RESET, Color::HIGHLIGHT, Color::RESET
             ),
-            DiagKind::MissingRetType => write!(f, "{}missing {}return type{} in function declaration",
+            DiagKind::MissingRetType => write!(f, "{}missing {}return type{} in a function declaration",
                 Color::RESET, Color::HIGHLIGHT, Color::RESET
             ),
-            DiagKind::MissingParamList => write!(f, "{}missing {}parameter list{} in function declaration",
+            DiagKind::MissingParamList => write!(f, "{}missing {}parameter list{} in a function declaration",
                 Color::RESET, Color::HIGHLIGHT, Color::RESET
             ),
-            DiagKind::EmptyParamList => write!(f, "{}empty {}parameter list{} in function declaration",
+            DiagKind::EmptyParamList => write!(f, "{}empty {}parameter list{} in a function declaration",
                 Color::RESET, Color::HIGHLIGHT, Color::RESET
             ),
         }
