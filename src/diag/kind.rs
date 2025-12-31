@@ -1,6 +1,6 @@
-use std::{collections::HashSet, fmt};
+use std::collections::HashSet;
 
-use crate::{color::Color, grammar::MetaSym, token::TokenKind};
+use crate::{grammar::{MetaSym, Quoted}, token::TokenKind};
 
 #[derive(Clone)]
 pub enum DiagKind {
@@ -21,7 +21,8 @@ pub enum DiagKind {
     UnclosedDelim,
     KeywordAsId(TokenKind),
     MissingSemi,
-    TrailingComma,
+    TrailingCommaParam,
+    TrailingCommaArg,
     MissingVarType,
     MissingRetType,
     MissingParamList,
@@ -39,41 +40,17 @@ impl DiagKind {
             DiagKind::InvEscSeq(c) => format!("interpreted as \\\\{}", c),
             DiagKind::OverflowInt => format!("maximum is {}", i16::MAX),
             DiagKind::OverflowFloat => format!("maximum is {:e}", f32::MAX),
-            DiagKind::InvFmtFloat(_) => "expected digit after '.'".to_string(),
-            DiagKind::UnexpectedTok(_, _) => "expected here".to_string(),
-            DiagKind::MismatchedDelim(_) => "mismatched closing delimiter".to_string(),
-            DiagKind::UnclosedDelim => "expected closing delimiter".to_string(),
-            DiagKind::KeywordAsId(_) => "expected identifier".to_string(),
-            DiagKind::MissingSemi => "expected `;`".to_string(),
-            DiagKind::TrailingComma => "here".to_string(),
-            DiagKind::MissingVarType => "expected type".to_string(),
-            DiagKind::MissingRetType => "expected return type".to_string(),
-            DiagKind::MissingParamList => "expected parameter list".to_string(),
-            DiagKind::EmptyParamList => "empty parameter list".to_string(),
-        }
-    }
-}
-
-impl fmt::Display for DiagKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            DiagKind::StrayChar(c) => write!(f, "illegal character `{}{}{}` in program", Color::HIGHLIGHT, c.escape_default(), Color::RESET),
-            DiagKind::UntermComm => write!(f, "unterminated block comment"),
-            DiagKind::UntermStr(_) => write!(f, "missing terminating character `{}\"{}` on string literal", Color::HIGHLIGHT, Color::RESET),
-            DiagKind::OverflowStr(_) => write!(f, "string literal is too long"),
-            DiagKind::InvEscSeq(c) => write!(f, "unknown escape sequence `{}\\{c}{}`", Color::HIGHLIGHT, Color::RESET),
-            DiagKind::OverflowInt => write!(f, "integer literal out of range for 16-byte type"),
-            DiagKind::OverflowFloat => write!(f, "float literal out of range for 32-byte type"),
-            DiagKind::InvFmtFloat(_) => write!(f, "missing decimal part after `{}.{}` in float literal", Color::HIGHLIGHT, Color::RESET),
-            DiagKind::MalformedStr(c, _) => write!(f, "malformed string literal, contains control character `{}{}{}`", Color::HIGHLIGHT, c.escape_default(), Color::RESET),
-            DiagKind::UnexpectedTok(found, expected) => {
-                if expected.is_empty() {
-                    write!(f, "unexpected `{}{}{}`", Color::HIGHLIGHT, found.lexeme_concrete(), Color::RESET)
+            DiagKind::InvFmtFloat(_) => "expected digit after `.`".to_string(),
+            DiagKind::UnexpectedTok(_, expected) => {
+                if expected.len() == 0 {
+                    "here".to_string()
+                } else if expected.len() == 1 && let Some(candidate) = expected.iter().next() {
+                    format!("expected {}", Quoted(candidate))
                 } else {
                     let mut msg = String::new();
 
-                    for (i, tok) in expected.iter().enumerate() {
-                        msg.push_str(&format!("`{}{}{}`", Color::HIGHLIGHT, tok, Color::RESET));
+                    for (i, sym) in expected.iter().enumerate() {
+                        msg.push_str(&format!("{}", Quoted(sym)));
 
                         if i + 2 < expected.len() {
                             msg.push_str(", ");
@@ -82,34 +59,19 @@ impl fmt::Display for DiagKind {
                         }
                     }
 
-                    write!(
-                        f,
-                        "expected {}, found `{}{}{}`",
-                        msg,
-                        Color::HIGHLIGHT, found.lexeme_concrete(), Color::RESET
-                    )
+                    format!("expected {msg}")
                 }
             },
-            DiagKind::MismatchedDelim(kind) => write!(
-                f,
-                "mismatched closing delimiter `{}{}{}`",
-                Color::HIGHLIGHT, kind.lexeme_concrete(), Color::RESET),
-            DiagKind::UnclosedDelim => write!(f, "unclosed delimiter"),
-            DiagKind::KeywordAsId(kw) => write!(
-                f,
-                "keyword `{}{}{}` used as an identifier",
-                Color::HIGHLIGHT, kw.lexeme_concrete(), Color::RESET),
-            DiagKind::MissingSemi => write!(
-                f,
-                "missing `{};{}` at the end of a statement",
-                Color::HIGHLIGHT,
-                Color::RESET
-            ),
-            DiagKind::TrailingComma => write!(f, "trailing comma on a function parameter list"),
-            DiagKind::MissingVarType => write!(f, "missing type in variable declaration"),
-            DiagKind::MissingRetType => write!(f, "missing return type in function declaration"),
-            DiagKind::MissingParamList => write!(f, "missing parameter list in function declaration"),
-            DiagKind::EmptyParamList => write!(f, "empty parameter list in function declaration"),
+            DiagKind::MismatchedDelim(_) => "mismatched closing delimiter".to_string(),
+            DiagKind::UnclosedDelim => "expected closing delimiter".to_string(),
+            DiagKind::KeywordAsId(_) => "expected an identifier".to_string(),
+            DiagKind::MissingSemi => "expected `;`".to_string(),
+            DiagKind::TrailingCommaParam => "here".to_string(),
+            DiagKind::TrailingCommaArg => "here".to_string(),
+            DiagKind::MissingVarType => "expected type".to_string(),
+            DiagKind::MissingRetType => "expected return type".to_string(),
+            DiagKind::MissingParamList => "expected parameter list".to_string(),
+            DiagKind::EmptyParamList => "empty parameter list".to_string(),
         }
     }
 }

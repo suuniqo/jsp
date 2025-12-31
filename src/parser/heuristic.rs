@@ -52,7 +52,7 @@ impl<'l> Heuristic {
         delims: &Vec<(TokenKind, Option<Span>)>,
         stack: &Vec<usize>,
         syms: &Vec<GramSym>,
-    ) -> (Option<usize>, Vec<GramSym>, Option<(Vec<(TokenKind, Option<Span>)>, Vec<usize>, Vec<GramSym>)>) {
+    ) -> (Option<usize>, Vec<MetaSym>, Option<(Vec<(TokenKind, Option<Span>)>, Vec<usize>, Vec<GramSym>)>) {
         let mut curr_delims = delims.clone();
         let mut curr_stack = stack.clone();
         let mut curr_syms = syms.clone();
@@ -144,11 +144,12 @@ impl<'l> Heuristic {
             Some((curr_delims, curr_stack, curr_syms))
         };
 
-        (insert_cost, GramSym::abstracted(insertion), next_state)
+        (insert_cost, MetaSym::build_insertion(insertion), next_state)
     }
 
     pub fn eval_deletion(lexer: &mut MultiPeek<LexerChained<'l>>, stack: &Vec<usize>, syms: &Vec<GramSym>) -> Option<usize> {
         let mut cost = 0;
+        let mut deletions = 0;
 
         lexer.reset_peek();
 
@@ -156,7 +157,7 @@ impl<'l> Heuristic {
             let delims = Vec::new();
 
             if Self::token_shifts(next.kind.idx(), &delims, &stack, &syms).is_some() {
-                return Some(cost);
+                return Some(deletions * cost);
             }
 
             let Some(next_kind) = Term::from_token_kind(&next.kind) else {
@@ -164,6 +165,7 @@ impl<'l> Heuristic {
             };
 
             cost += next_kind.delete_cost();
+            deletions += 1;
         }
 
         None
@@ -174,7 +176,7 @@ impl<'l> Heuristic {
         delims: &Vec<(TokenKind, Option<Span>)>,
         stack: &Vec<usize>,
         syms: &Vec<GramSym>
-    ) -> Option<(usize, GramSym, Vec<(TokenKind, Option<Span>)>, Vec<usize>, Vec<GramSym>)> {
+    ) -> Option<(usize, MetaSym, Vec<(TokenKind, Option<Span>)>, Vec<usize>, Vec<GramSym>)> {
 
         let mut cost = 0;
 
@@ -197,10 +199,8 @@ impl<'l> Heuristic {
         };
 
         let mut candidates: Vec<(usize, Vec<(TokenKind, Option<Span>)>, Vec<usize>, Vec<GramSym>)> = paths
-            .iter()
-            .filter_map(|(_i, d, st, sy)| {
-                Self::token_shifts(next.kind.idx(), d, st, sy).map(|(nd, nst, nsy)| (*_i, nd, nst, nsy))
-            })
+            .into_iter()
+            .filter(|(_i, d, st, sy)| Self::token_shifts(next.kind.idx(), d, st, sy).is_some())
             .dedup_by(|(.., st1, _), (.., st2, _)| st1 == st2)
             .collect();
 
@@ -223,7 +223,7 @@ impl<'l> Heuristic {
         if let Some((i, delims, stack, syms)) = candidates.pop() {
             let term = Term::from_idx(i);
 
-            return Some((cost + term.insert_cost(), GramSym::T(term), delims, stack, syms))
+            return Some((cost + term.insert_cost(), MetaSym::from_insert(&term), delims, stack, syms))
         }
 
         None
@@ -306,9 +306,9 @@ impl<'l> Heuristic {
         let term = Term::from_token_kind(&kind)
             .expect("illegal shift by eof");
 
-        if kind.is_left_delim() {
+        if term.is_left_delim() {
             delims_clone.push((kind.clone(), None));
-        } else if kind.is_right_delim() {
+        } else if term.is_right_delim() {
             delims_clone.pop();
         }
 
@@ -319,7 +319,7 @@ impl<'l> Heuristic {
     }
 
     pub fn eval_panic(reduced: &TokenKind) -> bool {
-        reduced.is_sync()
+        !reduced.is_sync()
     }
 }
 

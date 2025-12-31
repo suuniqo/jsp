@@ -39,3 +39,10 @@ let int hey = 5;
 a == 4;
 
 b = 4,
+
+c = 5,;
+
+function int chachi(int) { }
+
+chachi(int);
+chachi(hola,);

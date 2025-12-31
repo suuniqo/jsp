@@ -1,4 +1,4 @@
-use std::{fs, path::Path, str};
+use std::{fs, ops::RangeBounds, path::Path, str};
 
 use super::TargetErr;
 
@@ -53,6 +53,26 @@ impl Target {
 
     pub fn src(&self) -> &str {
         self.src.as_str()
+    }
+
+
+    pub fn slice<R>(&self, r: R) -> Option<&str>
+    where
+        R: RangeBounds<usize>,
+    {
+        let start = match r.start_bound() {
+            std::ops::Bound::Included(&n) => n,
+            std::ops::Bound::Excluded(&n) => n + 1,
+            std::ops::Bound::Unbounded => 0,
+        };
+
+        let end = match r.end_bound() {
+            std::ops::Bound::Included(&n) => n + 1,
+            std::ops::Bound::Excluded(&n) => n,
+            std::ops::Bound::Unbounded => self.src.len(),
+        };
+
+        self.src.get(start..end)
     }
 
     pub fn line_offsets(&self) -> &Vec<usize> {

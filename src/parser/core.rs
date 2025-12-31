@@ -6,7 +6,7 @@ use std::rc::Rc;
 use itertools::{Itertools, MultiPeek};
 
 use crate::diag::{DiagHelp, DiagSever};
-use crate::grammar::{GRAMMAR, GramSym, MetaSym, NotTerm, Term};
+use crate::grammar::{GRAMMAR, GramSym, MetaSym, Term};
 use crate::parser::heuristic::Heuristic;
 use crate::span::Span;
 use crate::symtable::SymTable;
@@ -62,7 +62,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
     }
 
     fn positional_info(
-        insertion: &Vec<GramSym>,
+        insertion: &Vec<MetaSym>,
         err_curr: &Token,
         err_prev: &Option<Token>,
     ) -> (Token, bool) {
@@ -91,15 +91,20 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
     fn generate_diag(
         &self,
         expected: HashSet<MetaSym>,
-        insertion: &Vec<GramSym>,
+        insertion: &Vec<MetaSym>,
         curr: &Token,
         prev: &Option<Token>
     ) -> (Diag, Option<DiagHelp>) {
+        let curr_span = if curr.kind == TokenKind::Eof && let Some(prev) = prev {
+            Span::new(prev.span.end, prev.span.end)
+        } else {
+            curr.span.clone()
+        };
 
         let make_fallback = |expected, curr: &Token, prev: &Option<Token>| {
             let mut diag =  Diag::make(
                 DiagKind::UnexpectedTok(curr.kind.clone(), expected),
-                curr.span.clone(),
+                curr_span.clone(),
                 false,
             );
 
@@ -114,81 +119,86 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
             return (make_fallback(expected, curr, prev), None);
         };
 
-        if let Some(kind) = candidate.as_token_kind() {
-            if kind.is_right_delim() {
-                let diag = if curr.kind.is_right_delim() {
-                    let mut diag = Diag::make(DiagKind::MismatchedDelim(curr.kind.clone()), curr.span.clone(), false);
+        if candidate.as_term().is_some_and(|term| term.is_right_delim()) {
+            if let Some(curr_term) = Term::from_token_kind(&curr.kind) && curr_term.is_right_delim() {
+                let mut diag = Diag::make(DiagKind::MismatchedDelim(curr.kind.clone()), curr_span, false);
 
-                    if let Some(last) = self.delims.last() && let Some(span) = &last.1 {
-                        diag.add_span(
-                            span.clone(),
-                            DiagSever::Error,
-                            Some("unclosed delimiter".to_string()),
-                            false
-                        );
-                    }
-                    
-                    diag
-                } else {
-                    let mut diag = Diag::make(DiagKind::UnclosedDelim, curr.span.clone(), false);
+                if let Some(last) = self.delims.last() && let Some(span) = &last.1 {
+                    diag.add_span(
+                        span.clone(),
+                        DiagSever::Error,
+                        Some("unclosed delimiter".to_string()),
+                        false
+                    );
+                }
 
-                    if let Some(last) = self.delims.last() && let Some(span) = &last.1 {
-                        diag.add_span(
-                            span.clone(),
-                            DiagSever::Note,
-                            Some("unclosed delimiter".to_string()),
-                            false
-                        );
-                    }
+                return (diag, None);
+                
+            } else if expected.len() == 1 {
+                let mut diag = Diag::make(DiagKind::UnclosedDelim, curr_span, false);
 
-                    diag
-                };
+                if let Some(last) = self.delims.last() && let Some(span) = &last.1 {
+                    diag.add_span(
+                        span.clone(),
+                        DiagSever::Note,
+                        Some("unclosed delimiter".to_string()),
+                        false
+                    );
+                }
 
                 return (diag, None);
             }
+        }
 
-            if curr.kind.is_keyword() && matches!(kind, TokenKind::Id(_)) {
-                let diag = Diag::make(DiagKind::KeywordAsId(curr.kind.clone()), curr.span.clone(), true);
+        if let Some(curr_term) = Term::from_token_kind(&curr.kind) && curr_term.is_keyword() && *candidate == MetaSym::Id {
+            let diag = Diag::make(DiagKind::KeywordAsId(curr.kind.clone()), curr_span, true);
 
-                return (diag, Some(DiagHelp::RepKw(curr.clone())))
-            }
+            return (diag, Some(DiagHelp::RepKw(curr.clone())))
+        }
 
-            if kind == TokenKind::Semi {
-                return (Diag::make(DiagKind::MissingSemi, curr.span.clone(), false), None)
-            }
+        if *candidate == MetaSym::Semi {
+            return (Diag::make(DiagKind::MissingSemi, curr_span, false), None)
         }
 
         if let Some(prev) = prev
             && prev.kind == TokenKind::Comma
-            && curr.kind == TokenKind::RParen
-            && *candidate == GramSym::N(NotTerm::T) {
+            && curr.kind == TokenKind::RParen {
 
-            let diag = Diag::make(DiagKind::TrailingComma, prev.span.clone(), true);
+            if *candidate == MetaSym::Type {
+                let diag = Diag::make(DiagKind::TrailingCommaParam, prev.span.clone(), true);
 
-            return (diag, Some(DiagHelp::DelTrailingComma(prev.span.clone())))
+                return (diag, Some(DiagHelp::DelTrailingComma(prev.span.clone())))
+            }
+
+            if *candidate == MetaSym::Expr {
+                let diag = Diag::make(DiagKind::TrailingCommaArg, prev.span.clone(), true);
+
+                return (diag, Some(DiagHelp::DelTrailingComma(prev.span.clone())))
+            }
+
         }
 
         if matches!(curr.kind, TokenKind::Id(_)) {
             if expected.contains(&MetaSym::Type) {
-                let diag = Diag::make(DiagKind::MissingVarType, curr.span.clone(), false);
+                let diag = Diag::make(DiagKind::MissingVarType, curr_span.clone(), false);
 
-                return (diag, Some(DiagHelp::InsVarType(curr.span.clone())))
+                return (diag, Some(DiagHelp::InsVarType(curr_span)))
             }
 
             if expected.contains(&MetaSym::FuncType) {
-                let diag = Diag::make(DiagKind::MissingRetType, curr.span.clone(), false);
+                let diag = Diag::make(DiagKind::MissingRetType, curr_span.clone(), false);
 
-                return (diag, Some(DiagHelp::InsRetType(curr.span.clone())))
+                return (diag, Some(DiagHelp::InsRetType(curr_span)))
             }
         }
 
         if let Some(prev) = prev
             && matches!(prev.kind, TokenKind::Id(_))
             && curr.kind == TokenKind::LBrack
-            && insertion.contains(&GramSym::N(NotTerm::A))
+            && insertion.contains(&MetaSym::FuncParam)
             && expected.contains(&MetaSym::LParen) {
             
-            let diag = Diag::make(DiagKind::MissingParamList, curr.span.clone(), false);
+            let diag = Diag::make(DiagKind::MissingParamList, curr_span, false);
 
             let help = Some(DiagHelp::InsParamList(prev.span.clone()));
 
@@ -202,11 +212,11 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
 
             let diag = Diag::make(
                 DiagKind::EmptyParamList,
-                Span::new(prev.span.start, curr.span.end),
+                Span::new(prev.span.start, curr_span.end),
                 false
             );
 
-            return (diag, Some(DiagHelp::InsParam(curr.span.clone())))
+            return (diag, Some(DiagHelp::InsParam(curr_span)))
         }
 
         (make_fallback(expected, curr, prev), None)
@@ -318,9 +328,9 @@ impl<'t, 'l, 's> Parser for ParserCore<'t, 'l, 's> {
                         self.panic = Heuristic::eval_panic(&curr.kind);
                     }
 
-                    if curr.kind.is_left_delim() {
+                    if term.is_left_delim() {
                         self.delims.push((curr.kind.clone(), Some(curr.span.clone())));
-                    } else if curr.kind.is_right_delim() {
+                    } else if term.is_right_delim() {
                         self.delims.pop();
                     }
 

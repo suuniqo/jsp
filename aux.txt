@@ -1,5 +1,3 @@
-function void hola {}
+let a = 5"hello"
 
-function void hola() {
-    hello{}
-}
+let int b = 1 "hola";

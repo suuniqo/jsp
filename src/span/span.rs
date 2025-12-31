@@ -26,21 +26,26 @@ impl Target {
 
         let row = offsets
             .binary_search_by(|offset| offset.cmp(&span.start))
-            .unwrap_or_else(|e| e - 1);
+            .unwrap_or_else(|e| e - 1)
+            .min(offsets.len() - 2);
 
         let (line, offset) = self.nth_line(row)?;
 
-        let col = line
+        let col = if span.start >= line.len() {
+            line.chars().count() - 1
+        } else {
+            line
             .char_indices()
-            .position(|(idx, _)| idx == span.start - offset)?;
+            .position(|(idx, _)| idx == span.start - offset)?
+        };
 
         Some((row, col))
     }
 
     /// Returns the slice defined by the span
     /// Spans are assumed to be always correct, so no validation needed
-    pub fn slice_from_span(&self, span: &Span) -> &str {
-        &self.src()[span.start..span.end]
+    pub fn slice_from_span(&self, span: &Span) -> Option<&str> {
+        self.slice(span.start..span.end)
     }
 }
 

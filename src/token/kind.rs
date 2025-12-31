@@ -119,7 +119,7 @@ impl TokenKind {
         TokenKind::False,
     ];
 
-    pub fn lexeme_general(&self) -> &'static str {
+    fn lexeme_general(&self) -> &'static str {
         match self {
             TokenKind::Bool => "boolean",
             TokenKind::Do => "do",
@@ -163,7 +163,7 @@ impl TokenKind {
         }
     }
 
-    pub fn lexeme_concrete(&self) -> String {
+    pub fn lexeme(&self) -> String {
         let str = match self {
             TokenKind::Bool => "boolean",
             TokenKind::Do => "do",
@@ -236,44 +236,5 @@ impl TokenKind {
             "false" => 14,
             _ => return None,
         }].clone())
-    }
-
-    pub fn is_keyword(&self) -> bool {
-        match self {
-            TokenKind::If
-            | TokenKind::Do
-            | TokenKind::While
-            | TokenKind::Int
-            | TokenKind::Float
-            | TokenKind::Str
-            | TokenKind::Bool
-            | TokenKind::Void
-            | TokenKind::Let
-            | TokenKind::Func
-            | TokenKind::Ret
-            | TokenKind::Read
-            | TokenKind::Write
-            | TokenKind::True
-            | TokenKind::False => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_type(&self) -> bool {
-        match self {
-            TokenKind::Int
-            | TokenKind::Bool
-            | TokenKind::Str
-            | TokenKind::Float => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_left_delim(&self) -> bool {
-        matches!(self, TokenKind::LBrack | TokenKind::LParen)
-    }
-
-    pub fn is_right_delim(&self) -> bool {
-        matches!(self, TokenKind::RBrack | TokenKind::RParen)
     }
 }

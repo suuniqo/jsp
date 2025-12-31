@@ -1,6 +1,6 @@
 use std::{f32, i16, rc::Rc, usize};
 
-use crate::grammar::{GramSym, NotTerm, Term};
+use crate::grammar::{NotTerm, Term};
 use crate::token::TokenKind;
 
 #[derive(Debug, Clone, Copy)]
@@ -8,15 +8,6 @@ pub enum Action {
     Reduce(usize),
     Shift(usize),
     Accept,
-}
-
-impl GramSym {
-    pub(super) fn as_token_kind(&self) -> Option<TokenKind> {
-        match self {
-            GramSym::T(term) => Some(TokenKind::from_idx(*term as usize)),
-            GramSym::N(_) => None,
-        }
-    }
 }
 
 impl Term {

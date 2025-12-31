@@ -131,7 +131,8 @@ impl<'t> LexerCore<'t> {
                     // remove '.'
                     span.end -= 1;
 
-                    let slice = self.trg.slice_from_span(&span);
+                    let slice = self.trg.slice_from_span(&span)
+                        .expect("invalid span when parsing number");
 
                     return Err(DiagKind::InvFmtFloat(slice.to_string().parse::<f32>().unwrap_or(0.0)));
                 }
@@ -142,7 +143,8 @@ impl<'t> LexerCore<'t> {
             self.win.consume();
         }
 
-        let slice = self.trg.slice_from_span(&self.win.span());
+        let slice = self.trg.slice_from_span(&self.win.span())
+            .expect("invalid span when parsing number");
 
         if !has_dot {
             Self::parse_int(slice)
@@ -243,7 +245,8 @@ impl<'t> LexerCore<'t> {
     fn read_id(&mut self) -> TokenKind {
         self.win.consume_while(|next| next.is_ascii_alphanumeric() || next == '_');
 
-        let lexeme = self.trg.slice_from_span(&self.win.span());
+        let lexeme = self.trg.slice_from_span(&self.win.span())
+            .expect("invalid span when parsing lexeme");
         
         if let Some(keyword) = TokenKind::as_keyword(lexeme) {
             keyword
