@@ -1,17 +1,38 @@
 use std::{collections::HashSet, iter};
 
-use itertools::{Itertools, MultiPeek};
+use itertools::MultiPeek;
 
 use crate::lexer::Lexer;
-use crate::span::Span;
 use crate::token::{Token, TokenKind};
-use crate::grammar::{GRAMMAR, NotTerm, Term, GramSym, MetaSym};
+use crate::grammar::{GRAMMAR, NotTerm, Term, MetaSym};
 
 use super::action::{GOTO_TABLE, ACTION_TABLE, Action};
 
-pub enum Fix {
-    Skip,
-    Action(Action)
+#[derive(Debug)]
+pub enum FixAction {
+    Shift(TokenKind, usize),
+    Reduce(usize),
+}
+
+#[derive(Debug)]
+pub struct Fix {
+    pub cost: usize,
+    pub skips: usize,
+    pub actions: Vec<FixAction>,
+}
+
+impl Fix {
+    fn insert(cost: usize, actions: Vec<FixAction>) -> Self {
+        Self { cost, skips: 0, actions }
+    }
+
+    fn delete(cost: usize, skips: usize) -> Self {
+        Self { cost, skips, actions: Vec::new() }
+    }
+
+    fn replace(cost: usize, actions: Vec<FixAction>) -> Self {
+        Self { cost, skips: 1, actions }
+    }
 }
 
 type LexerChained<'l> = iter::Chain<&'l mut (dyn Lexer + 'l), iter::Once<Token>>;
@@ -19,24 +40,16 @@ type LexerChained<'l> = iter::Chain<&'l mut (dyn Lexer + 'l), iter::Once<Token>>
 pub struct Heuristic;
 
 impl<'l> Heuristic {
-    const MAX_RECOVERY_LEN: usize = 64;
-    const MAX_INSERTION_LEN: usize = 4;
-
-    pub const MAX_INSERTION_COST: usize = 512;
-
-    pub fn expected(stack: &Vec<usize>, syms: &Vec<GramSym>) -> HashSet<MetaSym> {
-        let delims = Vec::new();
-
-        let paths: Vec<(usize, Vec<usize>, Vec<GramSym>)> = (0..TokenKind::COUNT)
+    pub fn expected(stack: &Vec<usize>) -> HashSet<MetaSym> {
+        let paths: Vec<(usize, Vec<usize>)> = (0..TokenKind::COUNT)
             .filter_map(|i| {
-                Self::token_shifts(i, &delims, stack, syms).map(|(_, st, sy)| (i, st, sy))
+                Self::token_shifts(i, stack).map(|(st, _)| (i, st))
             })
             .collect();
 
         let term: HashSet<Term> = paths
             .iter()
-            .dedup_by(|(_, st1, _), (_, st2, _)| st1 == st2)
-            .filter_map(|(idx, _, _)| Term::from_token_kind(&TokenKind::from_idx(*idx)))
+            .filter_map(|(idx, _)| Term::from_token_kind(&TokenKind::from_idx(*idx)))
             .collect();
 
         let stack_idx = *stack.last()
@@ -51,37 +64,40 @@ impl<'l> Heuristic {
         MetaSym::build_expected(term, not_term)
     }
 
+    const MAX_RECOVERY_LEN: usize = 32;
+
     pub fn eval_insertion(
         lexer: &mut MultiPeek<LexerChained<'l>>, 
-        delims: &Vec<(TokenKind, Option<Span>)>,
         stack: &Vec<usize>,
-        syms: &Vec<GramSym>,
-    ) -> (Option<usize>, Vec<MetaSym>, Option<(Vec<(TokenKind, Option<Span>)>, Vec<usize>, Vec<GramSym>)>) {
-        let mut curr_delims = delims.clone();
+    ) -> Option<(Fix, Vec<MetaSym>)> {
         let mut curr_stack = stack.clone();
-        let mut curr_syms = syms.clone();
 
+        let mut actions = Vec::new();
         let mut insertion = Vec::new();
         let mut cost = 0;
 
         while insertion.len() <= Self::MAX_RECOVERY_LEN {
-            let mut paths: Vec<(usize, Vec<(TokenKind, Option<Span>)>, Vec<usize>, Vec<GramSym>)> = (0..TokenKind::COUNT - 1)
+            // compute possible paths
+            let mut paths: Vec<(usize, Vec<usize>, Vec<FixAction>)> = (0..TokenKind::COUNT)
                 .filter_map(|i| {
-                    Self::token_shifts(i, &curr_delims, &curr_stack, &curr_syms).map(|(d, st, sy)| (i, d, st, sy))
+                    Self::token_shifts(i, &curr_stack).map(|(st, tr)| (i, st, tr))
                 })
                 .collect();
 
-            let mut candidates = paths.clone();
+            let mut candidates: Vec<(usize, Vec<usize>)> = paths
+                .iter()
+                .map(|(i, st, _)| (*i, st.clone()))
+                .collect();
 
             lexer.reset_peek();
 
+            // retain best candidates, stopping while full or by encountering sync symbol
             while let Some(next) = lexer.peek() {
-                let next_candidates: Vec<(usize, Vec<(TokenKind, Option<Span>)>, Vec<usize>, Vec<GramSym>)> = candidates
+                let next_candidates: Vec<(usize, Vec<usize>)> = candidates
                     .iter()
-                    .filter_map(|(_i, d, st, sy)| {
-                        Self::token_shifts(next.kind.idx(), d, st, sy).map(|(nd, nst, nsy)| (*_i, nd, nst, nsy))
+                    .filter_map(|(_i, st)| {
+                        Self::token_shifts(next.kind.idx(), st).map(|(nst, _)| (*_i, nst))
                     })
-                    .dedup_by(|(_, _, st1, _), (_, _, st2, _)| st1 == st2)
                     .collect();
 
                 if next_candidates.is_empty() {
@@ -90,38 +106,49 @@ impl<'l> Heuristic {
                     candidates = next_candidates;
                 }
 
-                if candidates.len() == 1 {
-                    break;
-                }
-                if next.kind.is_sync() {
+                if candidates.len() == 1 || next.kind.is_sync() {
                     break;
                 }
             }
 
+            // sort and extract by sync score
             candidates.sort_by(|a, b| {
                 let kind_a = TokenKind::from_idx(a.0);
                 let kind_b = TokenKind::from_idx(b.0);
 
-                kind_a.sync_score().cmp(&kind_b.sync_score())
+                let cmp = kind_a.sync_score().cmp(&kind_b.sync_score());
+
+                if cmp.is_eq()
+                    && let Some(term_a) = Term::from_token_kind(&kind_a)
+                    && let Some(term_b) = Term::from_token_kind(&kind_b) {
+
+                    term_b.insert_cost().cmp(&term_a.insert_cost())
+                } else {
+                    cmp
+                }
             });
 
-            let (i, ..) = candidates.pop()
-                .expect("candidates should never be empty as the loop guarantees it and a row shouldn't be empty");
+            // ensure insertion never is empty
+            let Some((i, ..)) = candidates.pop() else {
+                return None;
+            };
 
             let pos = paths
                 .iter()
                 .position(|(j, ..)| *j == i)
                 .expect("will always match");
 
-            let (_, new_delims, new_stack, new_syms) = paths.swap_remove(pos);
+            let (_, new_stack, next_trace) = paths.swap_remove(pos);
 
             let term = Term::from_idx(i);
-            cost += term.insert_cost();
-            insertion.push(term);
 
+            // update state
             curr_stack = new_stack;
-            curr_syms = new_syms;
-            curr_delims = new_delims;
+
+            insertion.push(term);
+            actions.extend(next_trace);
+
+            cost += term.insert_cost();
 
             lexer.reset_peek();
 
@@ -131,45 +158,32 @@ impl<'l> Heuristic {
                 .kind
                 .idx();
 
-            if Self::token_shifts(next_idx, &curr_delims, &curr_stack, &curr_syms).is_some() {
-                break;
+            // stop at resync
+            if Self::token_shifts(next_idx, &curr_stack).is_some() {
+                return Some((Fix::insert(cost * insertion.len(), actions), MetaSym::build_insertion(insertion)))
             }
         }
 
-        let insert_cost = if insertion.len() > Self::MAX_INSERTION_LEN {
-            None
-        } else {
-            Some(cost * insertion.len())
-        };
-
-        let next_state = if insertion.len() > Self::MAX_RECOVERY_LEN {
-            None
-        } else {
-            Some((curr_delims, curr_stack, curr_syms))
-        };
-
-        (insert_cost, MetaSym::build_insertion(insertion), next_state)
+        None
     }
 
-    pub fn eval_deletion(lexer: &mut MultiPeek<LexerChained<'l>>, stack: &Vec<usize>, syms: &Vec<GramSym>) -> Option<usize> {
+    pub fn eval_deletion(lexer: &mut MultiPeek<LexerChained<'l>>, stack: &Vec<usize>) -> Option<Fix> {
         let mut cost = 0;
-        let mut deletions = 0;
+        let mut skips = 0;
 
         lexer.reset_peek();
 
         while let Some(next) = lexer.peek() {
-            let delims = Vec::new();
-
-            if Self::token_shifts(next.kind.idx(), &delims, &stack, &syms).is_some() {
-                return Some(deletions * cost);
+            if Self::token_shifts(next.kind.idx(), &stack).is_some() {
+                return Some(Fix::delete(skips * cost, skips));
             }
 
             let Some(next_kind) = Term::from_token_kind(&next.kind) else {
-                return Some(usize::MAX);
+                break;
             };
 
             cost += next_kind.delete_cost();
-            deletions += 1;
+            skips += 1;
         }
 
         None
@@ -177,12 +191,8 @@ impl<'l> Heuristic {
 
     pub fn eval_replacement(
         lexer: &mut MultiPeek<LexerChained<'l>>,
-        delims: &Vec<(TokenKind, Option<Span>)>,
         stack: &Vec<usize>,
-        syms: &Vec<GramSym>
-    ) -> Option<(usize, MetaSym, Vec<(TokenKind, Option<Span>)>, Vec<usize>, Vec<GramSym>)> {
-
-        let mut cost = 0;
+    ) -> Option<(Fix, MetaSym)> {
 
         lexer.reset_peek();
 
@@ -190,22 +200,19 @@ impl<'l> Heuristic {
             return None;
         };
 
-        cost += next.delete_cost();
+        let delete_cost = next.delete_cost();
 
-        let paths: Vec<(usize, Vec<(TokenKind, Option<Span>)>, Vec<usize>, Vec<GramSym>)> = (0..TokenKind::COUNT)
-            .filter_map(|i| {
-                Self::token_shifts(i, &delims, &stack, &syms).map(|(d, st, sy)| (i, d, st, sy))
-            })
+        let paths: Vec<(usize, Vec<usize>, Vec<FixAction>)> = (0..TokenKind::COUNT)
+            .filter_map(|i| Self::token_shifts(i, &stack).map(|(st, tr)| (i, st, tr)))
             .collect();
 
         let Some(next) = lexer.peek() else {
             return None;
         };
 
-        let mut candidates: Vec<(usize, Vec<(TokenKind, Option<Span>)>, Vec<usize>, Vec<GramSym>)> = paths
+        let mut candidates: Vec<(usize, Vec<FixAction>)> = paths
             .into_iter()
-            .filter(|(_i, d, st, sy)| Self::token_shifts(next.kind.idx(), d, st, sy).is_some())
-            .dedup_by(|(.., st1, _), (.., st2, _)| st1 == st2)
+            .filter_map(|(_i, st, _tr)| Self::token_shifts(next.kind.idx(), &st).map(|(..)| (_i, _tr)))
             .collect();
 
         candidates.sort_by(|(i, ..), (j, ..)| {
@@ -224,10 +231,10 @@ impl<'l> Heuristic {
             }
         });
 
-        if let Some((i, delims, stack, syms)) = candidates.pop() {
+        if let Some((i, trace)) = candidates.pop() {
             let term = Term::from_idx(i);
 
-            return Some((cost + term.insert_cost(), MetaSym::from_insert(&term), delims, stack, syms))
+            return Some((Fix::replace(delete_cost + term.insert_cost(), trace), MetaSym::from_insert(&term)))
         }
 
         None
@@ -236,8 +243,7 @@ impl<'l> Heuristic {
     fn reduce(
         token_idx: usize,
         stack: &Vec<usize>,
-        syms: &Vec<GramSym>,
-    ) -> Option<(Vec<usize>, Vec<GramSym>)> {
+    ) -> Option<(Vec<usize>, Vec<FixAction>)> {
         let stack_idx = *stack.last()
             .expect("unexpected empty parser stack");
 
@@ -246,10 +252,10 @@ impl<'l> Heuristic {
         };
 
         let mut stack_clone = stack.clone();
-        let mut syms_clone = syms.clone();
+        let mut trace = Vec::new();
 
         let Action::Reduce(mut rule_idx) = action else {
-            return Some((stack_clone, syms_clone));
+            return Some((stack_clone, trace));
         };
 
         loop {
@@ -266,8 +272,7 @@ impl<'l> Heuristic {
                     .expect("if this fails there is something wrong with the goto table"),
             );
 
-            syms_clone.truncate(syms_clone.len() - rhs.len());
-            syms_clone.push(GramSym::N(lhs));
+            trace.push(FixAction::Reduce(rule_idx));
 
             let stack_idx = *stack_clone.last()
                 .expect("unexpected empty parser stack");
@@ -277,7 +282,7 @@ impl<'l> Heuristic {
             };
 
             let Action::Reduce(new_rule_idx) = action else {
-                return Some((stack_clone, syms_clone));
+                return Some((stack_clone, trace));
             };
 
             rule_idx = new_rule_idx;
@@ -286,13 +291,9 @@ impl<'l> Heuristic {
 
     fn token_shifts(
         token_idx: usize,
-        delims: &Vec<(TokenKind, Option<Span>)>,
         stack: &Vec<usize>,
-        syms: &Vec<GramSym>,
-    ) -> Option<(Vec<(TokenKind, Option<Span>)>, Vec<usize>, Vec<GramSym>)> {
-        let (mut stack_clone, mut syms_clone) = Self::reduce(token_idx, stack, syms)?;
-
-        let mut delims_clone = delims.clone();
+    ) -> Option<(Vec<usize>, Vec<FixAction>)> {
+        let (mut stack_clone, mut trace) = Self::reduce(token_idx, stack)?;
 
         let stack_idx = *stack_clone.last()
             .expect("unexpected empty parser stack");
@@ -302,24 +303,13 @@ impl<'l> Heuristic {
         };
 
         let Action::Shift(state_idx) = action else {
-            return Some((delims_clone, stack_clone, syms_clone));
+            return Some((stack_clone, trace));
         };
 
-        let kind = TokenKind::from_idx(token_idx);
-
-        let term = Term::from_token_kind(&kind)
-            .expect("illegal shift by eof");
-
-        if term.is_left_delim() {
-            delims_clone.push((kind.clone(), None));
-        } else if term.is_right_delim() {
-            delims_clone.pop();
-        }
-
-        syms_clone.push(GramSym::T(term));
+        trace.push(FixAction::Shift(TokenKind::from_idx(token_idx), state_idx));
 
         stack_clone.push(state_idx);
-        return Some((delims_clone, stack_clone, syms_clone));
+        return Some((stack_clone, trace));
     }
 
     pub fn eval_panic(reduced: &TokenKind) -> bool {
@@ -412,7 +402,7 @@ impl Term {
             | Term::Eq => 20,
 
             // delims 
-            Term::LParen | Term::RParen | Term::LBrack | Term::RBrack => 40,
+            Term::LParen | Term::RParen | Term::LBrack | Term::RBrack => 80,
 
             // cheap junk 
             Term::Comma => 5,
@@ -436,12 +426,14 @@ impl Term {
             Term::Int
             | Term::Float
             | Term::Str
-            | Term::Bool
-            | Term::Void => 80,
+            | Term::Bool => 80,
+
+            Term::Void => 50,
 
             // identifiers and literals
-            Term::Id
-            | Term::IntLit
+            Term::Id => 210,
+
+            Term::IntLit
             | Term::FloatLit
             | Term::StrLit
             | Term::True

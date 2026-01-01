@@ -77,7 +77,7 @@ impl DiagHelp {
             DiagHelp::InsRetType(span) => HelpAction::Insert(
                 span.clone(),
                 true,
-                "void ".to_string()
+                "type ".to_string()
             ),
             DiagHelp::InsParamList(span) => HelpAction::Insert(
                 span.clone(),

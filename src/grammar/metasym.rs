@@ -318,7 +318,7 @@ impl fmt::Display for Insert<'_> {
             MetaSym::Expr => "expression",
             MetaSym::FuncArgs => "(foo)",
             MetaSym::FuncParams => "(void)",
-            MetaSym::FuncType => "void",
+            MetaSym::FuncType => "type",
             MetaSym::FuncId => "foo",
             MetaSym::FuncParam => "void",
             MetaSym::Type => "type",

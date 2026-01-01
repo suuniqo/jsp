@@ -180,6 +180,11 @@ impl Term {
     pub fn is_right_delim(&self) -> bool {
         matches!(self, Self::RBrack | Self::RParen)
     }
+
+    pub fn delim_match(&self, other: &Self) -> bool {
+        *self == Self::LParen && *other == Self::RParen
+            || *self == Self::LBrack && *other == Self::RBrack
+    }
 }
 
 impl fmt::Display for Term {

@@ -53,8 +53,8 @@ impl Term {
 }
 
 impl NotTerm {
-    const AXION: Self = Self::PP;
-    const COUNT: usize = Self::AXION as usize;
+    const AXIOM: Self = Self::PP;
+    const COUNT: usize = Self::AXIOM as usize;
 
     pub(super) fn idx(&self) -> usize {
         *self as usize

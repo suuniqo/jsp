@@ -6,7 +6,7 @@ pub enum Attribute {
     /// Stores pool id
     Id(usize),
     /// Stores type
-    Type(LangType, Span),
+    Type(LangType, Option<Span>),
 }
 
 pub struct Semanter<'s> {

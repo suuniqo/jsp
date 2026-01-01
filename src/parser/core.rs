@@ -7,7 +7,7 @@ use itertools::{Itertools, MultiPeek};
 
 use crate::diag::{DiagHelp, DiagSever};
 use crate::grammar::{GRAMMAR, GramSym, MetaSym, Term};
-use crate::parser::heuristic::Heuristic;
+use crate::parser::heuristic::{Fix, FixAction, Heuristic};
 use crate::span::Span;
 use crate::symtable::SymTable;
 
@@ -29,13 +29,20 @@ type LexerChained<'l> = iter::Chain<&'l mut (dyn Lexer + 'l), iter::Once<Token>>
 pub struct ParserCore<'t, 'l, 's> {
     reporter: Rc<RefCell<Reporter<'t>>>,
     lexer: MultiPeek<LexerChained<'l>>,
-    semanter: Semanter<'s>,
-    prev: Option<Token>,
+
+    threw: bool,
     panic: bool,
-    delims: Vec<(TokenKind, Option<Span>)>,
+    prev: Option<Token>,
+    delims: Vec<(Term, Option<Span>)>,
+
+    stack: Vec<usize>,
+    syms: Vec<GramSym>,
+    semanter: Semanter<'s>,
 }
 
 impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
+    const MAX_RECOVERY_COST: usize = 512;
+
     pub fn new(
         reporter: Rc<RefCell<Reporter<'t>>>,
         lexer: &'l mut dyn Lexer,
@@ -44,15 +51,24 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
         Self {
             reporter,
             lexer: lexer.chain(iter::once(Token::eof())).multipeek(),
-            semanter: Semanter::new(symtable),
-            prev: None,
+
+            threw: false,
             panic: false,
+            prev: None,
             delims: Vec::new(),
+
+            stack: Vec::new(),
+            syms: Vec::new(),
+            semanter: Semanter::new(symtable),
         }
     }
 
     fn next(&mut self) {
         self.prev = self.lexer.next();
+    }
+    
+    fn stack_last(&self) -> usize {
+        *self.stack.last().expect("unexpected empty parser stack: bad table")
     }
 
     fn report(&mut self, diag: Diag) {
@@ -66,7 +82,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
         insertion: &Vec<MetaSym>,
         err_curr: &Token,
         err_prev: &Option<Token>,
-    ) -> (Token, bool) {
+    ) -> Option<(Token, bool)> {
         let before = if err_curr.kind == TokenKind::Eof {
             false
         } else if err_prev.is_none() {
@@ -83,46 +99,55 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
         } else if let Some(err_prev) = err_prev {
             err_prev.clone()
         } else {
-            unreachable!("lexer must never be empty");
+            return None;
         };
 
-        (token, before)
+        Some((token, before))
     }
 
-    fn generate_diag(
-        &self,
-        expected: HashSet<MetaSym>,
-        insertion: &Vec<MetaSym>,
-        curr: &Token,
-        prev: &Option<Token>
-    ) -> (Diag, Option<DiagHelp>) {
-        let curr_span = if curr.kind == TokenKind::Eof && let Some(prev) = prev {
-            Span::new(prev.span.end, prev.span.end)
+    fn diag_fallback(&self, expected: HashSet<MetaSym>, curr: &Token, help: Option<(DiagHelp, usize)>) -> Diag {
+        let mut diag =  Diag::make(
+            DiagKind::UnexpectedTok(curr.kind.clone(), expected),
+            curr.span.clone(),
+            false,
+        );
+
+        if let Some(prev) = &self.prev {
+            diag.add_span(prev.span.clone(), DiagSever::Note, Some("after this".to_string()), false);
+        }
+
+        if let Some((help, cost)) = help && cost < Self::MAX_RECOVERY_COST {
+            diag.with_help(help)
         } else {
-            curr.span.clone()
-        };
-
-        let make_fallback = |expected, curr: &Token, prev: &Option<Token>| {
-            let mut diag =  Diag::make(
-                DiagKind::UnexpectedTok(curr.kind.clone(), expected),
-                curr_span.clone(),
-                false,
-            );
-
-            if let Some(prev) = prev {
-                diag.add_span(prev.span.clone(), DiagSever::Note, Some("after this".to_string()), false);
-            }
-
             diag
-        };
+        }
+    }
 
-        let Some(candidate) = insertion.first() else {
-            return (make_fallback(expected, curr, prev), None);
-        };
+    fn diag_deletion(&self, expected: HashSet<MetaSym>, curr: Token, cost: usize) -> Diag {
+        let help = (DiagHelp::DelToken(curr.clone()), cost);
+
+        Self::diag_fallback(&self, expected, &curr, Some(help))
+    }
+
+    fn diag_replacement(&self, expected: HashSet<MetaSym>, curr: Token, rep: MetaSym, cost: usize) -> Diag {
+        if let Some(curr_term) = Term::from_token_kind(&curr.kind) && curr_term.is_keyword() && rep == MetaSym::Id {
+            let diag = Diag::make(DiagKind::KeywordAsId(curr.kind.clone()), curr.span.clone(), true);
+
+            return diag.with_help(DiagHelp::RepKw(curr));
+        }
+
+        let help = (DiagHelp::RepToken(curr.clone(), rep), cost);
+
+        Self::diag_fallback(&self, expected, &curr, Some(help))
+    }
+
+    fn diag_insertion_inner(&self, expected: HashSet<MetaSym>, curr: Token, ins: &Vec<MetaSym>) -> Diag {
+        let candidate = ins.first()
+            .expect("unexpected empty insertion: incorrect eval_insertion method");
 
         if candidate.as_term().is_some_and(|term| term.is_right_delim()) {
             if let Some(curr_term) = Term::from_token_kind(&curr.kind) && curr_term.is_right_delim() {
-                let mut diag = Diag::make(DiagKind::MismatchedDelim(curr.kind.clone()), curr_span, false);
+                let mut diag = Diag::make(DiagKind::MismatchedDelim(curr.kind.clone()), curr.span, false);
 
                 if let Some(last) = self.delims.last() && let Some(span) = &last.1 {
                     diag.add_span(
@@ -133,10 +158,25 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
                     );
                 }
 
-                return (diag, None);
+                for (term, span) in self.delims.iter().rev() {
+                    if term.delim_match(&curr_term) {
+                        if let Some(span) = span {
+                            diag.add_span(
+                                span.clone(),
+                                DiagSever::Note,
+                                Some("closing delimiter possibly meant for this".to_string()),
+                                false
+                            );
+                        }
+
+                        break;
+                    }
+                }
+
+                return diag;
                 
             } else if expected.len() == 1 {
-                let mut diag = Diag::make(DiagKind::UnclosedDelim, curr_span, false);
+                let mut diag = Diag::make(DiagKind::UnclosedDelim, curr.span, false);
 
                 if let Some(last) = self.delims.last() && let Some(span) = &last.1 {
                     diag.add_span(
@@ -147,178 +187,201 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
                     );
                 }
 
-                return (diag, None);
+                return diag;
             }
-        }
-
-        if let Some(curr_term) = Term::from_token_kind(&curr.kind) && curr_term.is_keyword() && *candidate == MetaSym::Id {
-            let diag = Diag::make(DiagKind::KeywordAsId(curr.kind.clone()), curr_span, true);
-
-            return (diag, Some(DiagHelp::RepKw(curr.clone())))
         }
 
         if *candidate == MetaSym::Semi {
-            let mut diag = Diag::make(DiagKind::MissingSemi, curr_span, false);
+            let mut diag = Diag::make(DiagKind::MissingSemi, curr.span, false);
 
-            if let Some(prev) = prev {
+            if let Some(prev) = &self.prev {
                 diag.add_span(prev.span.clone(), DiagSever::Note, Some("after this".to_string()), false);
             }
 
-            return (diag, None)
+            return diag;
         }
 
-        if let Some(prev) = prev
+        if let Some(prev) = &self.prev
             && prev.kind == TokenKind::Comma
             && curr.kind == TokenKind::RParen {
 
             if *candidate == MetaSym::Type {
                 let diag = Diag::make(DiagKind::TrailingCommaParam, prev.span.clone(), true);
 
-                return (diag, Some(DiagHelp::DelTrailingComma(prev.span.clone())))
+                return diag.with_help(DiagHelp::DelTrailingComma(prev.span.clone()));
             }
 
             if *candidate == MetaSym::Expr {
                 let diag = Diag::make(DiagKind::TrailingCommaArg, prev.span.clone(), true);
 
-                return (diag, Some(DiagHelp::DelTrailingComma(prev.span.clone())))
+                return diag.with_help(DiagHelp::DelTrailingComma(prev.span.clone()));
             }
-
         }
 
         if matches!(curr.kind, TokenKind::Id(_)) {
             if expected.contains(&MetaSym::Type) {
-                let diag = Diag::make(DiagKind::MissingVarType, curr_span.clone(), false);
+                let diag = Diag::make(DiagKind::MissingVarType, curr.span.clone(), false);
 
-                return (diag, Some(DiagHelp::InsVarType(curr_span)))
+                return diag.with_help(DiagHelp::InsVarType(curr.span));
             }
 
             if expected.contains(&MetaSym::FuncType) {
-                let diag = Diag::make(DiagKind::MissingRetType, curr_span.clone(), false);
+                let diag = Diag::make(DiagKind::MissingRetType, curr.span.clone(), false);
 
-                return (diag, Some(DiagHelp::InsRetType(curr_span)))
+                return diag.with_help(DiagHelp::InsRetType(curr.span));
             }
         }
 
-        if let Some(prev) = prev
+        if let Some(prev) = &self.prev
             && matches!(prev.kind, TokenKind::Id(_))
             && curr.kind == TokenKind::LBrack
-            && insertion.contains(&MetaSym::FuncParam)
+            && ins.contains(&MetaSym::FuncParam)
             && expected.contains(&MetaSym::LParen) {
             
-            let diag = Diag::make(DiagKind::MissingParamList, curr_span, false);
+            let diag = Diag::make(DiagKind::MissingParamList, curr.span, false);
 
-            let help = Some(DiagHelp::InsParamList(prev.span.clone()));
-
-            return (diag, help)
+            return diag.with_help(DiagHelp::InsParamList(prev.span.clone()));
         }
 
-        if let Some(prev) = prev
+        if let Some(prev) = &self.prev
             && prev.kind == TokenKind::LParen
             && curr.kind == TokenKind::RParen
             && expected.contains(&MetaSym::FuncParams) {
 
             let diag = Diag::make(
                 DiagKind::EmptyParamList,
-                Span::new(prev.span.start, curr_span.end),
+                Span::new(prev.span.start, curr.span.end),
                 false
             );
 
-            return (diag, Some(DiagHelp::InsParam(curr_span)))
+            return diag.with_help(DiagHelp::InsParam(curr.span));
         }
 
-        (make_fallback(expected, curr, prev), None)
+        Self::diag_fallback(&self, expected, &curr, None)
     }
 
-    fn recover_and_emit(
-        &mut self,
-        curr: Token,
-        prev: Option<Token>,
-        stack: &mut Vec<usize>,
-        syms: &mut Vec<GramSym>,
-    ) -> bool {
-        let expected = Heuristic::expected(stack, syms);
+    fn diag_insertion(&self, expected: HashSet<MetaSym>, curr: Token, ins: Vec<MetaSym>, cost: usize) -> Diag {
+        let diag = self.diag_insertion_inner(expected, curr.clone(), &ins);
 
-        let deletion = Heuristic::eval_deletion(&mut self.lexer, stack, syms);
-        let replacement = Heuristic::eval_replacement(&mut self.lexer, &self.delims, stack, syms);
+        if diag.has_help() || cost > Self::MAX_RECOVERY_COST {
+            return diag;
+        }
+        let Some((reference, before)) = Self::positional_info(&ins, &curr, &self.prev) else {
+            return diag;
+        };
 
-        let (insert_cost, insertion, next_insert_state) = Heuristic::eval_insertion(
-            &mut self.lexer,
-            &self.delims,
-            stack,
-            syms
-        );
+        diag.with_help(DiagHelp::InsToken(reference, before, ins))
+    }
+
+    fn norm_token(prev: &Option<Token>, curr: &Token) -> Token {
+        let span = if curr.kind == TokenKind::Eof && let Some(prev) = &prev {
+            Span::new(prev.span.end, prev.span.end)
+        } else {
+            curr.span.clone()
+        };
+
+        Token::new(curr.kind.clone(), span)
+    }
+    
+    fn apply_fix(&mut self, fix: Fix) {
+        for _ in 0..fix.skips {
+            self.next();
+        }
+
+        for action in fix.actions {
+            match action {
+                FixAction::Shift(kind, state_idx) => {
+                    let term = Term::from_token_kind(&kind)
+                        .expect("illegal shift by eof");
+
+                    self.stack.push(state_idx);
+                    self.syms.push(GramSym::T(term));
+
+                    if term.is_left_delim() {
+                        self.delims.push((term, None));
+                    } else if term.is_right_delim() {
+                        self.delims.pop();
+                    }
+
+                    self.prev = None;
+                }
+                FixAction::Reduce(rule_idx) => {
+                    let (lhs, rhs) = GRAMMAR[rule_idx];
+
+                    self.stack.truncate(self.stack.len() - rhs.len());
+
+                    let lhs_idx = lhs.idx();
+
+                    let stack_idx = self.stack_last();
+
+                    self.stack.push(
+                        GOTO_TABLE[stack_idx][lhs_idx].expect("unexpected invalid goto iterm: bad table"),
+                    );
+
+                    self.syms.truncate(self.syms.len() - rhs.len());
+                    self.syms.push(GramSym::N(lhs));
+
+                    self.lexer.reset_peek();
+                }
+            }
+        }
+    }
+
+    fn recover_and_emit(&mut self, curr: Token) -> bool {
+        let expected = Heuristic::expected(&self.stack);
+
+        let deletion    = Heuristic::eval_deletion(   &mut self.lexer, &self.stack);
+        let insertion   = Heuristic::eval_insertion(  &mut self.lexer, &self.stack);
+        let replacement = Heuristic::eval_replacement(&mut self.lexer, &self.stack);
+
+        let curr = Self::norm_token(&self.prev, &curr);
+
+        self.threw = true;
 
         // make diag
-        let (diag, mut help) = self.generate_diag(expected, &insertion, &curr, &prev);
+        let (diag, fix) = if let Some((rep_fix, sym)) = replacement
+            && insertion.as_ref().is_none_or(|(ins_fix, _)| rep_fix.cost < ins_fix.cost) {
 
-        // add help
-        if let Some((replace_cost, sym, rep_delims, rep_stack, rep_syms)) = replacement
-            && insert_cost.is_none_or(|cost| replace_cost < cost) {
+            (self.diag_replacement(expected, curr, sym, 0), rep_fix)
 
-            self.next();
+        } else if let Some(del_fix) = deletion
+            && insertion.as_ref().is_none_or(|(ins_fix, _)| del_fix.cost < ins_fix.cost) {
 
-            *stack = rep_stack;
-            *syms = rep_syms;
-            self.delims = rep_delims;
+            (self.diag_deletion(expected, curr, 0), del_fix)
 
-            if help.is_none() {
-                help = Some(DiagHelp::RepToken(curr, sym));
-            }
+        } else if let Some((ins_fix, syms)) = insertion {
 
-        } else if let Some(delete_cost) = deletion
-            && insert_cost.is_none_or(|cost| delete_cost < cost) {
+            (self.diag_insertion(expected, curr, syms, 0), ins_fix)
 
-            self.next();
+        } else {
+            let diag = Self::diag_fallback(&self, expected, &curr, None);
+            
+            self.report(diag);
+            return false;
+        };
 
-            if help.is_none() {
-                help = Some(DiagHelp::DelToken(curr));
-            }
-
-        } else if !insertion.is_empty() && let Some((new_delims, new_stack, new_syms)) = next_insert_state {
-            let (token, before) = Self::positional_info(&insertion, &curr, &prev);
-
-            *stack = new_stack;
-            *syms = new_syms;
-
-            self.delims = new_delims;
-
-            if help.is_none() && let Some(cost) = insert_cost && cost < Heuristic::MAX_INSERTION_COST {
-                help = Some(DiagHelp::InsToken(token, before, insertion));
-            }
-        }
-
-        if let Some(help) = help {
-            self.report(diag.with_help(help));
-            return true;
-        }
-
+        self.apply_fix(fix);
         self.report(diag);
-        false
+        return true;
     }
 }
 
 impl<'t, 'l, 's> Parser for ParserCore<'t, 'l, 's> {
     fn parse(&mut self) -> Option<Vec<usize>> {
-        let mut stack = vec![0];
-        let mut syms = vec![];
         let mut parse = vec![];
 
-        while let Some(curr) = self.lexer.peek() {
-            let stack_idx = *stack.last()
-                .expect("unexpected empty parser stack");
+        self.stack.push(0);
 
+        while let Some(curr) = self.lexer.peek().cloned() {
+            let stack_idx = self.stack_last();
             let token_idx = curr.kind.idx();
 
             let Some(action) = ACTION_TABLE[stack_idx][token_idx] else {
-                let err_curr = curr.clone();
-                let err_prev = self.prev.clone();
-
-                if !self.recover_and_emit(err_curr, err_prev, &mut stack, &mut syms) {
+                if !self.recover_and_emit(curr) {
                     return None;
                 }
 
                 self.lexer.reset_peek();
-
                 continue;
             };
 
@@ -328,15 +391,15 @@ impl<'t, 'l, 's> Parser for ParserCore<'t, 'l, 's> {
                     let term = Term::from_token_kind(&curr.kind)
                         .expect("illegal shift by eof");
 
-                    stack.push(state_idx);
-                    syms.push(GramSym::T(term));
+                    self.stack.push(state_idx);
+                    self.syms.push(GramSym::T(term));
 
                     if self.panic {
                         self.panic = Heuristic::eval_panic(&curr.kind);
                     }
 
                     if term.is_left_delim() {
-                        self.delims.push((curr.kind.clone(), Some(curr.span.clone())));
+                        self.delims.push((term, Some(curr.span.clone())));
                     } else if term.is_right_delim() {
                         self.delims.pop();
                     }
@@ -348,20 +411,18 @@ impl<'t, 'l, 's> Parser for ParserCore<'t, 'l, 's> {
 
                     let (lhs, rhs) = GRAMMAR[rule_idx];
 
-                    stack.truncate(stack.len() - rhs.len());
+                    self.stack.truncate(self.stack.len() - rhs.len());
 
                     let lhs_idx = lhs.idx();
 
-                    let stack_idx = *stack.last()
-                        .expect("unexpected empty parser stack");
+                    let stack_idx = self.stack_last();
 
-                    stack.push(
-                        GOTO_TABLE[stack_idx][lhs_idx]
-                            .expect("if this fails there is something wrong with the goto table"),
+                    self.stack.push(
+                        GOTO_TABLE[stack_idx][lhs_idx].expect("unexpected invalid goto iterm: bad table"),
                     );
 
-                    syms.truncate(syms.len() - rhs.len());
-                    syms.push(GramSym::N(lhs));
+                    self.syms.truncate(self.syms.len() - rhs.len());
+                    self.syms.push(GramSym::N(lhs));
 
                     self.lexer.reset_peek();
                 }

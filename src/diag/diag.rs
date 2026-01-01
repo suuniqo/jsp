@@ -49,6 +49,10 @@ impl Diag {
         self
     }
 
+    pub fn has_help(&self) -> bool {
+        self.help.is_some()
+    }
+
     pub fn main_span(&self) -> Span {
         self.spans[0].span.clone()
     }
