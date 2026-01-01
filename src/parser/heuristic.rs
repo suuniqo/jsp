@@ -9,6 +9,10 @@ use crate::grammar::{GRAMMAR, NotTerm, Term, GramSym, MetaSym};
 
 use super::action::{GOTO_TABLE, ACTION_TABLE, Action};
 
+pub enum Fix {
+    Skip,
+    Action(Action)
+}
 
 type LexerChained<'l> = iter::Chain<&'l mut (dyn Lexer + 'l), iter::Once<Token>>;
 

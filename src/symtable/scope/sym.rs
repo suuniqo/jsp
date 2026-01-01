@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{langtype::{LangType, Type}, symtable::pool::StrPool};
+use crate::{langtype::{LangType, Type}, span::Span, symtable::pool::StrPool};
 
 
 #[derive(Clone)]
@@ -8,14 +8,16 @@ pub struct Sym {
     pub pool_id: usize,
     pub offset: usize,
     pub ltype: LangType,
+    pub cause: Span,
 }
 
 impl Sym {
-    pub fn new(ltype: LangType, offset: usize, pool_id: usize) -> Self {
+    pub fn new(ltype: LangType, offset: usize, pool_id: usize, cause: Span) -> Self {
         Self {
             pool_id,
             offset,
             ltype,
+            cause,
         }
     }
 

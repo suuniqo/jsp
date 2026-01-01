@@ -20,6 +20,7 @@ use crate::{lexer::Lexer, reporter::Reporter};
 
 use super::{
     action::{Action, ACTION_TABLE, GOTO_TABLE},
+    semanter::Semanter,
     Parser,
 };
 
@@ -28,7 +29,7 @@ type LexerChained<'l> = iter::Chain<&'l mut (dyn Lexer + 'l), iter::Once<Token>>
 pub struct ParserCore<'t, 'l, 's> {
     reporter: Rc<RefCell<Reporter<'t>>>,
     lexer: MultiPeek<LexerChained<'l>>,
-    symtable: &'s mut dyn SymTable,
+    semanter: Semanter<'s>,
     prev: Option<Token>,
     panic: bool,
     delims: Vec<(TokenKind, Option<Span>)>,
@@ -43,7 +44,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
         Self {
             reporter,
             lexer: lexer.chain(iter::once(Token::eof())).multipeek(),
-            symtable,
+            semanter: Semanter::new(symtable),
             prev: None,
             panic: false,
             delims: Vec::new(),

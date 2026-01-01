@@ -1,6 +1,6 @@
 use std::{fmt, cell::Ref};
 
-use crate::{langtype::{TypeFunc, TypeVar}, writer::{Tracer, HasTracer, Writer, WriterErr}};
+use crate::{langtype::{TypeFunc, TypeVar}, span::Span, writer::{HasTracer, Tracer, Writer, WriterErr}};
 
 use super::{scope::{Scope, Sym}, SymTableCore, SymTable, StrPool};
 
@@ -18,12 +18,12 @@ impl SymTable for SymTableTracer {
         }
     }
 
-    fn push_func(&mut self, pool_id: usize, ftype: TypeFunc) -> Option<(bool, Sym)> {
-        self.inner.push_func(pool_id, ftype)
+    fn push_func(&mut self, pool_id: usize, ftype: TypeFunc, cause: Span) -> Option<(bool, Sym)> {
+        self.inner.push_func(pool_id, ftype, cause)
     }
 
-    fn push_var(&mut self, pool_id: usize, vtype: TypeVar) -> (bool, Sym) {
-        self.inner.push_var(pool_id, vtype)
+    fn push_var(&mut self, pool_id: usize, vtype: TypeVar, cause: Span) -> (bool, Sym) {
+        self.inner.push_var(pool_id, vtype, cause)
     }
 
     fn search(&self, pool_id: usize) -> Option<&Sym> {

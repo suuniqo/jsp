@@ -1,6 +1,6 @@
 use std::{rc::Rc, cell::RefCell, cell::Ref};
 
-use crate::langtype::{LangType, TypeFunc, TypeVar};
+use crate::{langtype::{LangType, TypeFunc, TypeVar}, span::Span};
 
 use super::{scope::{Scope, Sym}, StrPool, SymTable};
 
@@ -47,7 +47,7 @@ impl SymTable for SymTableCore {
         self.scopes.pop();
     }
 
-    fn push_func(&mut self, pool_id: usize, ftype: TypeFunc) -> Option<(bool, Sym)> {
+    fn push_func(&mut self, pool_id: usize, ftype: TypeFunc, cause: Span) -> Option<(bool, Sym)> {
         if self.pool().get(pool_id).is_none() {
             unreachable!("tried to push function with invalid pool id");
         }
@@ -56,7 +56,7 @@ impl SymTable for SymTableCore {
         }
 
         let ltype = LangType::Func(ftype);
-        let (inserted, sym) = self.curr_scope().intern(pool_id, ltype);
+        let (inserted, sym) = self.curr_scope().intern(pool_id, ltype, cause);
 
         if inserted {
             self.push_scope();
@@ -65,7 +65,7 @@ impl SymTable for SymTableCore {
         Some((inserted, sym))
     }
 
-    fn push_var(&mut self, pool_id: usize, vtype: TypeVar) -> (bool, Sym) {
+    fn push_var(&mut self, pool_id: usize, vtype: TypeVar, cause: Span) -> (bool, Sym) {
         if self.pool().get(pool_id).is_none() {
             unreachable!("tried to push function with invalid pool id");
         }
@@ -73,7 +73,7 @@ impl SymTable for SymTableCore {
         let scope = self.curr_scope();
 
         let ltype = LangType::Var(vtype);
-        let result = scope.intern(pool_id, ltype);
+        let result = scope.intern(pool_id, ltype, cause);
 
         result 
     }

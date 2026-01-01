@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, hash_map::Entry}, fmt};
 
-use crate::{langtype::LangType, symtable::pool::StrPool};
+use crate::{langtype::LangType, span::Span, symtable::pool::StrPool};
 
 use super::Sym;
 
@@ -24,7 +24,7 @@ impl Scope {
         scope
     }
 
-    pub fn intern(&mut self, pool_id: usize, ltype: LangType) -> (bool, Sym) {
+    pub fn intern(&mut self, pool_id: usize, ltype: LangType, cause: Span) -> (bool, Sym) {
         match self.map.entry(pool_id) {
             Entry::Occupied(entry) => (false, self.vec[*entry.get()].clone()),
             Entry::Vacant(entry) => {
@@ -37,7 +37,7 @@ impl Scope {
                 };
 
                 entry.insert(len);
-                self.vec.push(Sym::new(ltype, offset, pool_id));
+                self.vec.push(Sym::new(ltype, offset, pool_id, cause));
 
                 (true, self.vec[len].clone())
             },
