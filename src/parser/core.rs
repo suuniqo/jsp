@@ -6,7 +6,7 @@ use std::rc::Rc;
 use itertools::{Itertools, MultiPeek};
 
 use crate::diag::{DiagHelp, DiagSever};
-use crate::grammar::{GRAMMAR, GramSym, MetaSym, Term};
+use crate::grammar::{Grammar, MetaSym, Term};
 use crate::parser::heuristic::{Fix, FixAction, Heuristic};
 use crate::span::Span;
 use crate::symtable::SymTable;
@@ -20,7 +20,7 @@ use crate::{lexer::Lexer, reporter::Reporter};
 
 use super::{
     action::{Action, ACTION_TABLE, GOTO_TABLE},
-    semanter::Semanter,
+    semanter::SemAnalyzer,
     Parser,
 };
 
@@ -36,8 +36,7 @@ pub struct ParserCore<'t, 'l, 's> {
     delims: Vec<(Term, Option<Span>)>,
 
     stack: Vec<usize>,
-    syms: Vec<GramSym>,
-    semanter: Semanter<'s>,
+    semanter: SemAnalyzer<'s>,
 }
 
 impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
@@ -58,8 +57,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
             delims: Vec::new(),
 
             stack: Vec::new(),
-            syms: Vec::new(),
-            semanter: Semanter::new(symtable),
+            semanter: SemAnalyzer::new(symtable),
         }
     }
 
@@ -71,6 +69,10 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
         *self.stack.last().expect("unexpected empty parser stack: bad table")
     }
 
+    fn prev(&self) -> Option<&Token> {
+        self.prev.as_ref()
+    }
+
     fn report(&mut self, diag: Diag) {
         if !self.panic {
             self.reporter.borrow_mut().push(diag);
@@ -79,9 +81,9 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
     }
 
     fn positional_info(
-        insertion: &Vec<MetaSym>,
+        insertion: &[MetaSym],
         err_curr: &Token,
-        err_prev: &Option<Token>,
+        err_prev: Option<&Token>,
     ) -> Option<(Token, bool)> {
         let before = if err_curr.kind == TokenKind::Eof {
             false
@@ -112,7 +114,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
             false,
         );
 
-        if let Some(prev) = &self.prev {
+        if let Some(prev) = self.prev() {
             diag.add_span(prev.span.clone(), DiagSever::Note, Some("after this".to_string()), false);
         }
 
@@ -141,7 +143,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
         Self::diag_fallback(&self, expected, &curr, Some(help))
     }
 
-    fn diag_insertion_inner(&self, expected: HashSet<MetaSym>, curr: Token, ins: &Vec<MetaSym>) -> Diag {
+    fn diag_insertion_inner(&self, expected: HashSet<MetaSym>, curr: Token, ins: &[MetaSym]) -> Diag {
         let candidate = ins.first()
             .expect("unexpected empty insertion: incorrect eval_insertion method");
 
@@ -194,14 +196,14 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
         if *candidate == MetaSym::Semi {
             let mut diag = Diag::make(DiagKind::MissingSemi, curr.span, false);
 
-            if let Some(prev) = &self.prev {
+            if let Some(prev) = self.prev() {
                 diag.add_span(prev.span.clone(), DiagSever::Note, Some("after this".to_string()), false);
             }
 
             return diag;
         }
 
-        if let Some(prev) = &self.prev
+        if let Some(prev) = self.prev()
             && prev.kind == TokenKind::Comma
             && curr.kind == TokenKind::RParen {
 
@@ -218,7 +220,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
             }
         }
 
-        if matches!(curr.kind, TokenKind::Id(_)) {
+        if matches!(curr.kind, TokenKind::Id(..)) {
             if expected.contains(&MetaSym::Type) {
                 let diag = Diag::make(DiagKind::MissingVarType, curr.span.clone(), false);
 
@@ -232,8 +234,8 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
             }
         }
 
-        if let Some(prev) = &self.prev
-            && matches!(prev.kind, TokenKind::Id(_))
+        if let Some(prev) = self.prev()
+            && matches!(prev.kind, TokenKind::Id(..))
             && curr.kind == TokenKind::LBrack
             && ins.contains(&MetaSym::FuncParam)
             && expected.contains(&MetaSym::LParen) {
@@ -243,7 +245,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
             return diag.with_help(DiagHelp::InsParamList(prev.span.clone()));
         }
 
-        if let Some(prev) = &self.prev
+        if let Some(prev) = self.prev()
             && prev.kind == TokenKind::LParen
             && curr.kind == TokenKind::RParen
             && expected.contains(&MetaSym::FuncParams) {
@@ -266,15 +268,15 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
         if diag.has_help() || cost > Self::MAX_RECOVERY_COST {
             return diag;
         }
-        let Some((reference, before)) = Self::positional_info(&ins, &curr, &self.prev) else {
+        let Some((reference, before)) = Self::positional_info(&ins, &curr, self.prev()) else {
             return diag;
         };
 
         diag.with_help(DiagHelp::InsToken(reference, before, ins))
     }
 
-    fn norm_token(prev: &Option<Token>, curr: &Token) -> Token {
-        let span = if curr.kind == TokenKind::Eof && let Some(prev) = &prev {
+    fn norm_token(prev: Option<&Token>, curr: &Token) -> Token {
+        let span = if curr.kind == TokenKind::Eof && let Some(prev) = prev {
             Span::new(prev.span.end, prev.span.end)
         } else {
             curr.span.clone()
@@ -295,7 +297,6 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
                         .expect("illegal shift by eof");
 
                     self.stack.push(state_idx);
-                    self.syms.push(GramSym::T(term));
 
                     if term.is_left_delim() {
                         self.delims.push((term, None));
@@ -303,10 +304,12 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
                         self.delims.pop();
                     }
 
+                    self.semanter.on_shift(kind, None);
+
                     self.prev = None;
                 }
                 FixAction::Reduce(rule_idx) => {
-                    let (lhs, rhs) = GRAMMAR[rule_idx];
+                    let (lhs, rhs) = Grammar::RULES[rule_idx];
 
                     self.stack.truncate(self.stack.len() - rhs.len());
 
@@ -318,8 +321,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
                         GOTO_TABLE[stack_idx][lhs_idx].expect("unexpected invalid goto iterm: bad table"),
                     );
 
-                    self.syms.truncate(self.syms.len() - rhs.len());
-                    self.syms.push(GramSym::N(lhs));
+                    let _ = self.semanter.on_reduce(rule_idx);
 
                     self.lexer.reset_peek();
                 }
@@ -334,7 +336,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
         let insertion   = Heuristic::eval_insertion(  &mut self.lexer, &self.stack);
         let replacement = Heuristic::eval_replacement(&mut self.lexer, &self.stack);
 
-        let curr = Self::norm_token(&self.prev, &curr);
+        let curr = Self::norm_token(self.prev(), &curr);
 
         self.threw = true;
 
@@ -392,7 +394,6 @@ impl<'t, 'l, 's> Parser for ParserCore<'t, 'l, 's> {
                         .expect("illegal shift by eof");
 
                     self.stack.push(state_idx);
-                    self.syms.push(GramSym::T(term));
 
                     if self.panic {
                         self.panic = Heuristic::eval_panic(&curr.kind);
@@ -404,12 +405,14 @@ impl<'t, 'l, 's> Parser for ParserCore<'t, 'l, 's> {
                         self.delims.pop();
                     }
 
+                    self.semanter.on_shift(curr.kind, Some(curr.span));
+
                     self.next();
                 }
                 Action::Reduce(rule_idx) => {
                     parse.push(rule_idx + 1);
 
-                    let (lhs, rhs) = GRAMMAR[rule_idx];
+                    let (lhs, rhs) = Grammar::RULES[rule_idx];
 
                     self.stack.truncate(self.stack.len() - rhs.len());
 
@@ -421,8 +424,9 @@ impl<'t, 'l, 's> Parser for ParserCore<'t, 'l, 's> {
                         GOTO_TABLE[stack_idx][lhs_idx].expect("unexpected invalid goto iterm: bad table"),
                     );
 
-                    self.syms.truncate(self.syms.len() - rhs.len());
-                    self.syms.push(GramSym::N(lhs));
+                    if let Err(diag) = self.semanter.on_reduce(rule_idx) && !self.threw {
+                        self.report(diag);
+                    }
 
                     self.lexer.reset_peek();
                 }

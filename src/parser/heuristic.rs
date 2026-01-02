@@ -4,7 +4,7 @@ use itertools::MultiPeek;
 
 use crate::lexer::Lexer;
 use crate::token::{Token, TokenKind};
-use crate::grammar::{GRAMMAR, NotTerm, Term, MetaSym};
+use crate::grammar::{Grammar, MetaSym, NotTerm, Term};
 
 use super::action::{GOTO_TABLE, ACTION_TABLE, Action};
 
@@ -40,7 +40,7 @@ type LexerChained<'l> = iter::Chain<&'l mut (dyn Lexer + 'l), iter::Once<Token>>
 pub struct Heuristic;
 
 impl<'l> Heuristic {
-    pub fn expected(stack: &Vec<usize>) -> HashSet<MetaSym> {
+    pub fn expected(stack: &[usize]) -> HashSet<MetaSym> {
         let paths: Vec<(usize, Vec<usize>)> = (0..TokenKind::COUNT)
             .filter_map(|i| {
                 Self::token_shifts(i, stack).map(|(st, _)| (i, st))
@@ -68,9 +68,9 @@ impl<'l> Heuristic {
 
     pub fn eval_insertion(
         lexer: &mut MultiPeek<LexerChained<'l>>, 
-        stack: &Vec<usize>,
+        stack: &[usize],
     ) -> Option<(Fix, Vec<MetaSym>)> {
-        let mut curr_stack = stack.clone();
+        let mut curr_stack = stack.to_vec();
 
         let mut actions = Vec::new();
         let mut insertion = Vec::new();
@@ -167,7 +167,7 @@ impl<'l> Heuristic {
         None
     }
 
-    pub fn eval_deletion(lexer: &mut MultiPeek<LexerChained<'l>>, stack: &Vec<usize>) -> Option<Fix> {
+    pub fn eval_deletion(lexer: &mut MultiPeek<LexerChained<'l>>, stack: &[usize]) -> Option<Fix> {
         let mut cost = 0;
         let mut skips = 0;
 
@@ -191,7 +191,7 @@ impl<'l> Heuristic {
 
     pub fn eval_replacement(
         lexer: &mut MultiPeek<LexerChained<'l>>,
-        stack: &Vec<usize>,
+        stack: &[usize],
     ) -> Option<(Fix, MetaSym)> {
 
         lexer.reset_peek();
@@ -242,7 +242,7 @@ impl<'l> Heuristic {
 
     fn reduce(
         token_idx: usize,
-        stack: &Vec<usize>,
+        stack: &[usize],
     ) -> Option<(Vec<usize>, Vec<FixAction>)> {
         let stack_idx = *stack.last()
             .expect("unexpected empty parser stack");
@@ -251,7 +251,7 @@ impl<'l> Heuristic {
             return None;
         };
 
-        let mut stack_clone = stack.clone();
+        let mut stack_clone = stack.to_vec();
         let mut trace = Vec::new();
 
         let Action::Reduce(mut rule_idx) = action else {
@@ -259,7 +259,7 @@ impl<'l> Heuristic {
         };
 
         loop {
-            let (lhs, rhs) = GRAMMAR[rule_idx];
+            let (lhs, rhs) = Grammar::RULES[rule_idx];
 
             stack_clone.truncate(stack_clone.len() - rhs.len());
 
@@ -291,7 +291,7 @@ impl<'l> Heuristic {
 
     fn token_shifts(
         token_idx: usize,
-        stack: &Vec<usize>,
+        stack: &[usize],
     ) -> Option<(Vec<usize>, Vec<FixAction>)> {
         let (mut stack_clone, mut trace) = Self::reduce(token_idx, stack)?;
 
@@ -354,7 +354,7 @@ impl TokenKind {
             TokenKind::FloatLit(_) => 2,
             TokenKind::IntLit(_) => 2,
             TokenKind::StrLit(_) => 2,
-            TokenKind::Id(_) => 1,
+            TokenKind::Id(..) => 1,
             TokenKind::LParen => 1,
             _ => 0,
         }

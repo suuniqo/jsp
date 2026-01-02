@@ -3,7 +3,7 @@ mod tracer;
 mod traits;
 mod action;
 mod heuristic;
-mod semanter;
+mod sem;
 
 pub use core::ParserCore;
 pub use traits::Parser;

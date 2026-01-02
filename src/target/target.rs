@@ -75,7 +75,7 @@ impl Target {
         self.src.get(start..end)
     }
 
-    pub fn line_offsets(&self) -> &Vec<usize> {
+    pub fn line_offsets(&self) -> &[usize] {
         &self.offsets
     }
 

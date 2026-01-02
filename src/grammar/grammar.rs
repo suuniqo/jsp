@@ -3,88 +3,94 @@ use super::{Term, NotTerm, GramSym};
 
 pub type Rule = (NotTerm, &'static [GramSym]);
 
-pub const GRAMMAR: &[Rule] = &[
-    (NotTerm::PP, &[GramSym::N(NotTerm::P)]),
+pub struct Grammar;
 
-    (NotTerm::P, &[]),
-    (NotTerm::P, &[GramSym::N(NotTerm::F), GramSym::N(NotTerm::P)]),
-    (NotTerm::P, &[GramSym::N(NotTerm::B), GramSym::N(NotTerm::P)]),
+impl Grammar {
+    pub const LEN: usize = 60;
 
-    (NotTerm::C, &[]),
-    (NotTerm::C, &[GramSym::N(NotTerm::B), GramSym::N(NotTerm::C)]),
+    pub const RULES: [Rule; Self::LEN] = [
+        (NotTerm::PP, &[GramSym::N(NotTerm::P)]),
 
-    (NotTerm::K, &[]),
-    (NotTerm::K, &[GramSym::T(Term::Comma), GramSym::N(NotTerm::T), GramSym::T(Term::Id), GramSym::N(NotTerm::K)]),
+        (NotTerm::P, &[]),
+        (NotTerm::P, &[GramSym::N(NotTerm::F), GramSym::N(NotTerm::P)]),
+        (NotTerm::P, &[GramSym::N(NotTerm::B), GramSym::N(NotTerm::P)]),
 
-    (NotTerm::A, &[GramSym::T(Term::Void)]),
-    (NotTerm::A, &[GramSym::N(NotTerm::T), GramSym::T(Term::Id), GramSym::N(NotTerm::K)]),
+        (NotTerm::C, &[]),
+        (NotTerm::C, &[GramSym::N(NotTerm::B), GramSym::N(NotTerm::C)]),
 
-    (NotTerm::H, &[GramSym::T(Term::Void)]),
-    (NotTerm::H, &[GramSym::N(NotTerm::T)]),
+        (NotTerm::K, &[]),
+        (NotTerm::K, &[GramSym::T(Term::Comma), GramSym::N(NotTerm::T), GramSym::T(Term::Id), GramSym::N(NotTerm::K)]),
 
-    (NotTerm::F3, &[GramSym::T(Term::LParen), GramSym::N(NotTerm::A), GramSym::T(Term::RParen)]),
-    (NotTerm::F2, &[GramSym::T(Term::Id)]),
-    (NotTerm::F1, &[GramSym::N(NotTerm::H)]),
+        (NotTerm::A, &[GramSym::T(Term::Void)]),
+        (NotTerm::A, &[GramSym::N(NotTerm::T), GramSym::T(Term::Id), GramSym::N(NotTerm::K)]),
 
-    (NotTerm::F, &[GramSym::T(Term::Func), GramSym::N(NotTerm::F1), GramSym::N(NotTerm::F2), GramSym::N(NotTerm::F3), GramSym::T(Term::LBrack), GramSym::N(NotTerm::C), GramSym::T(Term::RBrack)]),
+        (NotTerm::H, &[GramSym::T(Term::Void)]),
+        (NotTerm::H, &[GramSym::N(NotTerm::T)]),
 
-    (NotTerm::X, &[]),
-    (NotTerm::X, &[GramSym::N(NotTerm::E)]),
+        (NotTerm::F3, &[GramSym::T(Term::LParen), GramSym::N(NotTerm::A), GramSym::T(Term::RParen)]),
+        (NotTerm::F2, &[GramSym::T(Term::Id)]),
+        (NotTerm::F1, &[GramSym::N(NotTerm::H)]),
 
-    (NotTerm::M, &[]),
+        (NotTerm::F, &[GramSym::T(Term::Func), GramSym::N(NotTerm::F1), GramSym::N(NotTerm::F2), GramSym::N(NotTerm::F3), GramSym::T(Term::LBrack), GramSym::N(NotTerm::C), GramSym::T(Term::RBrack)]),
 
-    (NotTerm::T, &[GramSym::T(Term::Str)]),
-    (NotTerm::T, &[GramSym::T(Term::Bool)]),
-    (NotTerm::T, &[GramSym::T(Term::Float)]),
-    (NotTerm::T, &[GramSym::T(Term::Int)]),
+        (NotTerm::X, &[]),
+        (NotTerm::X, &[GramSym::N(NotTerm::E)]),
 
-    (NotTerm::B, &[GramSym::T(Term::Do), GramSym::T(Term::LBrack), GramSym::N(NotTerm::C), GramSym::T(Term::RBrack), GramSym::T(Term::While), GramSym::T(Term::LParen), GramSym::N(NotTerm::E), GramSym::T(Term::RParen), GramSym::T(Term::Semi)]),
-    (NotTerm::B, &[GramSym::T(Term::Let), GramSym::N(NotTerm::M), GramSym::N(NotTerm::T), GramSym::T(Term::Id), GramSym::T(Term::Assign), GramSym::N(NotTerm::E), GramSym::T(Term::Semi)]),
-    (NotTerm::B, &[GramSym::T(Term::Let), GramSym::N(NotTerm::M), GramSym::N(NotTerm::T), GramSym::T(Term::Id), GramSym::T(Term::Semi)]),
-    (NotTerm::B, &[GramSym::T(Term::If), GramSym::T(Term::LParen), GramSym::N(NotTerm::E), GramSym::T(Term::RParen), GramSym::N(NotTerm::S)]),
-    (NotTerm::B, &[GramSym::N(NotTerm::S)]),
+        (NotTerm::M, &[]),
 
-    (NotTerm::Q, &[]),
-    (NotTerm::Q, &[GramSym::T(Term::Comma), GramSym::N(NotTerm::E), GramSym::N(NotTerm::Q)]),
+        (NotTerm::T, &[GramSym::T(Term::Str)]),
+        (NotTerm::T, &[GramSym::T(Term::Bool)]),
+        (NotTerm::T, &[GramSym::T(Term::Float)]),
+        (NotTerm::T, &[GramSym::T(Term::Int)]),
 
-    (NotTerm::L, &[]),
-    (NotTerm::L, &[GramSym::N(NotTerm::E), GramSym::N(NotTerm::Q)]),
+        (NotTerm::B, &[GramSym::T(Term::Do), GramSym::T(Term::LBrack), GramSym::N(NotTerm::C), GramSym::T(Term::RBrack), GramSym::T(Term::While), GramSym::T(Term::LParen), GramSym::N(NotTerm::E), GramSym::T(Term::RParen), GramSym::T(Term::Semi)]),
+        (NotTerm::B, &[GramSym::T(Term::Let), GramSym::N(NotTerm::M), GramSym::N(NotTerm::T), GramSym::T(Term::Id), GramSym::T(Term::Assign), GramSym::N(NotTerm::E), GramSym::T(Term::Semi)]),
+        (NotTerm::B, &[GramSym::T(Term::Let), GramSym::N(NotTerm::M), GramSym::N(NotTerm::T), GramSym::T(Term::Id), GramSym::T(Term::Semi)]),
+        (NotTerm::B, &[GramSym::T(Term::If), GramSym::T(Term::LParen), GramSym::N(NotTerm::E), GramSym::T(Term::RParen), GramSym::N(NotTerm::S)]),
+        (NotTerm::B, &[GramSym::N(NotTerm::S)]),
 
-    (NotTerm::S, &[GramSym::T(Term::Ret), GramSym::N(NotTerm::X), GramSym::T(Term::Semi)]),
-    (NotTerm::S, &[GramSym::T(Term::Read), GramSym::T(Term::Id), GramSym::T(Term::Semi)]),
-    (NotTerm::S, &[GramSym::T(Term::Write), GramSym::N(NotTerm::E), GramSym::T(Term::Semi)]),
-    (NotTerm::S, &[GramSym::T(Term::Id), GramSym::T(Term::LParen), GramSym::N(NotTerm::L), GramSym::T(Term::RParen), GramSym::T(Term::Semi)]),
-    (NotTerm::S, &[GramSym::T(Term::Id), GramSym::T(Term::AndAssign), GramSym::N(NotTerm::E), GramSym::T(Term::Semi)]),
-    (NotTerm::S, &[GramSym::T(Term::Id), GramSym::T(Term::Assign), GramSym::N(NotTerm::E), GramSym::T(Term::Semi)]),
+        (NotTerm::Q, &[]),
+        (NotTerm::Q, &[GramSym::T(Term::Comma), GramSym::N(NotTerm::E), GramSym::N(NotTerm::Q)]),
 
-    (NotTerm::V, &[GramSym::T(Term::Id)]),
-    (NotTerm::V, &[GramSym::T(Term::False)]),
-    (NotTerm::V, &[GramSym::T(Term::True)]),
-    (NotTerm::V, &[GramSym::T(Term::StrLit)]),
-    (NotTerm::V, &[GramSym::T(Term::FloatLit)]),
-    (NotTerm::V, &[GramSym::T(Term::IntLit)]),
-    (NotTerm::V, &[GramSym::T(Term::LParen), GramSym::N(NotTerm::E), GramSym::T(Term::RParen)]),
-    (NotTerm::V, &[GramSym::T(Term::Id), GramSym::T(Term::LParen), GramSym::N(NotTerm::L), GramSym::T(Term::RParen)]),
+        (NotTerm::L, &[]),
+        (NotTerm::L, &[GramSym::N(NotTerm::E), GramSym::N(NotTerm::Q)]),
 
-    (NotTerm::EE, &[GramSym::N(NotTerm::V)]),
-    (NotTerm::EE, &[GramSym::T(Term::Not), GramSym::N(NotTerm::EE)]),
+        (NotTerm::S, &[GramSym::T(Term::Ret), GramSym::N(NotTerm::X), GramSym::T(Term::Semi)]),
+        (NotTerm::S, &[GramSym::T(Term::Read), GramSym::T(Term::Id), GramSym::T(Term::Semi)]),
+        (NotTerm::S, &[GramSym::T(Term::Write), GramSym::N(NotTerm::E), GramSym::T(Term::Semi)]),
+        (NotTerm::S, &[GramSym::T(Term::Id), GramSym::T(Term::LParen), GramSym::N(NotTerm::L), GramSym::T(Term::RParen), GramSym::T(Term::Semi)]),
+        (NotTerm::S, &[GramSym::T(Term::Id), GramSym::T(Term::AndAssign), GramSym::N(NotTerm::E), GramSym::T(Term::Semi)]),
+        (NotTerm::S, &[GramSym::T(Term::Id), GramSym::T(Term::Assign), GramSym::N(NotTerm::E), GramSym::T(Term::Semi)]),
 
-    (NotTerm::UU, &[GramSym::N(NotTerm::EE)]),
-    (NotTerm::UU, &[GramSym::N(NotTerm::UU), GramSym::T(Term::Mul), GramSym::N(NotTerm::EE)]),
+        (NotTerm::V, &[GramSym::T(Term::Id)]),
+        (NotTerm::V, &[GramSym::T(Term::False)]),
+        (NotTerm::V, &[GramSym::T(Term::True)]),
+        (NotTerm::V, &[GramSym::T(Term::StrLit)]),
+        (NotTerm::V, &[GramSym::T(Term::FloatLit)]),
+        (NotTerm::V, &[GramSym::T(Term::IntLit)]),
+        (NotTerm::V, &[GramSym::T(Term::LParen), GramSym::N(NotTerm::E), GramSym::T(Term::RParen)]),
+        (NotTerm::V, &[GramSym::T(Term::Id), GramSym::T(Term::LParen), GramSym::N(NotTerm::L), GramSym::T(Term::RParen)]),
 
-    (NotTerm::U, &[GramSym::N(NotTerm::UU)]),
-    (NotTerm::U, &[GramSym::N(NotTerm::U), GramSym::T(Term::Sum), GramSym::N(NotTerm::UU)]),
+        (NotTerm::EE, &[GramSym::N(NotTerm::V)]),
+        (NotTerm::EE, &[GramSym::T(Term::Not), GramSym::N(NotTerm::EE)]),
 
-    (NotTerm::RR, &[GramSym::N(NotTerm::U)]),
-    (NotTerm::RR, &[GramSym::N(NotTerm::RR), GramSym::T(Term::Lt), GramSym::N(NotTerm::U)]),
+        (NotTerm::UU, &[GramSym::N(NotTerm::EE)]),
+        (NotTerm::UU, &[GramSym::N(NotTerm::UU), GramSym::T(Term::Mul), GramSym::N(NotTerm::EE)]),
 
-    (NotTerm::R, &[GramSym::N(NotTerm::RR)]),
-    (NotTerm::R, &[GramSym::N(NotTerm::R), GramSym::T(Term::Eq), GramSym::N(NotTerm::RR)]),
+        (NotTerm::U, &[GramSym::N(NotTerm::UU)]),
+        (NotTerm::U, &[GramSym::N(NotTerm::U), GramSym::T(Term::Sum), GramSym::N(NotTerm::UU)]),
 
-    (NotTerm::E, &[GramSym::N(NotTerm::R)]),
-    (NotTerm::E, &[GramSym::N(NotTerm::E), GramSym::T(Term::And), GramSym::N(NotTerm::R)]),
+        (NotTerm::RR, &[GramSym::N(NotTerm::U)]),
+        (NotTerm::RR, &[GramSym::N(NotTerm::RR), GramSym::T(Term::Lt), GramSym::N(NotTerm::U)]),
 
-    // So that draco works with unary operators
-    (NotTerm::EE, &[GramSym::T(Term::Sum), GramSym::N(NotTerm::EE)]),
-    (NotTerm::EE, &[GramSym::T(Term::Sub), GramSym::N(NotTerm::EE)]),
-];
+        (NotTerm::R, &[GramSym::N(NotTerm::RR)]),
+        (NotTerm::R, &[GramSym::N(NotTerm::R), GramSym::T(Term::Eq), GramSym::N(NotTerm::RR)]),
+
+        (NotTerm::E, &[GramSym::N(NotTerm::R)]),
+        (NotTerm::E, &[GramSym::N(NotTerm::E), GramSym::T(Term::And), GramSym::N(NotTerm::R)]),
+
+        // So that draco works with unary operators
+        (NotTerm::EE, &[GramSym::T(Term::Sum), GramSym::N(NotTerm::EE)]),
+        (NotTerm::EE, &[GramSym::T(Term::Sub), GramSym::N(NotTerm::EE)]),
+    ];
+}

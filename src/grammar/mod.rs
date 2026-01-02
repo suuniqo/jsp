@@ -2,7 +2,7 @@ mod grammar;
 mod gramsym;
 mod metasym;
 
-pub use grammar::GRAMMAR;
+pub use grammar::Grammar;
 
 pub use gramsym::{
     Term,

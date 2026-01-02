@@ -23,7 +23,7 @@ pub enum TokenKind {
     FloatLit(f32),
     IntLit(i16),
     StrLit(String),
-    Id((usize, Rc<str>)),
+    Id(usize, Rc<str>),
 
     Assign,
     AndAssign,
@@ -70,7 +70,7 @@ impl fmt::Display for TokenKind {
             TokenKind::FloatLit(value) => ("FloatLit", Some(value.to_string())),
             TokenKind::IntLit(value) => ("IntLit", Some(value.to_string())),
             TokenKind::StrLit(value) => ("StrLit", Some(format!("\"{value}\""))),
-            TokenKind::Id((value, _)) => ("Id", Some(value.to_string())),
+            TokenKind::Id(value, _) => ("Id", Some(value.to_string())),
 
             TokenKind::Assign => ("Assign", None),
             TokenKind::AndAssign => ("AndAssign", None),
@@ -140,7 +140,7 @@ impl TokenKind {
             TokenKind::FloatLit(_) => "float literal",
             TokenKind::IntLit(_) => "int literal",
             TokenKind::StrLit(_) => "string literal",
-            TokenKind::Id(_) => "identifier",
+            TokenKind::Id(..) => "identifier",
 
             TokenKind::Assign => "=",
             TokenKind::AndAssign => "&=",
@@ -192,7 +192,7 @@ impl TokenKind {
                 return inner.to_string();
             },
             TokenKind::StrLit(inner) => return format!("\"{}\"", inner),
-            TokenKind::Id((_, lexeme)) => return lexeme.to_string(),
+            TokenKind::Id(_, lexeme) => return lexeme.to_string(),
 
             TokenKind::Assign => "=",
             TokenKind::AndAssign => "&=",

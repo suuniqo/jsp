@@ -132,7 +132,7 @@ impl Term {
             TokenKind::FloatLit(_) => Term::FloatLit,
             TokenKind::IntLit(_) => Term::IntLit,
             TokenKind::StrLit(_) => Term::StrLit,
-            TokenKind::Id(_) => Term::Id,
+            TokenKind::Id(..) => Term::Id,
             TokenKind::Assign => Term::Assign,
             TokenKind::AndAssign => Term::AndAssign,
             TokenKind::Comma => Term::Comma,

@@ -1,6 +1,6 @@
 use std::{collections::HashSet, fmt};
 
-use super::{Term, NotTerm, GramSym, GRAMMAR};
+use super::{Term, NotTerm, GramSym, Grammar};
 
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -44,7 +44,7 @@ impl MetaSym {
         let mut redundant = HashSet::new();
 
         for nt in non_term.iter().filter(|nt| !matches!(nt, NotTerm::P | NotTerm::PP)) {
-            let begs: HashSet<GramSym> = GRAMMAR
+            let begs: HashSet<GramSym> = Grammar::RULES
                 .iter()
                 .filter(|(lhs, _)| lhs == nt)
                 .filter_map(|(_, rhs)| rhs.first().cloned())
