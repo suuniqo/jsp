@@ -6,6 +6,7 @@ use crate::style::Color;
 
 fn get_style() -> Styles {
     Styles::styled()
+        .header(Style::default())
         .usage(Style::default())
         .placeholder(Style::default().bold())
         .literal(Ansi256Color(Color::White.code()).on_default().bold())
@@ -37,10 +38,13 @@ pub struct Cli {
     /// Dump parse trace (stdout by default)
     #[arg(long, short = 'p', value_name = "FILE")]
     pub parse_trace: Option<Option<String>>,
+
+    /// Silence any errors or warnings
+    #[arg(long, short = 'q')]
+    pub quiet: bool,
 }
 
 impl Cli {
-
     pub fn parse_args() -> Self {
         Cli::parse()
     }

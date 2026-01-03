@@ -73,7 +73,7 @@ fn analyze_source(cli: &Cli) {
             process::exit(1);
         });
 
-    let reporter = Rc::new(RefCell::new(Reporter::new(&target)));
+    let reporter = Rc::new(RefCell::new(Reporter::new(&target, cli.quiet)));
     let strpool = Rc::new(RefCell::new(StrPool::new()));
 
     let lexer = LexerCore::new(Rc::clone(&reporter), Rc::clone(&strpool), &target);
@@ -93,7 +93,7 @@ fn analyze_source(cli: &Cli) {
         lexer.before_drop();    drop(lexer);
     }
 
-    reporter.borrow().dump();
+    reporter.borrow().finnish();
 }
 
 fn main() {

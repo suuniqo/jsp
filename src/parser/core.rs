@@ -20,7 +20,7 @@ use crate::{lexer::Lexer, reporter::Reporter};
 
 use super::{
     action::{Action, ACTION_TABLE, GOTO_TABLE},
-    semanter::SemAnalyzer,
+    sem::SemAnalyzer,
     Parser,
 };
 
@@ -30,7 +30,6 @@ pub struct ParserCore<'t, 'l, 's> {
     reporter: Rc<RefCell<Reporter<'t>>>,
     lexer: MultiPeek<LexerChained<'l>>,
 
-    threw: bool,
     panic: bool,
     prev: Option<Token>,
     delims: Vec<(Term, Option<Span>)>,
@@ -51,7 +50,6 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
             reporter,
             lexer: lexer.chain(iter::once(Token::eof())).multipeek(),
 
-            threw: false,
             panic: false,
             prev: None,
             delims: Vec::new(),
@@ -75,7 +73,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
 
     fn report(&mut self, diag: Diag) {
         if !self.panic {
-            self.reporter.borrow_mut().push(diag);
+            self.reporter.borrow_mut().emit(diag);
             self.panic = true;
         }
     }
@@ -338,8 +336,6 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
 
         let curr = Self::norm_token(self.prev(), &curr);
 
-        self.threw = true;
-
         // make diag
         let (diag, fix) = if let Some((rep_fix, sym)) = replacement
             && insertion.as_ref().is_none_or(|(ins_fix, _)| rep_fix.cost < ins_fix.cost) {
@@ -424,7 +420,7 @@ impl<'t, 'l, 's> Parser for ParserCore<'t, 'l, 's> {
                         GOTO_TABLE[stack_idx][lhs_idx].expect("unexpected invalid goto iterm: bad table"),
                     );
 
-                    if let Err(diag) = self.semanter.on_reduce(rule_idx) && !self.threw {
+                    if let Err(diag) = self.semanter.on_reduce(rule_idx) {
                         self.report(diag);
                     }
 
@@ -432,6 +428,11 @@ impl<'t, 'l, 's> Parser for ParserCore<'t, 'l, 's> {
                 }
                 Action::Accept => {
                     parse.push(0 + 1);
+
+                    if let Err(diag) = self.semanter.on_reduce(0) {
+                        self.report(diag);
+                    }
+
                     return Some(parse);
                 }
             }

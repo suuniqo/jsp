@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, fmt};
 
-use crate::{style::Style, diag::{Diag, DiagHelp, DiagKind, DiagSever, DiagSpan, HelpAction}, grammar::MetaSym, span::Span, target::Target};
+use crate::{diag::{Diag, DiagHelp, DiagKind, DiagSever, DiagSpan, HelpAction}, grammar::MetaSym, span::Span, style::Style, target::Target};
 
 pub struct ReporterFmt;
 
@@ -70,7 +70,7 @@ impl ReporterFmt {
 
         for (row, spans) in span_map {
             if last_row.is_some_and(|last_row| last_row + 1 != row) {
-                eprintln!("{} {}:", max_padding, Style::High)
+                eprintln!("{} {}:", max_padding, Style::High);
             }
 
             let (line, offset) = trg.nth_line(row)
@@ -465,6 +465,18 @@ impl<'a> fmt::Display for Fmt<'a, DiagHelp> {
             DiagHelp::InsRetType(_) => write!(f, "{}add a {}return type", Style::Reset, Style::High),
             DiagHelp::InsParamList(..) => write!(f, "{}add a {}parameter list", Style::Reset, Style::High),
             DiagHelp::InsParam(_) => write!(f, "{}perhaps you meant to have no parameters", Style::Reset),
+            DiagHelp::RepRetType(ret_type, _) => write!(
+                f,
+                "{}change the return type to `{}{}{}`",
+                Style::Reset,
+                Style::High,
+                ret_type,
+                Style::Reset
+            ),
+            DiagHelp::RepId(..) => write!(f, "{}choose a different name", Style::Reset),
+            DiagHelp::DelArgs(_) => write!(f, "{}call the function without arguments", Style::Reset),
+            DiagHelp::InsCall(_) => write!(f, "{}try calling the function", Style::Reset),
+            DiagHelp::DelCall(_) => write!(f, "{}try removing the call", Style::Reset),
         }
     }
 }
@@ -539,6 +551,21 @@ impl fmt::Display for DiagKind {
             DiagKind::EmptyParamList => write!(f, "{}empty {}parameter list{} in a function declaration",
                 Style::Reset, Style::High, Style::Reset
             ),
+            DiagKind::MismatchedRetType(..) => write!(f, "{}mismatched {}return type{} in a function",
+                Style::Reset, Style::High, Style::Reset
+            ),
+            DiagKind::UnexpectedRetType(_) => write!(f, "{}unexpected {}return type{} in a void function",
+                Style::Reset, Style::High, Style::Reset
+            ),
+            DiagKind::ExpectedRetType => write!(f, "{}no {}return statements{} in a non-void function",
+                Style::Reset, Style::High, Style::Reset
+            ),
+            DiagKind::Redefinition => write!(f, "{}identifier redefinition", Style::Reset),
+            DiagKind::MismatchedTypes(..) => write!(f, "{}mismatched types", Style::Reset),
+            DiagKind::UndefinedId(lexeme) => write!(f, "{}cannot find value `{}{}{}` in the current scope",
+                Style::Reset, Style::High, lexeme, Style::Reset
+            ),
+            DiagKind::StrayRet => write!(f, "{}return statement outside of a function body", Style::Reset),
         }
     }
 }

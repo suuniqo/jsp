@@ -1,4 +1,6 @@
-use crate::{grammar::{Insert, Insertion, MetaSym, Term}, span::Span, token::Token};
+use std::rc::Rc;
+
+use crate::{grammar::{Insert, Insertion, MetaSym, Term}, langtype::Type, span::Span, token::Token};
 
 
 #[derive(Clone)]
@@ -18,7 +20,7 @@ impl HelpAction {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum DiagHelp {
     // lexer
     InsDecimal(Span),
@@ -33,6 +35,13 @@ pub enum DiagHelp {
     InsRetType(Span),
     InsParamList(Span),
     InsParam(Span),
+
+    // semantic analyzer
+    RepRetType(Type, Span),
+    RepId(Rc<str>, Span),
+    DelArgs(Span),
+    InsCall(Span),
+    DelCall(Span),
 }
 
 impl DiagHelp {
@@ -89,6 +98,17 @@ impl DiagHelp {
                 true,
                 "void".to_string()
             ),
+            DiagHelp::RepRetType(rep, span) => HelpAction::Replace(
+                span.clone(),
+                rep.to_string(),
+            ),
+            DiagHelp::RepId(lexeme, span) => HelpAction::Replace(
+                span.clone(),
+                format!("other_{}", lexeme),
+            ),
+            DiagHelp::DelArgs(span) => HelpAction::Delete(span.clone()),
+            DiagHelp::InsCall(span) => HelpAction::Insert(span.clone(), false, "()".into()),
+            DiagHelp::DelCall(span) => HelpAction::Delete(span.clone()),
         }
     }
 }

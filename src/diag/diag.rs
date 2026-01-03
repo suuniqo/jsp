@@ -2,7 +2,7 @@ use crate::{diag::{DiagHelp, DiagSever}, span::Span};
 
 use super::DiagKind;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct DiagSpan {
     pub span: Span,
     pub sever: DiagSever,
@@ -16,7 +16,7 @@ impl DiagSpan {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Diag {
     pub kind: DiagKind,
     pub spans: Vec<DiagSpan>,

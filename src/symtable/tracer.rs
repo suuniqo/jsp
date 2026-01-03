@@ -1,4 +1,4 @@
-use std::{fmt, cell::Ref};
+use std::{cell::Ref, fmt, rc::Rc};
 
 use crate::{langtype::{TypeFunc, TypeVar}, span::Span, writer::{HasTracer, Tracer, Writer, WriterErr}};
 
@@ -18,12 +18,28 @@ impl SymTable for SymTableTracer {
         }
     }
 
-    fn push_func(&mut self, pool_id: usize, ftype: TypeFunc, cause: Span) -> Option<(bool, Sym)> {
-        self.inner.push_func(pool_id, ftype, cause)
+    fn push_func(&mut self, pool_id: usize, ftype: TypeFunc, span: Option<Span>) -> (bool, Sym) {
+        self.inner.push_func(pool_id, ftype, span)
     }
 
-    fn push_var(&mut self, pool_id: usize, vtype: TypeVar, cause: Span) -> (bool, Sym) {
-        self.inner.push_var(pool_id, vtype, cause)
+    fn push_var(&mut self, pool_id: usize, vtype: TypeVar, span: Option<Span>) -> (bool, Sym) {
+        self.inner.push_var(pool_id, vtype, span)
+    }
+
+    fn is_current_func(&self, pool_id: usize) -> bool {
+        self.inner.is_current_func(pool_id)
+    }
+
+    fn add_func_type(&mut self, pool_id: usize, func_type: TypeFunc) {
+        self.inner.add_func_type(pool_id, func_type);
+    }
+
+    fn scopes(&self) -> usize {
+        self.inner.scopes()
+    }
+
+    fn lexeme(&self, pool_id: usize) -> Option<Rc<str>> {
+        self.inner.lexeme(pool_id)
     }
 
     fn search(&self, pool_id: usize) -> Option<&Sym> {

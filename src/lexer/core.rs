@@ -194,7 +194,7 @@ impl<'t> LexerCore<'t> {
                         // consume escape character
                         self.win.consume();
 
-                        self.reporter.borrow_mut().push(Diag::make(
+                        self.reporter.borrow_mut().emit(Diag::make(
                             DiagKind::InvEscSeq(next),
                             Span::new(start, self.win.span().end),
                             true,
@@ -359,7 +359,7 @@ impl Iterator for LexerCore<'_> {
                     }
 
                     let span = diag.main_span();
-                    self.reporter.borrow_mut().push(diag);
+                    self.reporter.borrow_mut().emit(diag);
 
                     if let Some(dummy) = dummy {
                         return Some(Token::new(dummy, span));

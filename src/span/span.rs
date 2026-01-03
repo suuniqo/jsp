@@ -1,7 +1,7 @@
 use crate::target::Target;
 
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Hash)]
 pub struct Span {
     pub start: usize,
     pub end: usize,

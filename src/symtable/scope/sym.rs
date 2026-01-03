@@ -1,28 +1,28 @@
 use std::fmt;
 
-use crate::{langtype::{LangType, Type}, span::Span, symtable::pool::StrPool};
+use crate::{langtype::{LangType, Type, TypeVar}, span::Span, symtable::pool::StrPool};
 
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Sym {
     pub pool_id: usize,
     pub offset: usize,
-    pub ltype: LangType,
-    pub cause: Span,
+    pub lang_type: LangType,
+    pub span: Option<Span>,
 }
 
 impl Sym {
-    pub fn new(ltype: LangType, offset: usize, pool_id: usize, cause: Span) -> Self {
+    pub fn new(lang_type: LangType, offset: usize, pool_id: usize, span: Option<Span>) -> Self {
         Self {
             pool_id,
             offset,
-            ltype,
-            cause,
+            lang_type,
+            span,
         }
     }
 
     pub fn fmt(&self, f: &mut fmt::Formatter<'_>, pool: &StrPool) -> fmt::Result {
-        match &self.ltype {
+        match &self.lang_type {
             LangType::Var(var) => writeln!(
                 f,
                 "\
@@ -37,29 +37,37 @@ impl Sym {
                 let lexeme = pool.get(self.pool_id)
                     .expect("couldn't find symbol pool id");
 
+                let len = if matches!(func.param_type.first(), Some(TypeVar { var_type: Type::Void, .. } )) {
+                    0
+                } else {
+                    func.param_type.len()
+                };
+
                 writeln!(
                     f,
                     "\
 * lexema: '{}'
-  + etiqFuncion: '__etiq_{}'
+  + etiqFuncion: '__tag_{}__'
   + tipo: '{}'
     + tipoRetorno: '{}'
     + numParam: {}",
                     lexeme,
                     lexeme,
                     Type::Func,
-                    func.ret_type,
-                    func.arg_type.len()
+                    func.ret_type.var_type,
+                    len,
                 )?;
 
-                for (i, arg_type) in func.arg_type.iter().enumerate() {
-                    writeln!(
-                        f,
-                        "    + tipoParam{}{}: '{}'",
-                        if i < 10 { "0" } else { "" },
-                        i,
-                        arg_type
-                    )?;
+                if len > 0 {
+                    for (i, arg_type) in func.param_type.iter().enumerate() {
+                        writeln!(
+                            f,
+                            "      + tipoParam{}{}: '{}'",
+                            if i + 1 < 10 { "0" } else { "" },
+                            i + 1,
+                            arg_type.var_type
+                        )?;
+                    }
                 }
 
                 Ok(())

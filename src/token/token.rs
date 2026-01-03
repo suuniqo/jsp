@@ -3,7 +3,7 @@ use crate::span::Span;
 use super::TokenKind;
 
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Token {
     pub kind: TokenKind,
     pub span: Span,
