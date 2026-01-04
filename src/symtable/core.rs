@@ -133,8 +133,6 @@ impl SymTable for SymTableCore {
     }
 
     fn add_ret_type(&mut self, ret_type: TypeVar) {
-        debug_assert!(self.scope_func.is_none(), "tried to add ret type to a non empty func type");
-
         self.scope_func = Some((
             Sym::explicit(
                 LangType::Func(TypeFunc::new(ret_type, &[])),

@@ -1162,9 +1162,10 @@ impl<'a, 's> SemAction<'a, 's> {
         let Some(sym) = self.symtable().search(pool_id) else {
             if let Some(span) = id_span {
                 let _ = self.symtable_mut().push_global(pool_id, TypeVar::new(Type::Int, Some(span.clone())), Some(span.clone()));
+                return Ok(Attr::Type(LangType::new_var(Type::Int, Some(span))));
             }
 
-            return Ok(Attr::Type(LangType::new_var(Type::Void, None)));
+            return Ok(Attr::Type(LangType::new_var(Type::Int, None)));
         };
 
         let LangType::Var(var_type) = &sym.lang_type else {
@@ -1310,7 +1311,7 @@ impl<'a, 's> SemAction<'a, 's> {
                 diag.add_span(
                     func_span.clone(),
                     DiagSever::Note,
-                    Some("expected due to this parameter list".into()),
+                    Some("expected due to it's parameter list".into()),
                     false
                 );
 

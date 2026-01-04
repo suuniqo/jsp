@@ -28,6 +28,8 @@ function int sum(int a, float b, string c) {
     if (false)
         return 5.0;
     
+    yo = sum(1, 2, 3, 4);
+
     read troll;
 
     return sum(c, hey, a);
@@ -38,3 +40,9 @@ let float lol_sum = sum();
 let string troll = "3o4";
 
 a = true;
+
+function void call(void) { return 1; return 2.0; return "hola"; return 1 < random; return; }
+
+function void noop(void) { return; return; return; }
+
+doom = noop(pram1, pram2, pram3);
