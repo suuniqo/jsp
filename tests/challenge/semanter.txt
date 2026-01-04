@@ -12,37 +12,42 @@ let boolean hey = true && third;
 
 let boolean a = false;
 
-function int sum(int a, float b, string c) {
+function int oper(int a, float b, string c) {
     let int hey = 3;
-
     hey = hey + 4;
 
     a = 5;
-    c = "lol";
-
     let int a = 5;
 
-    if (true)
-        return "bye";
-
-    if (false)
-        return 5.0;
-    
-    yo = sum(1, 2, 3, 4);
-
+    yo = oper(1, 2, 3, 4);
     read troll;
 
-    return sum(c, hey, a);
+    return oper(c, hey, a);
 }
 
-let float lol_sum = sum();
-
+let float lol_sum = oper();
 let string troll = "3o4";
 
 a = true;
 
-function void call(void) { return 1; return 2.0; return "hola"; return 1 < random; return; }
+function float call1(void) {
+    return "hola";
+    return !!(1 < random) && (1 == 1);
+    return 3 + oper(3 * (-7 + oper(6,6.0,"6")), lol_sum, ".");
+}
+
+function void call2(void) {
+    return;
+    return false;
+    return;
+    return 1 == blop;
+}
 
 function void noop(void) { return; return; return; }
 
 doom = noop(pram1, pram2, pram3);
+
+function int repeat(int x, float x) {
+    x = 5.0;
+    return repeat(x);
+}

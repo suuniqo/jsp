@@ -100,7 +100,10 @@ impl<'l> Heuristic {
                     })
                     .collect();
 
-                if next_candidates.is_empty() {
+                if next_candidates.is_empty()
+                    || (candidates.iter().any(|(i, _)| TokenKind::from_idx(*i).is_sync())
+                    && !next_candidates.iter().any(|(i, _)| TokenKind::from_idx(*i).is_sync()))
+                {
                     break;
                 } else {
                     candidates = next_candidates;

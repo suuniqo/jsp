@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{HashSet, VecDeque};
 
 use crate::{
     diag::{Diag, DiagHelp, DiagKind, DiagSever}, grammar::Grammar, langtype::{LangType, Type, TypeVar}, span::Span, symtable::SymTable, token::TokenKind
@@ -102,16 +102,37 @@ impl<'a, 's> SemAction<'a, 's> {
         self.analyzer.symtable
     }
 
-    fn func_recovery(&mut self, _args: Vec<Option<Attr>>) {
+    fn recovery_func(&mut self, _args: Vec<Option<Attr>>) {
         if self.symtable().scopes() > 1 {
             self.symtable_mut().pop_scope();
         }
     }
 
+    fn recovery_stmnt_block_decl_assign(&mut self, args: Vec<Option<Attr>>) {
+        let args: [Option<Attr>; 7] = args.try_into().unwrap_or_else(|args| {
+            unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
+        });
+
+        let [
+            _,
+            _,
+            Some(Attr::Type(LangType::Var(id_type))),
+            Some(Attr::Id(pool_id, id_span)),
+            _,
+            _,
+            _,
+        ] = args else {
+            unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
+        };
+
+        let _ = self.symtable_mut().push_local(pool_id, id_type.clone(), id_span.clone());
+    }
+
     fn run(&mut self, args: Vec<Option<Attr>>) -> Result<Option<Attr>, Vec<Diag>> {
         let Some(args) = args.clone().into_iter().collect::<Option<Vec<Attr>>>() else {
             match self.rule {
-                SemRule::Func => self.func_recovery(args),
+                SemRule::Func                 => self.recovery_func(args),
+                SemRule::StmntBlockDeclAssign => self.recovery_stmnt_block_decl_assign(args),
                 _ => (),
             }
             return Ok(None);
@@ -406,46 +427,68 @@ impl<'a, 's> SemAction<'a, 's> {
         self.symtable_mut().pop_scope();
 
         if let Some(ret_types) = ret_types {
-            for TypeVar {var_type: rt, reason: rt_span} in ret_types.0 {
-                if rt != ret_type.var_type
-                    && let Some(rt_span) = rt_span
-                    && let Some(rt_reason) = &ret_type.reason {
+            let mut maybe_diag: Option<Diag> = None;
+            let mut mismatched = HashSet::new();
 
-                    let diag = if ret_type.var_type != Type::Void {
-                        let mut diag = Diag::make
-                            (DiagKind::MismatchedRetType(rt, ret_type.var_type),
-                            rt_span,
-                            true
-                        );
+            if let Some(rt_reason) = &ret_type.reason {
+                for TypeVar {var_type: rt, reason: rt_span} in ret_types.0 {
+                    if rt != ret_type.var_type
+                        && let Some(rt_span) = rt_span {
 
-                        diag.add_span(
-                            rt_reason.clone(),
-                            DiagSever::Note,
-                            Some(format!("expected `{}` due to it's return type", ret_type.var_type)),
-                            false
-                        );
+                        if let Some(diag) = &mut maybe_diag {
+                            let msg = if matches!(diag.kind, DiagKind::MismatchedRetType(..)) {
+                                format!("expected `{}`, found `{}`", ret_type.var_type, rt)
+                            } else {
+                                format!("unexpected `{}`", rt)
+                            };
 
-                        diag
-                    } else {
-                        let mut diag = Diag::make
-                            (DiagKind::UnexpectedRetType(rt),
-                            rt_span,
-                            true
-                        );
+                            mismatched.insert(rt);
 
-                        diag.add_span(
-                            rt_reason.clone(),
-                            DiagSever::Note,
-                            Some("unexpected due to it's return type".into()),
-                            false
-                        );
+                            diag.add_span(rt_span, DiagSever::Error, Some(msg), true);
+                        } else if ret_type.var_type != Type::Void {
+                            let mut diag = Diag::make
+                                (DiagKind::MismatchedRetType(rt, ret_type.var_type),
+                                rt_span,
+                                true
+                            );
 
-                        diag.add_help(DiagHelp::RepRetType(rt, rt_reason.clone()));
+                            mismatched.insert(rt);
 
-                        diag
-                    };
+                            diag.add_span(
+                                rt_reason.clone(),
+                                DiagSever::Note,
+                                Some(format!("expected `{}` due to it's return type", ret_type.var_type)),
+                                false
+                            );
 
-                    return Err(diag);
+                            maybe_diag = Some(diag);
+                        } else {
+                            let mut diag = Diag::make
+                                (DiagKind::UnexpectedRetType(rt),
+                                rt_span,
+                                true
+                            );
+
+                            diag.add_span(
+                                rt_reason.clone(),
+                                DiagSever::Note,
+                                Some("unexpected due to it's return type".into()),
+                                false
+                            );
+
+                            mismatched.insert(rt);
+
+                            maybe_diag = Some(diag);
+                        };
+                    }
+                }
+
+                if let Some(mut diag) = maybe_diag {
+                    if mismatched.len() == 1 && let Some(suggestion) = mismatched.into_iter().next() {
+                        diag.add_help(DiagHelp::RepRetType(suggestion, rt_reason.clone()));
+                    }
+
+                    return Err(diag)
                 }
             }
         } else if ret_type.var_type != Type::Void
@@ -1365,7 +1408,7 @@ impl<'a, 's> SemAction<'a, 's> {
         Ok(Attr::Type(LangType::new_var(func_type.ret_type.var_type, full_span)))
     }
 
-    fn expr_oper_bin_num(&mut self, args: Vec<Attr>) -> Result<Attr, Diag> {
+    fn expr_oper_bin_num(&self, args: Vec<Attr>) -> Result<Attr, Diag> {
         let args: [Attr; 3] = args.try_into().unwrap_or_else(|args| {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         });
@@ -1445,7 +1488,7 @@ impl<'a, 's> SemAction<'a, 's> {
         Ok(Attr::Type(LangType::new_var(expr_type1.var_type, span)))
     }
 
-    fn expr_oper_bin_cmp(&mut self, args: Vec<Attr>) -> Result<Attr, Diag> {
+    fn expr_oper_bin_cmp(&self, args: Vec<Attr>) -> Result<Attr, Diag> {
         let args: [Attr; 3] = args.try_into().unwrap_or_else(|args| {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         });
