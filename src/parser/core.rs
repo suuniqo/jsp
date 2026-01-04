@@ -78,6 +78,20 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
         }
     }
 
+    fn on_shift(&mut self, kind: TokenKind, span: Option<Span>) {
+        self.semanter.on_shift(kind, span);
+    }
+
+    fn on_reduce(&mut self, rule_idx: usize) {
+        if let Err(diags) = self.semanter.on_reduce(rule_idx) {
+            for diag in diags {
+                if !self.panic {
+                    self.reporter.borrow_mut().emit(diag);
+                }
+            }
+        }
+    }
+
     fn positional_info(
         insertion: &[MetaSym],
         err_curr: &Token,
@@ -302,7 +316,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
                         self.delims.pop();
                     }
 
-                    self.semanter.on_shift(kind, None);
+                    self.on_shift(kind, None);
 
                     self.prev = None;
                 }
@@ -319,7 +333,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
                         GOTO_TABLE[stack_idx][lhs_idx].expect("unexpected invalid goto iterm: bad table"),
                     );
 
-                    let _ = self.semanter.on_reduce(rule_idx);
+                    let _ = self.on_reduce(rule_idx);
 
                     self.lexer.reset_peek();
                 }
@@ -402,7 +416,7 @@ impl<'t, 'l, 's> Parser for ParserCore<'t, 'l, 's> {
                         self.delims.pop();
                     }
 
-                    self.semanter.on_shift(curr.kind, Some(curr.span));
+                    self.on_shift(curr.kind, Some(curr.span));
 
                     self.next();
                 }
@@ -421,18 +435,14 @@ impl<'t, 'l, 's> Parser for ParserCore<'t, 'l, 's> {
                         GOTO_TABLE[stack_idx][lhs_idx].expect("unexpected invalid goto iterm: bad table"),
                     );
 
-                    if let Err(diag) = self.semanter.on_reduce(rule_idx) {
-                        self.report(diag);
-                    }
+                    self.on_reduce(rule_idx);
 
                     self.lexer.reset_peek();
                 }
                 Action::Accept => {
                     parse.push(0 + 1);
 
-                    if let Err(diag) = self.semanter.on_reduce(0) {
-                        self.report(diag);
-                    }
+                    self.on_reduce(0);
 
                     return Some(parse);
                 }

@@ -57,7 +57,7 @@ impl<'s> SemAnalyzer<'s> {
         self.stack.push(Some(attr));
     }
     
-    pub fn on_reduce(&mut self, rule: usize) -> Result<(), Diag> {
+    pub fn on_reduce(&mut self, rule: usize) -> Result<(), Vec<Diag>> {
         let (_, rhs) = Grammar::RULES[rule];
 
         let args = self.stack.split_off(self.stack.len() - rhs.len());
@@ -74,7 +74,7 @@ impl<'s> SemAnalyzer<'s> {
         }
     }
 
-    fn handle_rule(&mut self, rule_idx: usize, args: Vec<Option<Attr>>) -> Result<Option<Attr>, Diag> {
+    fn handle_rule(&mut self, rule_idx: usize, args: Vec<Option<Attr>>) -> Result<Option<Attr>, Vec<Diag>> {
         let mut action = SemAction::new(self, rule_idx);
 
         action.run(args)
@@ -108,7 +108,7 @@ impl<'a, 's> SemAction<'a, 's> {
         }
     }
 
-    fn run(&mut self, args: Vec<Option<Attr>>) -> Result<Option<Attr>, Diag> {
+    fn run(&mut self, args: Vec<Option<Attr>>) -> Result<Option<Attr>, Vec<Diag>> {
         let Some(args) = args.clone().into_iter().collect::<Option<Vec<Attr>>>() else {
             match self.rule {
                 SemRule::Func => self.func_recovery(args),
@@ -125,7 +125,7 @@ impl<'a, 's> SemAction<'a, 's> {
             SemRule::FuncParamStop        => self.func_param_stop(args),
             SemRule::FuncParamMore        => self.func_param_more(args),
             SemRule::FuncParamNone        => self.func_param_none(args),
-            SemRule::FuncParamSome        => self.func_param_some(args),
+            SemRule::FuncParamSome        => return self.func_param_some(args).map(|attr| Some(attr)),
             SemRule::FuncRetNone          => self.func_ret_none(args),
             SemRule::FuncRetSome          => self.func_ret_some(args),
             SemRule::FuncParam            => self.func_param(args),
@@ -148,18 +148,18 @@ impl<'a, 's> SemAction<'a, 's> {
             SemRule::StmntRet             => self.stmnt_ret(args),
             SemRule::StmntRead            => self.stmnt_read(args),
             SemRule::StmntWrite           => self.stmnt_write(args),
-            SemRule::StmntCall            => self.stmnt_call(args),
+            SemRule::StmntCall            => return self.stmnt_call(args).map(|attr| Some(attr)),
             SemRule::StmntAndassign       => self.stmnt_andassign(args),
             SemRule::StmntAssign          => self.stmnt_assign(args),
             SemRule::ExprId               => self.expr_id(args),
             SemRule::ExprWrap             => self.expr_wrap(args),
-            SemRule::ExprCall             => self.expr_call(args),
+            SemRule::ExprCall             => return self.expr_call(args).map(|attr| Some(attr)),
             SemRule::ExprOperBinNum       => self.expr_oper_bin_num(args),
             SemRule::ExprOperBinCmp       => self.expr_oper_bin_cmp(args),
             SemRule::ExprOperBinBool      => self.expr_oper_bin_bool(args),
             SemRule::ExprOperUnrBool      => self.expr_oper_unr_bool(args),
             SemRule::ExprOperUnrNum       => self.expr_oper_unr_num(args),
-        }.map(|attr| Some(attr))
+        }.map(|attr| Some(attr)).map_err(|diag| vec![diag])
     }
 
     fn axiom(&mut self, args: Vec<Attr>) -> Result<Attr, Diag> {
@@ -263,7 +263,7 @@ impl<'a, 's> SemAction<'a, 's> {
         Ok(Attr::Unit(None, None))
     }
 
-    fn func_param_some(&mut self, args: Vec<Attr>) -> Result<Attr, Diag> {
+    fn func_param_some(&mut self, args: Vec<Attr>) -> Result<Attr, Vec<Diag>> {
         let args: [Attr; 3] = args.try_into().unwrap_or_else(|args| {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         });
@@ -279,15 +279,14 @@ impl<'a, 's> SemAction<'a, 's> {
         params.push_front((pool_id, id_span, TypeVar::new(var_type, reason)));
 
         let mut arg_type = Vec::new();
-
-        let mut maybe_diag = None;
+        let mut diags = Vec::new();
 
         for (pool_id, sp, var_type) in params.into_iter() {
             arg_type.push(var_type.clone());
 
-            let (success, sym) = self.symtable_mut().push_var(pool_id, var_type, sp.clone());
+            let (success, sym) = self.symtable_mut().push_local(pool_id, var_type, sp.clone());
 
-            if maybe_diag.is_none() && !success && let Some(curr_span) = sp && let Some(old_span) = sym.span {
+            if !success && let Some(curr_span) = sp && let Some(old_span) = sym.span {
                 let mut diag = Diag::make(DiagKind::Redefinition, curr_span.clone(), true);
 
                 diag.add_span(old_span, DiagSever::Note, Some("previously defined here".into()), false);
@@ -297,14 +296,14 @@ impl<'a, 's> SemAction<'a, 's> {
 
                 diag.add_help(DiagHelp::RepId(lexeme, curr_span));
 
-                maybe_diag = Some(diag);
+                diags.push(diag);
             }
         }
 
         self.symtable_mut().add_params(&arg_type);
 
-        if let Some(diag) = maybe_diag {
-            return Err(diag);
+        if !diags.is_empty() {
+            return Err(diags);
         }
 
         Ok(Attr::Unit(None, None))
@@ -559,7 +558,7 @@ impl<'a, 's> SemAction<'a, 's> {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
 
-        let (is_new_insertion, sym) = self.symtable_mut().push_var(pool_id, id_type.clone(), id_span.clone());
+        let (is_new_insertion, sym) = self.symtable_mut().push_local(pool_id, id_type.clone(), id_span.clone());
 
         if !is_new_insertion && let Some(curr_span) = id_span && let Some(old_span) = sym.span {
             let mut diag = Diag::make(DiagKind::Redefinition, curr_span.clone(), true);
@@ -607,7 +606,7 @@ impl<'a, 's> SemAction<'a, 's> {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
 
-        let (success, sym) = self.symtable_mut().push_var(pool_id, id_type, id_span.clone());
+        let (success, sym) = self.symtable_mut().push_local(pool_id, id_type, id_span.clone());
 
         if !success && let Some(curr_span) = id_span && let Some(old_span) = sym.span {
             let mut diag = Diag::make(DiagKind::Redefinition, curr_span.clone(), true);
@@ -744,7 +743,7 @@ impl<'a, 's> SemAction<'a, 's> {
         Ok(Attr::Unit(Some((vec![ret_type], span.clone())), span))
     }
 
-    fn stmnt_read(&self, args: Vec<Attr>) -> Result<Attr, Diag> {
+    fn stmnt_read(&mut self, args: Vec<Attr>) -> Result<Attr, Diag> {
         let args: [Attr; 3] = args.try_into().unwrap_or_else(|args| {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         });
@@ -757,7 +756,11 @@ impl<'a, 's> SemAction<'a, 's> {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
 
-        if let Some(sym) = self.symtable().search(pool_id) && let Some(span) = &sym.span {
+        if let Some(sym) = self.symtable().search(pool_id) {
+            let Some(span) = &sym.span else {
+                return Ok(Attr::Unit(None, None));
+            };
+
             let LangType::Var(sym_type) = &sym.lang_type else {
                 let diag = Diag::make(
                     DiagKind::MismatchedTypes(
@@ -783,16 +786,10 @@ impl<'a, 's> SemAction<'a, 's> {
 
                 return Err(diag);
             }
-        } else if let Some(span) = id_span {
-            let lexeme = self.symtable().lexeme(pool_id)
-                .expect("can't fail as the symbol was inside the table already");
-
-            return Err(Diag::make(
-                DiagKind::UndefinedId(lexeme),
-                span,
-                true
-            ));
+        } else if id_span.is_some() {
+            let _ = self.symtable_mut().push_global(pool_id, TypeVar::new(Type::Int, id_span.clone()), id_span);
         }
+
 
         Ok(Attr::Unit(None, None))
     }
@@ -828,7 +825,7 @@ impl<'a, 's> SemAction<'a, 's> {
         Ok(Attr::Unit(None, None))
     }
 
-    fn stmnt_call(&self, args: Vec<Attr>) -> Result<Attr, Diag> {
+    fn stmnt_call(&self, args: Vec<Attr>) -> Result<Attr, Vec<Diag>> {
         let args: [Attr; 5] = args.try_into().unwrap_or_else(|args| {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         });
@@ -863,12 +860,12 @@ impl<'a, 's> SemAction<'a, 's> {
                     .expect("can't fail as the symbol was inside the table already");
 
                 let diag = Diag::make(
-                    DiagKind::UndefinedId(lexeme),
+                    DiagKind::UndefinedFunc(lexeme),
                     span,
                     true
                 );
 
-                return Err(diag);
+                return Err(vec![diag]);
             }
 
             return Ok(Attr::Unit(None, None));
@@ -890,7 +887,7 @@ impl<'a, 's> SemAction<'a, 's> {
                     false
                 );
 
-                return Err(diag);
+                return Err(vec![diag]);
             }
 
             return Ok(Attr::Unit(None, None));
@@ -923,49 +920,52 @@ impl<'a, 's> SemAction<'a, 's> {
                 diag.add_span(
                     func_span.clone(),
                     DiagSever::Note,
-                    Some("expected because of this".into()),
+                    Some("expected due to parameter list".into()),
                     false
                 );
 
-                return Err(diag);
+                return Err(vec![diag]);
             }
 
             return Ok(Attr::Unit(None, None));
         }
 
+        let mut diags = Vec::new();
+
         for (arg_type, param_type) in args.iter().zip(param_iter.iter()) {
-            if arg_type.var_type != param_type.var_type {
-                    if let Some(arg_reason) = &arg_type.reason
-                        && let Some(param_reason) = &param_type.reason {
+            if arg_type.var_type != param_type.var_type
+                && let Some(arg_reason) = &arg_type.reason
+                && let Some(param_reason) = &param_type.reason {
 
-                    let mut diag = Diag::make(
-                        DiagKind::MismatchedTypes(arg_type.var_type, vec![param_type.var_type]),
-                        arg_reason.clone(),
-                        true
-                    );
+                let mut diag = Diag::make(
+                    DiagKind::MismatchedTypes(arg_type.var_type, vec![param_type.var_type]),
+                    arg_reason.clone(),
+                    true
+                );
 
-                    diag.add_span(
-                        param_reason.clone(),
-                        DiagSever::Note,
-                        Some("expected because of this".into()),
-                        false
-                    );
+                diag.add_span(
+                    param_reason.clone(),
+                    DiagSever::Note,
+                    Some(format!("expected `{}` due to parameter type", param_type.var_type)),
+                    false,
+                );
 
-                    if param_type.var_type == Type::Void && let Some(arg_span) = arg_span {
-                        diag.add_help(DiagHelp::DelArgs(arg_span));
-                    }
-
-                    return Err(diag);
+                if param_type.var_type == Type::Void && let Some(arg_span) = &arg_span {
+                    diag.add_help(DiagHelp::DelArgs(arg_span.clone()));
                 }
 
-                return Ok(Attr::Unit(None, None));
+                diags.push(diag);
             }
+        }
+
+        if !diags.is_empty() {
+            return Err(diags);
         }
 
         Ok(Attr::Unit(None, None))
     }
 
-    fn stmnt_andassign(&self, args: Vec<Attr>) -> Result<Attr, Diag> {
+    fn stmnt_andassign(&mut self, args: Vec<Attr>) -> Result<Attr, Diag> {
         let args: [Attr; 4] = args.try_into().unwrap_or_else(|args| {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         });
@@ -979,35 +979,39 @@ impl<'a, 's> SemAction<'a, 's> {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
 
-        if expr_type.var_type != Type::Bool && let Some(span) = expr_type.reason {
-            let diag = Diag::make(
+        if expr_type.var_type != Type::Bool && let Some(span) = expr_type.reason && let Some(andassign_span) = andassign_span {
+            let mut diag = Diag::make(
                 DiagKind::MismatchedTypes(expr_type.var_type, vec![Type::Bool]),
                 span,
                 true
+            );
+
+            diag.add_span(
+                andassign_span,
+                DiagSever::Note,
+                Some("expected due to this operator".into()),
+                false
             );
 
             return Err(diag);
         }
 
         let Some(sym) = self.symtable().search(pool_id) else {
-            if let Some(span) = id_span {
-                let lexeme = self.symtable().lexeme(pool_id)
-                    .expect("can't fail as the symbol was inside the table already");
+            if let Some(span) = id_span && let Some(andassign_span) = andassign_span {
+                let _ = self.symtable_mut().push_global(pool_id, TypeVar::new(Type::Int, Some(span.clone())), Some(span.clone()));
 
                 let mut diag = Diag::make(
-                    DiagKind::UndefinedId(lexeme),
+                    DiagKind::MismatchedTypes(Type::Int, vec![Type::Bool]),
                     span,
                     true
                 );
 
-                if let Some(andassign_span) = andassign_span {
-                    diag.add_span(
-                        andassign_span,
-                        DiagSever::Note,
-                        Some("undefined variables can't be operated with".into()),
-                        false
-                    );
-                }
+                diag.add_span(
+                    andassign_span,
+                    DiagSever::Note,
+                    Some("expected due to this operator".into()),
+                    false
+                );
 
                 return Err(diag);
             }
@@ -1030,11 +1034,18 @@ impl<'a, 's> SemAction<'a, 's> {
             return Ok(Attr::Unit(None, None));
         };
 
-        if var_type.var_type != Type::Bool && let Some(span) = &var_type.reason {
-            let diag = Diag::make(
+        if var_type.var_type != Type::Bool && let Some(span) = &var_type.reason && let Some(andassign_span) = andassign_span {
+            let mut diag = Diag::make(
                 DiagKind::MismatchedTypes(var_type.var_type, vec![Type::Bool]),
                 span.clone(),
                 true
+            );
+
+            diag.add_span(
+                andassign_span,
+                DiagSever::Note,
+                Some("expected due to this operator".into()),
+                false
             );
 
             return Err(diag);
@@ -1073,7 +1084,7 @@ impl<'a, 's> SemAction<'a, 's> {
             return Ok(Attr::Unit(None, None))
         }
 
-        let (_, sym) = self.symtable_mut().push_var(pool_id, expr_type.clone(), id_span.clone());
+        let (_, sym) = self.symtable_mut().push_local(pool_id, expr_type.clone(), id_span.clone());
 
         let LangType::Var(var_type) = &sym.lang_type else {
             if let Some(curr_span) = id_span && let Some(old_span) = sym.span {
@@ -1114,7 +1125,7 @@ impl<'a, 's> SemAction<'a, 's> {
         Ok(Attr::Unit(None, None))
     }
 
-    fn expr_id(&self, args: Vec<Attr>) -> Result<Attr, Diag> {
+    fn expr_id(&mut self, args: Vec<Attr>) -> Result<Attr, Diag> {
         let args: [Attr; 1] = args.try_into().unwrap_or_else(|args| {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         });
@@ -1125,16 +1136,7 @@ impl<'a, 's> SemAction<'a, 's> {
 
         let Some(sym) = self.symtable().search(pool_id) else {
             if let Some(span) = id_span {
-                let lexeme = self.symtable().lexeme(pool_id)
-                    .expect("can't fail as the symbol was inside the table already");
-
-                let diag = Diag::make(
-                    DiagKind::UndefinedId(lexeme),
-                    span,
-                    true
-                );
-
-                return Err(diag);
+                let _ = self.symtable_mut().push_global(pool_id, TypeVar::new(Type::Int, Some(span.clone())), Some(span.clone()));
             }
 
             return Ok(Attr::Type(LangType::new_var(Type::Void, None)));
@@ -1181,7 +1183,7 @@ impl<'a, 's> SemAction<'a, 's> {
         Ok(Attr::Type(LangType::new_var(expr_type.var_type, span)))
     }
 
-    fn expr_call(&self, args: Vec<Attr>) -> Result<Attr, Diag> {
+    fn expr_call(&self, args: Vec<Attr>) -> Result<Attr, Vec<Diag>> {
         let args: [Attr; 4] = args.try_into().unwrap_or_else(|args| {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         });
@@ -1221,12 +1223,12 @@ impl<'a, 's> SemAction<'a, 's> {
                     .expect("can't fail as the symbol was inside the table already");
 
                 let diag = Diag::make(
-                    DiagKind::UndefinedId(lexeme),
+                    DiagKind::UndefinedFunc(lexeme),
                     span,
                     true
                 );
 
-                return Err(diag);
+                return Err(vec![diag]);
             }
 
             return Ok(Attr::Type(LangType::new_var(Type::Void, None)));
@@ -1250,7 +1252,7 @@ impl<'a, 's> SemAction<'a, 's> {
 
                 diag.add_help(DiagHelp::DelCall(call_span));
 
-                return Err(diag);
+                return Err(vec![diag]);
             }
 
             return Ok(Attr::Type(LangType::new_var(Type::Void, None)));
@@ -1283,15 +1285,18 @@ impl<'a, 's> SemAction<'a, 's> {
                 diag.add_span(
                     func_span.clone(),
                     DiagSever::Note,
-                    Some("expected because of this".into()),
+                    Some("expected due to parameter list".into()),
                     false
                 );
 
-                return Err(diag);
+                return Err(vec![diag]);
             }
 
             return Ok(Attr::Type(LangType::new_var(Type::Void, None)));
         }
+
+        let mut diags = Vec::new();
+        let mut success = true;
 
         for (arg_type, param_type) in args.iter().zip(param_iter.iter()) {
             if arg_type.var_type != param_type.var_type {
@@ -1307,19 +1312,28 @@ impl<'a, 's> SemAction<'a, 's> {
                     diag.add_span(
                         param_reason.clone(),
                         DiagSever::Note,
-                        Some("expected because of this".into()),
-                        false
+                        Some(format!("expected `{}` due to parameter type", param_type.var_type)),
+                        false,
                     );
 
-                    if param_type.var_type == Type::Void && let Some(arg_span) = arg_span {
-                        diag.add_help(DiagHelp::DelArgs(arg_span));
+                    if param_type.var_type == Type::Void && let Some(arg_span) = &arg_span {
+                        diag.add_help(DiagHelp::DelArgs(arg_span.clone()));
                     }
 
-                    return Err(diag);
+                    diags.push(diag);
                 }
 
-                return Ok(Attr::Type(LangType::new_var(Type::Void, None)));
+                success = false;
             }
+        }
+
+        if !diags.is_empty() {
+            return Err(diags);
+        }
+
+
+        if !success {
+            return Ok(Attr::Type(LangType::new_var(Type::Void, None)));
         }
 
         Ok(Attr::Type(LangType::new_var(func_type.ret_type.var_type, full_span)))

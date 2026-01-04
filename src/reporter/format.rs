@@ -562,7 +562,7 @@ impl fmt::Display for DiagKind {
             ),
             DiagKind::Redefinition => write!(f, "{}identifier redefinition", Style::Reset),
             DiagKind::MismatchedTypes(..) => write!(f, "{}mismatched types", Style::Reset),
-            DiagKind::UndefinedId(lexeme) => write!(f, "{}cannot find value `{}{}{}` in the current scope",
+            DiagKind::UndefinedFunc(lexeme) => write!(f, "{}call to undefined function `{}{}{}`",
                 Style::Reset, Style::High, lexeme, Style::Reset
             ),
             DiagKind::StrayRet => write!(f, "{}return statement outside of a function body", Style::Reset),

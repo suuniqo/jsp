@@ -24,7 +24,7 @@ impl SymTableCore {
         }
     }
 
-    fn global_scope(&mut self) -> &mut Scope {
+    fn global_scope_mut(&mut self) -> &mut Scope {
         &mut self.scopes[0]
     }
 
@@ -43,6 +43,20 @@ impl SymTableCore {
     fn push_scope(&mut self, id: usize) {
         self.curr_idx += 1;
         self.scopes.push(Scope::new(self.curr_idx, Some(id)));
+    }
+
+    fn push_var<F>(&mut self, scope: F, vtype: TypeVar, pool_id: usize, span: Option<Span>) -> (bool, Sym)
+    where
+        F: FnOnce(&mut Self) -> &mut Scope
+    {
+        if self.pool().get(pool_id).is_none() {
+            unreachable!("tried to push variable with invalid pool id");
+        }
+
+        let ltype = LangType::Var(vtype);
+        let result = scope(self).intern(pool_id, ltype, span);
+
+        result 
     }
 
     pub(super) fn pop_scope_inner(&mut self) -> Option<Scope> {
@@ -89,21 +103,12 @@ impl SymTable for SymTableCore {
         (inserted, sym)
     }
 
-    fn push_var(&mut self, pool_id: usize, vtype: TypeVar, span: Option<Span>) -> (bool, Sym) {
-        if self.pool().get(pool_id).is_none() {
-            unreachable!("tried to push variable with invalid pool id");
-        }
-
-        let scope = self.curr_scope_mut();
-
-        let ltype = LangType::Var(vtype);
-        let result = scope.intern(pool_id, ltype, span);
-
-        result 
+    fn push_local(&mut self, pool_id: usize, vtype: TypeVar, span: Option<Span>) -> (bool, Sym) {
+        self.push_var(Self::curr_scope_mut, vtype, pool_id, span)
     }
 
-    fn scopes(&self) -> usize {
-        self.scopes.len()
+    fn push_global(&mut self, pool_id: usize, vtype: TypeVar, span: Option<Span>) -> (bool, Sym) {
+        self.push_var(Self::global_scope_mut, vtype, pool_id, span)
     }
 
     fn add_params(&mut self, params: &[TypeVar]) {
@@ -123,7 +128,7 @@ impl SymTable for SymTableCore {
         scope_func.0.lang_type = LangType::Func(func_type.clone());
 
         if !scope_func.1 {
-            self.global_scope().change_type(pool_id, LangType::Func(func_type));
+            self.global_scope_mut().change_type(pool_id, LangType::Func(func_type));
         }
     }
 
@@ -139,6 +144,10 @@ impl SymTable for SymTableCore {
             ),
             false,
         ))
+    }
+
+    fn scopes(&self) -> usize {
+        self.scopes.len()
     }
 
     fn lexeme(&self, pool_id: usize) -> Option<Rc<str>> {

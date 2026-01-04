@@ -22,8 +22,12 @@ impl SymTable for SymTableTracer {
         self.inner.push_func(pool_id, span)
     }
 
-    fn push_var(&mut self, pool_id: usize, vtype: TypeVar, span: Option<Span>) -> (bool, Sym) {
-        self.inner.push_var(pool_id, vtype, span)
+    fn push_local(&mut self, pool_id: usize, vtype: TypeVar, span: Option<Span>) -> (bool, Sym) {
+        self.inner.push_local(pool_id, vtype, span)
+    }
+
+    fn push_global(&mut self, pool_id: usize, vtype: TypeVar, span: Option<Span>) -> (bool, Sym) {
+        self.inner.push_global(pool_id, vtype, span)
     }
 
     fn add_params(&mut self, params: &[TypeVar]) {

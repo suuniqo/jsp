@@ -1,11 +1,31 @@
-let float b = 3.0;
+hey &= true;
 
-function int sum(int a, int b, string c) {
+let float asdf = 3 + first;
+
+first = "hello";
+read sec;
+
+sec = 5.0;
+
+let boolean hey = true && third;
+
+function int sum(int a, float b, string c) {
     a = 5;
     c = "lol";
-    b = 5;
 
-    return sum(a, b, c);
+    let int a = 5;
+
+    if (true)
+        return "bye";
+
+    if (false)
+        return 5.0;
+    
+    read troll;
+
+    return sum(c, b, a);
 }
 
-let float lol_sum = 5.0;
+let float lol_sum = sum();
+
+let string troll = "3o4";

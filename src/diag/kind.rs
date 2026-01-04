@@ -34,7 +34,7 @@ pub enum DiagKind {
     ExpectedRetType,
     Redefinition,
     MismatchedTypes(Type, Vec<Type>),
-    UndefinedId(Rc<str>),
+    UndefinedFunc(Rc<str>),
     StrayRet,
     InvalidCall(usize, usize),
 }
@@ -105,7 +105,7 @@ impl DiagKind {
                     format!("expected {msg}, found `{found}`")
                 }
             },
-            DiagKind::UndefinedId(_) => format!("help: try defining it first"),
+            DiagKind::UndefinedFunc(_) => format!("help: try defining it first"),
             DiagKind::StrayRet => format!("cannot be used outside a function"),
             DiagKind::InvalidCall(found, expected) => format!(
                 "expected {} argument{}, found {}",
