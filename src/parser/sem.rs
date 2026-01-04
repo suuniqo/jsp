@@ -1521,7 +1521,7 @@ impl<'a, 's> SemAction<'a, 's> {
             None
         };
 
-        Ok(Attr::Type(LangType::new_var(expr_type1.var_type, span)))
+        Ok(Attr::Type(LangType::new_var(Type::Bool, span)))
     }
 
     fn expr_oper_bin_bool(&self, args: Vec<Attr>) -> Result<Attr, Diag> {

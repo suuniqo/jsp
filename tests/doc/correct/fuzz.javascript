@@ -2,5 +2,5 @@ let int global=13;
 function void nothing(void) { read global; do{global=global+-1;}while(!(global<0));}
 function int main(float b, string d){let string aux="this is a str";
 /*** this is a comment ***/ let float foo=1203.123; let int bar=2398;
-/* semicolons */let int weird &= 3+-+-+-+-+-+-+-+-+5; let float oper=2.0000; let boolean bool=false;
-let boolean george=true;george&=bool;}/*** / eof /***/
+/* semicolons */let int weird = 3+-+-+-+-+-+-+-+-+5; let float oper=2.0000; let boolean bool=false;
+let boolean george=true;george&=bool; return 3;}/*** / eof /***/

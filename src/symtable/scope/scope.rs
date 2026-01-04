@@ -71,7 +71,16 @@ impl Scope {
     }
 
     pub fn fmt(&self, f: &mut fmt::Formatter<'_>, pool: &StrPool) -> fmt::Result {
-        writeln!(f, "table #{}:", self.idx)?;
+        writeln!(
+            f,
+            "{} table #{}:",
+            self.id.map(
+                |id| pool.get(id).expect("invalid id in scope func").to_string()
+            ).unwrap_or(
+                "global".into()
+            ),
+            self.idx
+        )?;
 
         self.vec
             .iter()

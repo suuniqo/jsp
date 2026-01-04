@@ -17,10 +17,10 @@ pub enum Type {
 impl Type {
     pub fn size(&self) -> usize {
         match self {
-            Type::Int => 2,
-            Type::Float => 4,
-            Type::Str => 128,
-            Type::Bool => 2,
+            Type::Int => 1,
+            Type::Float => 2,
+            Type::Str => 64,
+            Type::Bool => 1,
             Type::Func => 0,
             Type::Void => 0,
         }

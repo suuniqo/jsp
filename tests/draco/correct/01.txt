@@ -1,0 +1,16 @@
+let int x ;
+let boolean b;
+let int z;
+read x;
+z=x;
+write z+x;
+
+
+let string  bb ;
+if (!b) z =
+  x * 7
+    * z
+    * (1
+    * 2
+    * y)
+    * 3;

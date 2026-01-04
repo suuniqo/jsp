@@ -426,7 +426,8 @@ impl<'a> fmt::Display for Fmt<'a, MetaSym> {
 impl<'a> fmt::Display for Fmt<'a, DiagHelp> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.0 {
-            DiagHelp::InsDecimal(..) => write!(f, "{}add a decimal part", Style::Reset),
+            DiagHelp::InsDecimal(_) => write!(f, "{}add a decimal part", Style::Reset),
+            DiagHelp::InsQuote(_) => write!(f, "{}close the string literal", Style::Reset),
             DiagHelp::InsToken(found, before, insertion) => {
                 if insertion.is_empty() {
                     unreachable!("insertion can't be empty");

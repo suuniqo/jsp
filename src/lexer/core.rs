@@ -153,14 +153,20 @@ impl<'t> LexerCore<'t> {
         }
     }
 
+    fn make_unterm_str_diag(&self, string: String) -> Diag {
+        let mut diag = Diag::make(DiagKind::UntermStr(string), self.win.span(), false);
+
+        diag.add_help(DiagHelp::InsQuote(self.win.span()));
+
+        diag
+    }
+
     fn read_str(&mut self) -> Result<Token, Diag> {
         let mut string = String::new();
 
-        let quote_span = self.win.span();
-
         loop {
             match self.win.peek_one() {
-                '\n' => return Err(Diag::make(DiagKind::UntermStr(string), quote_span, true)),
+                '\n' => return Err(self.make_unterm_str_diag(string)),
                 '\\' => {
                     let start = self.win.span().end;
 
@@ -170,7 +176,7 @@ impl<'t> LexerCore<'t> {
                     let next = self.win.peek_one();
 
                     if self.win.finished() || next == '\n' {
-                        return Err(Diag::make(DiagKind::UntermStr(string), quote_span, true));
+                        return Err(self.make_unterm_str_diag(string));
                     }
 
                     if next.is_control() {
@@ -210,7 +216,7 @@ impl<'t> LexerCore<'t> {
                 },
                 other => {
                     if self.win.finished() {
-                        return Err(Diag::make(DiagKind::UntermStr(string), quote_span, true));
+                        return Err(self.make_unterm_str_diag(string));
                     }
 
                     if other.is_control() {

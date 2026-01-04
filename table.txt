@@ -1,0 +1,16 @@
+table #0:
+* lexema: 'x'
+  + tipo: 'int'
+  + despl: 0
+* lexema: 'b'
+  + tipo: 'boolean'
+  + despl: 2
+* lexema: 'z'
+  + tipo: 'int'
+  + despl: 4
+* lexema: 'bb'
+  + tipo: 'string'
+  + despl: 6
+* lexema: 'y'
+  + tipo: 'int'
+  + despl: 134

@@ -24,6 +24,7 @@ impl HelpAction {
 pub enum DiagHelp {
     // lexer
     InsDecimal(Span),
+    InsQuote(Span),
 
     // parser
     InsToken(Token, bool, Vec<MetaSym>),
@@ -51,6 +52,11 @@ impl DiagHelp {
                 span.clone(),
                 false,
                 "0".to_string()
+            ),
+            DiagHelp::InsQuote(span) => HelpAction::Insert(
+                span.clone(),
+                false,
+                "\"".to_string()
             ),
             DiagHelp::InsToken(token, before, syms) => {
                 let term = Term::from_token_kind(&token.kind)

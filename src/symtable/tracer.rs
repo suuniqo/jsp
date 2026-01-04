@@ -62,7 +62,15 @@ struct SymTableTracerDisplay<'a> {
 
 impl<'a> fmt::Display for SymTableTracerDisplay<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.trace.iter().try_for_each(|scope| scope.fmt(f, &self.pool))
+        self.trace.iter().enumerate().try_for_each(|(i, scope)| {
+            scope.fmt(f, &self.pool)?;
+
+            if i != self.trace.len() - 1 {
+                writeln!(f)?;
+            }
+
+            Ok(())
+        })
     }
 }
 

@@ -44,7 +44,7 @@ impl DiagKind {
         match self {
             DiagKind::StrayChar(_) => "here".into(),
             DiagKind::UntermComm => "started here".into(),
-            DiagKind::UntermStr(_) => "started here".into(),
+            DiagKind::UntermStr(_) => "here".into(),
             DiagKind::MalformedStr(..) => "help: remove this character".into(),
             DiagKind::OverflowStr(str) => format!("length is {} but maximum is {}", str.len(), TokenKind::MAX_STR_LEN),
             DiagKind::InvEscSeq(c) => format!("interpreted as \\\\{}", c),
