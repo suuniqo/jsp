@@ -1,5 +1,6 @@
-hey &= true;
+asdf &= true;
 
+extra = "hi";
 let float asdf = 3 + first;
 
 first = "hello";
@@ -9,7 +10,13 @@ sec = 5.0;
 
 let boolean hey = true && third;
 
+let boolean a = false;
+
 function int sum(int a, float b, string c) {
+    let int hey = 3;
+
+    hey = hey + 4;
+
     a = 5;
     c = "lol";
 
@@ -23,9 +30,11 @@ function int sum(int a, float b, string c) {
     
     read troll;
 
-    return sum(c, b, a);
+    return sum(c, hey, a);
 }
 
 let float lol_sum = sum();
 
 let string troll = "3o4";
+
+a = true;

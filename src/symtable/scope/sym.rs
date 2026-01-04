@@ -7,17 +7,29 @@ use crate::{langtype::{LangType, Type, TypeVar}, span::Span, symtable::pool::Str
 pub struct Sym {
     pub lang_type: LangType,
     pub span: Option<Span>,
+    pub implicit: bool,
 
     pub(in super::super) pool_id: usize,
     pub(in super::super) offset: usize,
 }
 
 impl Sym {
-    pub fn new(lang_type: LangType, offset: usize, pool_id: usize, span: Option<Span>) -> Self {
+    pub fn new(lang_type: LangType, offset: usize, pool_id: usize, span: Option<Span>, implicit: bool) -> Self {
         Self {
             pool_id,
             offset,
             lang_type,
+            implicit,
+            span,
+        }
+    }
+
+    pub fn explicit(lang_type: LangType, offset: usize, pool_id: usize, span: Option<Span>) -> Self {
+        Self {
+            pool_id,
+            offset,
+            lang_type,
+            implicit: false,
             span,
         }
     }

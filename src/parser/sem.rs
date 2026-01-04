@@ -421,7 +421,7 @@ impl<'a, 's> SemAction<'a, 's> {
                         diag.add_span(
                             rt_reason.clone(),
                             DiagSever::Note,
-                            Some(format!("expected `{}` due to return type", ret_type.var_type)),
+                            Some(format!("expected `{}` due to it's return type", ret_type.var_type)),
                             false
                         );
 
@@ -436,7 +436,7 @@ impl<'a, 's> SemAction<'a, 's> {
                         diag.add_span(
                             rt_reason.clone(),
                             DiagSever::Note,
-                            Some("unexpected due to return type".into()),
+                            Some("unexpected due to it's return type".into()),
                             false
                         );
 
@@ -457,7 +457,7 @@ impl<'a, 's> SemAction<'a, 's> {
             diag.add_span(
                 rt_reason.clone(),
                 DiagSever::Note,
-                Some("expected due to return type".into()),
+                Some("expected due to it's return type".into()),
                 false
             );
 
@@ -749,7 +749,7 @@ impl<'a, 's> SemAction<'a, 's> {
         });
 
         let [
-            Attr::Unit(None, _),
+            Attr::Unit(None, read_span),
             Attr::Id(pool_id, id_span),
             Attr::Unit(None, _),
         ] = args else {
@@ -774,8 +774,8 @@ impl<'a, 's> SemAction<'a, 's> {
                 return Err(diag);
             };
 
-            if ![Type::Str, Type::Int, Type::Float].contains(&sym_type.var_type) {
-                let diag = Diag::make(
+            if ![Type::Str, Type::Int, Type::Float].contains(&sym_type.var_type) && let Some(read_span) = read_span {
+                let mut diag = Diag::make(
                     DiagKind::MismatchedTypes(
                         sym_type.var_type,
                         vec![Type::Str, Type::Int, Type::Float],
@@ -783,6 +783,8 @@ impl<'a, 's> SemAction<'a, 's> {
                     span.clone(),
                     true
                 );
+
+                diag.add_span(read_span, DiagSever::Note, Some("expected due to this I/O operation".into()), false);
 
                 return Err(diag);
             }
@@ -800,7 +802,7 @@ impl<'a, 's> SemAction<'a, 's> {
         });
 
         let [
-            Attr::Unit(None, _),
+            Attr::Unit(None, write_span),
             Attr::Type(LangType::Var(expr_type)),
             Attr::Unit(None, _),
         ] = args else {
@@ -808,9 +810,10 @@ impl<'a, 's> SemAction<'a, 's> {
         };
 
         if ![Type::Str, Type::Int, Type::Float].contains(&expr_type.var_type)
-            && let Some(span) = expr_type.reason {
-
-            let diag = Diag::make(
+            && let Some(span) = expr_type.reason
+            && let Some(write_span) = write_span
+        {
+            let mut diag = Diag::make(
                 DiagKind::MismatchedTypes(
                     expr_type.var_type,
                     vec![Type::Str, Type::Int, Type::Float],
@@ -818,6 +821,8 @@ impl<'a, 's> SemAction<'a, 's> {
                 span.clone(),
                 true
             );
+
+            diag.add_span(write_span, DiagSever::Note, Some("expected due to this I/O operation".into()), false);
 
             return Err(diag);
         }
@@ -920,7 +925,7 @@ impl<'a, 's> SemAction<'a, 's> {
                 diag.add_span(
                     func_span.clone(),
                     DiagSever::Note,
-                    Some("expected due to parameter list".into()),
+                    Some("expected due to it's parameter list".into()),
                     false
                 );
 
@@ -946,7 +951,7 @@ impl<'a, 's> SemAction<'a, 's> {
                 diag.add_span(
                     param_reason.clone(),
                     DiagSever::Note,
-                    Some(format!("expected `{}` due to parameter type", param_type.var_type)),
+                    Some(format!("expected `{}` due to this parameter type", param_type.var_type)),
                     false,
                 );
 
@@ -989,7 +994,7 @@ impl<'a, 's> SemAction<'a, 's> {
             diag.add_span(
                 andassign_span,
                 DiagSever::Note,
-                Some("expected due to this operator".into()),
+                Some("expected `boolean` due to this logical operator".into()),
                 false
             );
 
@@ -1009,7 +1014,7 @@ impl<'a, 's> SemAction<'a, 's> {
                 diag.add_span(
                     andassign_span,
                     DiagSever::Note,
-                    Some("expected due to this operator".into()),
+                    Some("expected `boolean` due to this logical operator".into()),
                     false
                 );
 
@@ -1068,6 +1073,24 @@ impl<'a, 's> SemAction<'a, 's> {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
 
+        let Some(sym) = self.symtable().search(pool_id) else {
+            let _ = self.symtable_mut().push_global(pool_id, TypeVar::new(Type::Int, id_span.clone()), id_span.clone());
+
+            if expr_type.var_type != Type::Int && let Some(expr_span) = expr_type.reason && let Some(id_span) = id_span {
+                let mut diag = Diag::make(
+                    DiagKind::MismatchedTypes(expr_type.var_type, vec![Type::Int]),
+                    expr_span,
+                    true
+                );
+
+                diag.add_span(id_span, DiagSever::Note, Some("expected `int` due to this implicit declaration".into()), false);
+
+                return Err(diag);
+            }
+
+            return Ok(Attr::Unit(None, None));
+        };
+
         let valid_types = vec![Type::Int, Type::Float, Type::Str, Type::Bool];
 
         if !valid_types.contains(&expr_type.var_type) {
@@ -1084,10 +1107,8 @@ impl<'a, 's> SemAction<'a, 's> {
             return Ok(Attr::Unit(None, None))
         }
 
-        let (_, sym) = self.symtable_mut().push_local(pool_id, expr_type.clone(), id_span.clone());
-
         let LangType::Var(var_type) = &sym.lang_type else {
-            if let Some(curr_span) = id_span && let Some(old_span) = sym.span {
+            if let Some(curr_span) = id_span && let Some(old_span) = &sym.span {
                 let mut diag = Diag::make(
                     DiagKind::Redefinition,
                     curr_span.clone(),
@@ -1109,15 +1130,19 @@ impl<'a, 's> SemAction<'a, 's> {
 
         if var_type.var_type != expr_type.var_type
             && let Some(reason) = &var_type.reason
-            && let Some(span) = &expr_type.reason {
-
+            && let Some(span) = &expr_type.reason
+        {
             let mut diag = Diag::make(
                 DiagKind::MismatchedTypes(expr_type.var_type, vec![var_type.var_type]),
                 span.clone(),
                 true
             );
 
-            diag.add_span(reason.clone(), DiagSever::Note, Some("expected because of this".into()), false);
+            if sym.implicit {
+                diag.add_span(reason.clone(), DiagSever::Note, Some("expected `int` due to this implicit declaration".into()), false);
+            } else {
+                diag.add_span(reason.clone(), DiagSever::Note, Some("expected because of this".into()), false);
+            }
 
             return Err(diag);
         }
@@ -1285,7 +1310,7 @@ impl<'a, 's> SemAction<'a, 's> {
                 diag.add_span(
                     func_span.clone(),
                     DiagSever::Note,
-                    Some("expected due to parameter list".into()),
+                    Some("expected due to this parameter list".into()),
                     false
                 );
 
@@ -1312,7 +1337,7 @@ impl<'a, 's> SemAction<'a, 's> {
                     diag.add_span(
                         param_reason.clone(),
                         DiagSever::Note,
-                        Some(format!("expected `{}` due to parameter type", param_type.var_type)),
+                        Some(format!("expected `{}` due to this parameter type", param_type.var_type)),
                         false,
                     );
 
@@ -1365,7 +1390,7 @@ impl<'a, 's> SemAction<'a, 's> {
                 diag.add_span(
                     oper_span,
                     DiagSever::Note,
-                    Some("expected due to this operator".into()),
+                    Some("expected due to this arithmetic operator".into()),
                     false
                 );
 
@@ -1382,7 +1407,7 @@ impl<'a, 's> SemAction<'a, 's> {
                 diag.add_span(
                     oper_span,
                     DiagSever::Note,
-                    Some("expected due to this operator".into()),
+                    Some("expected due to this arithmetic operator".into()),
                     false
                 );
 
@@ -1445,7 +1470,7 @@ impl<'a, 's> SemAction<'a, 's> {
                 diag.add_span(
                     oper_span,
                     DiagSever::Note,
-                    Some("expected due to this operator".into()),
+                    Some("expected due to this relational operator".into()),
                     false
                 );
 
@@ -1462,7 +1487,7 @@ impl<'a, 's> SemAction<'a, 's> {
                 diag.add_span(
                     oper_span,
                     DiagSever::Note,
-                    Some("expected due to this operator".into()),
+                    Some("expected due to this relational operator".into()),
                     false
                 );
 
@@ -1526,7 +1551,7 @@ impl<'a, 's> SemAction<'a, 's> {
                 diag.add_span(
                     oper_span,
                     DiagSever::Note,
-                    Some("expected due to this operator".into()),
+                    Some("expected `boolean` due to this logical operator".into()),
                     false
                 );
 
@@ -1543,7 +1568,7 @@ impl<'a, 's> SemAction<'a, 's> {
                 diag.add_span(
                     oper_span,
                     DiagSever::Note,
-                    Some("expected due to this operator".into()),
+                    Some("expected `boolean` due to this logical operator".into()),
                     false
                 );
 
@@ -1586,7 +1611,7 @@ impl<'a, 's> SemAction<'a, 's> {
             diag.add_span(
                 oper_span.clone(),
                 DiagSever::Note,
-                Some("expected due to this operator".into()),
+                Some("expected `boolean` due to this logical operator".into()),
                 false
             );
 
@@ -1629,7 +1654,7 @@ impl<'a, 's> SemAction<'a, 's> {
             diag.add_span(
                 oper_span.clone(),
                 DiagSever::Note,
-                Some("expected due to this operator".into()),
+                Some("expected due to this arithmetic operator".into()),
                 false
             );
 

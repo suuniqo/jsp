@@ -38,7 +38,7 @@ impl Scope {
         self.vec[*pos].lang_type = lang_type;
     }
 
-    pub fn intern(&mut self, pool_id: usize, lang_type: LangType, span: Option<Span>) -> (bool, Sym) {
+    pub fn intern(&mut self, pool_id: usize, lang_type: LangType, span: Option<Span>, implicit: bool) -> (bool, Sym) {
         match self.map.entry(pool_id) {
             Entry::Occupied(entry) => (false, self.vec[*entry.get()].clone()),
             Entry::Vacant(entry) => {
@@ -51,7 +51,7 @@ impl Scope {
                 };
 
                 entry.insert(len);
-                self.vec.push(Sym::new(lang_type, offset, pool_id, span));
+                self.vec.push(Sym::new(lang_type, offset, pool_id, span, implicit));
 
                 (true, self.vec[len].clone())
             },

@@ -45,7 +45,7 @@ impl SymTableCore {
         self.scopes.push(Scope::new(self.curr_idx, Some(id)));
     }
 
-    fn push_var<F>(&mut self, scope: F, vtype: TypeVar, pool_id: usize, span: Option<Span>) -> (bool, Sym)
+    fn push_var<F>(&mut self, scope: F, vtype: TypeVar, pool_id: usize, span: Option<Span>, implicit: bool) -> (bool, Sym)
     where
         F: FnOnce(&mut Self) -> &mut Scope
     {
@@ -54,7 +54,7 @@ impl SymTableCore {
         }
 
         let ltype = LangType::Var(vtype);
-        let result = scope(self).intern(pool_id, ltype, span);
+        let result = scope(self).intern(pool_id, ltype, span, implicit);
 
         result 
     }
@@ -82,7 +82,7 @@ impl SymTable for SymTableCore {
             unreachable!("scope func has type typevar");
         };
 
-        let (inserted, sym) = self.curr_scope_mut().intern(pool_id, LangType::Func(func_type), span.clone());
+        let (inserted, sym) = self.curr_scope_mut().intern(pool_id, LangType::Func(func_type), span.clone(), false);
 
         if inserted {
             self.scope_func = Some((sym.clone(), false));
@@ -104,11 +104,11 @@ impl SymTable for SymTableCore {
     }
 
     fn push_local(&mut self, pool_id: usize, vtype: TypeVar, span: Option<Span>) -> (bool, Sym) {
-        self.push_var(Self::curr_scope_mut, vtype, pool_id, span)
+        self.push_var(Self::curr_scope_mut, vtype, pool_id, span, false)
     }
 
     fn push_global(&mut self, pool_id: usize, vtype: TypeVar, span: Option<Span>) -> (bool, Sym) {
-        self.push_var(Self::global_scope_mut, vtype, pool_id, span)
+        self.push_var(Self::global_scope_mut, vtype, pool_id, span, true)
     }
 
     fn add_params(&mut self, params: &[TypeVar]) {
@@ -136,7 +136,7 @@ impl SymTable for SymTableCore {
         debug_assert!(self.scope_func.is_none(), "tried to add ret type to a non empty func type");
 
         self.scope_func = Some((
-            Sym::new(
+            Sym::explicit(
                 LangType::Func(TypeFunc::new(ret_type, &[])),
                 0,
                 0,

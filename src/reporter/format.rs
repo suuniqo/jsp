@@ -560,7 +560,7 @@ impl fmt::Display for DiagKind {
             DiagKind::ExpectedRetType => write!(f, "{}no {}return statements{} in a non-void function",
                 Style::Reset, Style::High, Style::Reset
             ),
-            DiagKind::Redefinition => write!(f, "{}identifier redefinition", Style::Reset),
+            DiagKind::Redefinition => write!(f, "{}identifier already defined", Style::Reset),
             DiagKind::MismatchedTypes(..) => write!(f, "{}mismatched types", Style::Reset),
             DiagKind::UndefinedFunc(lexeme) => write!(f, "{}call to undefined function `{}{}{}`",
                 Style::Reset, Style::High, lexeme, Style::Reset
