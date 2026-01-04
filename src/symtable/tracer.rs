@@ -1,6 +1,6 @@
 use std::{cell::Ref, fmt, rc::Rc};
 
-use crate::{langtype::{TypeFunc, TypeVar}, span::Span, writer::{HasTracer, Tracer, Writer, WriterErr}};
+use crate::{langtype::TypeVar, span::Span, writer::{HasTracer, Tracer, Writer, WriterErr}};
 
 use super::{scope::{Scope, Sym}, SymTableCore, SymTable, StrPool};
 
@@ -18,20 +18,20 @@ impl SymTable for SymTableTracer {
         }
     }
 
-    fn push_func(&mut self, pool_id: usize, ftype: TypeFunc, span: Option<Span>) -> (bool, Sym) {
-        self.inner.push_func(pool_id, ftype, span)
+    fn push_func(&mut self, pool_id: usize, span: Option<Span>) -> (bool, Sym) {
+        self.inner.push_func(pool_id, span)
     }
 
     fn push_var(&mut self, pool_id: usize, vtype: TypeVar, span: Option<Span>) -> (bool, Sym) {
         self.inner.push_var(pool_id, vtype, span)
     }
 
-    fn is_current_func(&self, pool_id: usize) -> bool {
-        self.inner.is_current_func(pool_id)
+    fn add_params(&mut self, params: &[TypeVar]) {
+        self.inner.add_params(params);
     }
 
-    fn add_func_type(&mut self, pool_id: usize, func_type: TypeFunc) {
-        self.inner.add_func_type(pool_id, func_type);
+    fn add_ret_type(&mut self, ret_type: TypeVar) {
+        self.inner.add_ret_type(ret_type);
     }
 
     fn scopes(&self) -> usize {

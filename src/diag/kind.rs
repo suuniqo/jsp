@@ -36,6 +36,7 @@ pub enum DiagKind {
     MismatchedTypes(Type, Vec<Type>),
     UndefinedId(Rc<str>),
     StrayRet,
+    InvalidCall(usize, usize),
 }
 
 impl DiagKind {
@@ -106,6 +107,12 @@ impl DiagKind {
             },
             DiagKind::UndefinedId(_) => format!("help: try defining it first"),
             DiagKind::StrayRet => format!("cannot be used outside a function"),
+            DiagKind::InvalidCall(found, expected) => format!(
+                "expected {} argument{}, found {}",
+                if *expected == 0 { "no".into() } else { expected.to_string() },
+                if *expected != 1 { "s" } else { "" },
+                if *found == 0 { "none".into() } else { found.to_string() },
+            ),
         }
     }
 }

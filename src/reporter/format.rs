@@ -566,6 +566,7 @@ impl fmt::Display for DiagKind {
                 Style::Reset, Style::High, lexeme, Style::Reset
             ),
             DiagKind::StrayRet => write!(f, "{}return statement outside of a function body", Style::Reset),
+            DiagKind::InvalidCall(..) => write!(f, "{}function called with wrong number of arguments", Style::Reset),
         }
     }
 }

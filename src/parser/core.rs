@@ -338,7 +338,8 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
 
         // make diag
         let (diag, fix) = if let Some((rep_fix, sym)) = replacement
-            && insertion.as_ref().is_none_or(|(ins_fix, _)| rep_fix.cost < ins_fix.cost) {
+            && insertion.as_ref().is_none_or(|(ins_fix, _)| rep_fix.cost < ins_fix.cost)
+            && deletion.as_ref().is_none_or(|del_fix| rep_fix.cost < del_fix.cost) {
 
             (self.diag_replacement(expected, curr, sym, 0), rep_fix)
 

@@ -5,10 +5,11 @@ use crate::{langtype::{LangType, Type, TypeVar}, span::Span, symtable::pool::Str
 
 #[derive(Debug, Clone)]
 pub struct Sym {
-    pub pool_id: usize,
-    pub offset: usize,
     pub lang_type: LangType,
     pub span: Option<Span>,
+
+    pub(in super::super) pool_id: usize,
+    pub(in super::super) offset: usize,
 }
 
 impl Sym {

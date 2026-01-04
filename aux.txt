@@ -1,0 +1,11 @@
+let float b = 3.0;
+
+function int sum(int a, int b, string c) {
+    a = 5;
+    c = "lol";
+    b = 5;
+
+    return sum(a, b, c);
+}
+
+let float lol_sum = 5.0;

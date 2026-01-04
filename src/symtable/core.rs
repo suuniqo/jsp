@@ -9,6 +9,7 @@ pub struct SymTableCore {
     pool: Rc<RefCell<StrPool>>,
     scopes: Vec<Scope>,
     curr_idx: usize,
+    scope_func: Option<(Sym, bool)>,
 }
 
 impl SymTableCore {
@@ -19,6 +20,7 @@ impl SymTableCore {
             pool,
             scopes: vec![Scope::new(0, None)],
             curr_idx: 0,
+            scope_func: None,
         }
     }
 
@@ -57,17 +59,28 @@ impl SymTable for SymTableCore {
         self.scopes.pop();
     }
 
-    fn push_func(&mut self, pool_id: usize, func_type: TypeFunc, span: Option<Span>) -> (bool, Sym) {
+    fn push_func(&mut self, pool_id: usize, span: Option<Span>) -> (bool, Sym) {
         if self.pool().get(pool_id).is_none() {
             unreachable!("tried to push function with invalid pool id");
         }
 
-        let ltype = LangType::Func(func_type);
-        let (inserted, sym) = self.curr_scope_mut().intern(pool_id, ltype, span);
+        let Some(LangType::Func(func_type)) = self.scope_func.as_ref().map(|sym| sym.0.lang_type.clone()) else {
+            unreachable!("scope func has type typevar");
+        };
+
+        let (inserted, sym) = self.curr_scope_mut().intern(pool_id, LangType::Func(func_type), span.clone());
 
         if inserted {
-            self.push_scope(pool_id);
+            self.scope_func = Some((sym.clone(), false));
+        } else if let Some(scope_func) = &mut self.scope_func {
+            scope_func.0.pool_id = pool_id;
+            scope_func.0.span = span;
+            scope_func.1 = true;
+        } else {
+            unreachable!("missing func_type during scope insertion");
         }
+
+        self.push_scope(pool_id);
 
         if self.scopes.len() > Self::MAX_NESTED_FUNCS {
             unreachable!("surpassed maximum nesting limit");
@@ -78,11 +91,7 @@ impl SymTable for SymTableCore {
 
     fn push_var(&mut self, pool_id: usize, vtype: TypeVar, span: Option<Span>) -> (bool, Sym) {
         if self.pool().get(pool_id).is_none() {
-            unreachable!("tried to push function with invalid pool id");
-        }
-
-        if let Some(res) = self.search(pool_id) {
-            return (false, res.clone());
+            unreachable!("tried to push variable with invalid pool id");
         }
 
         let scope = self.curr_scope_mut();
@@ -97,12 +106,39 @@ impl SymTable for SymTableCore {
         self.scopes.len()
     }
 
-    fn is_current_func(&self, pool_id: usize) -> bool {
-        self.curr_scope().id().is_some_and(|id| id == pool_id)
+    fn add_params(&mut self, params: &[TypeVar]) {
+        let pool_id = self.curr_scope().id()
+            .expect("tried changing function type of global scope");
+
+        let Some(scope_func) = &mut self.scope_func else {
+            unreachable!("tried to add parameters to empty func type");
+        };
+
+        let LangType::Func(func_type) = scope_func.0.lang_type.clone() else {
+            unreachable!("scope func has type typevar");
+        };
+
+        let func_type = TypeFunc::new(func_type.ret_type.clone(), &params);
+
+        scope_func.0.lang_type = LangType::Func(func_type.clone());
+
+        if !scope_func.1 {
+            self.global_scope().change_type(pool_id, LangType::Func(func_type));
+        }
     }
 
-    fn add_func_type(&mut self, pool_id: usize, func_type: TypeFunc) {
-        self.global_scope().change_type(pool_id, LangType::Func(func_type));
+    fn add_ret_type(&mut self, ret_type: TypeVar) {
+        debug_assert!(self.scope_func.is_none(), "tried to add ret type to a non empty func type");
+
+        self.scope_func = Some((
+            Sym::new(
+                LangType::Func(TypeFunc::new(ret_type, &[])),
+                0,
+                0,
+                None,
+            ),
+            false,
+        ))
     }
 
     fn lexeme(&self, pool_id: usize) -> Option<Rc<str>> {
@@ -110,6 +146,13 @@ impl SymTable for SymTableCore {
     }
 
     fn search(&self, pool_id: usize) -> Option<&Sym> {
+        if let Some(id) = self.curr_scope().id()
+            && id == pool_id
+            && let Some(sym) = &self.scope_func {
+
+            return Some(&sym.0);
+        }
+
         self.scopes
             .iter()
             .rev()

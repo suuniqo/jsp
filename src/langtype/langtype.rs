@@ -65,14 +65,6 @@ impl TypeFunc {
             param_type: arg_type.into(),
         }
     }
-
-    pub fn add_ret(&mut self, ret_type: TypeVar) {
-        self.ret_type = ret_type;
-    }
-
-    pub fn void_func(reason: Option<Span>) -> Self {
-        TypeFunc::new(TypeVar::new(Type::Void, None), [TypeVar::new(Type::Void, reason)].as_slice().into())
-    }
 }
 
 
@@ -83,14 +75,6 @@ pub enum LangType {
 }
 
 impl LangType {
-    pub fn new_func(ret_type: TypeVar, arg_type: &[TypeVar]) -> Self {
-        LangType::Func(TypeFunc::new(ret_type, arg_type))
-    }
-
-    pub fn void_func(reason: Option<Span>) -> Self {
-        Self::Func(TypeFunc::new(TypeVar::new(Type::Void, None), [TypeVar::new(Type::Void, reason)].as_slice()))
-    }
-
     pub fn new_var(langtype: Type, reason: Option<Span>) -> Self {
         Self::Var(TypeVar::new(langtype, reason))
     }

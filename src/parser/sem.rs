@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use crate::{
-    diag::{Diag, DiagHelp, DiagKind, DiagSever}, grammar::Grammar, langtype::{LangType, Type, TypeFunc, TypeVar}, span::Span, symtable::SymTable, token::TokenKind
+    diag::{Diag, DiagHelp, DiagKind, DiagSever}, grammar::Grammar, langtype::{LangType, Type, TypeVar}, span::Span, symtable::SymTable, token::TokenKind
 };
 
 #[derive(Debug, Clone)]
@@ -129,7 +129,7 @@ impl<'a, 's> SemAction<'a, 's> {
             SemRule::FuncRetNone          => self.func_ret_none(args),
             SemRule::FuncRetSome          => self.func_ret_some(args),
             SemRule::FuncParam            => self.func_param(args),
-            SemRule::FuncName             => return self.func_name(args),
+            SemRule::FuncName             => self.func_name(args),
             SemRule::FuncRettype          => self.func_rettype(args),
             SemRule::Func                 => self.func(args),
             SemRule::StmntRetNone         => self.stmnt_ret_none(args),
@@ -249,7 +249,7 @@ impl<'a, 's> SemAction<'a, 's> {
         Ok(Attr::FuncParams(params))
     }
 
-    fn func_param_none(&self, args: Vec<Attr>) -> Result<Attr, Diag> {
+    fn func_param_none(&mut self, args: Vec<Attr>) -> Result<Attr, Diag> {
         let args: [Attr; 1] = args.try_into().unwrap_or_else(|args| {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         });
@@ -258,7 +258,9 @@ impl<'a, 's> SemAction<'a, 's> {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
 
-        Ok(Attr::Type(LangType::void_func(reason)))
+        self.symtable_mut().add_params([TypeVar::new(Type::Void, reason)].as_slice());
+
+        Ok(Attr::Unit(None, None))
     }
 
     fn func_param_some(&mut self, args: Vec<Attr>) -> Result<Attr, Diag> {
@@ -278,26 +280,34 @@ impl<'a, 's> SemAction<'a, 's> {
 
         let mut arg_type = Vec::new();
 
+        let mut maybe_diag = None;
+
         for (pool_id, sp, var_type) in params.into_iter() {
             arg_type.push(var_type.clone());
 
             let (success, sym) = self.symtable_mut().push_var(pool_id, var_type, sp.clone());
 
-            if !success && let Some(curr_span) = sp && let Some(old_span) = sym.span {
-                let mut diag = Diag::make(DiagKind::Redefinition, curr_span, true);
+            if maybe_diag.is_none() && !success && let Some(curr_span) = sp && let Some(old_span) = sym.span {
+                let mut diag = Diag::make(DiagKind::Redefinition, curr_span.clone(), true);
 
-                diag.add_span(old_span.clone(), DiagSever::Note, Some("previously defined here".into()), false);
+                diag.add_span(old_span, DiagSever::Note, Some("previously defined here".into()), false);
 
-                let lexeme = self.symtable().lexeme(sym.pool_id)
+                let lexeme = self.symtable().lexeme(pool_id)
                     .expect("can't fail as the symbol was inside the table already");
 
-                diag.add_help(DiagHelp::RepId(lexeme, old_span));
+                diag.add_help(DiagHelp::RepId(lexeme, curr_span));
 
-                return Err(diag);
+                maybe_diag = Some(diag);
             }
         }
 
-        Ok(Attr::Type(LangType::new_func(TypeVar::new(Type::Void, None), &arg_type)))
+        self.symtable_mut().add_params(&arg_type);
+
+        if let Some(diag) = maybe_diag {
+            return Err(diag);
+        }
+
+        Ok(Attr::Unit(None, None))
     }
 
     fn func_ret_none(&self, args: Vec<Attr>) -> Result<Attr, Diag> {
@@ -336,7 +346,7 @@ impl<'a, 's> SemAction<'a, 's> {
         Ok(func_args)
     }
 
-    fn func_name(&mut self, args: Vec<Attr>) -> Result<Option<Attr>, Diag> {
+    fn func_name(&mut self, args: Vec<Attr>) -> Result<Attr, Diag> {
         let args: [Attr; 1] = args.try_into().unwrap_or_else(|args| {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         });
@@ -345,28 +355,25 @@ impl<'a, 's> SemAction<'a, 's> {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
 
-        let (is_new_insertion, sym) = self.symtable_mut().push_func(pool_id, TypeFunc::void_func(None), id_span.clone());
+        let (is_new_insertion, sym) = self.symtable_mut().push_func(pool_id, id_span.clone());
 
-        if !is_new_insertion {
-            if let Some(curr_span) = &id_span && let Some(old_span) = sym.span {
-                let mut diag = Diag::make(DiagKind::Redefinition, curr_span.clone(), true);
+        if !is_new_insertion && let Some(curr_span) = &id_span && let Some(old_span) = sym.span {
+            let mut diag = Diag::make(DiagKind::Redefinition, curr_span.clone(), true);
 
-                diag.add_span(old_span, DiagSever::Note, Some("previously defined here".into()), false);
+            diag.add_span(old_span, DiagSever::Note, Some("previously defined here".into()), false);
 
-                let lexeme = self.symtable().lexeme(sym.pool_id)
-                    .expect("can't fail as the symbol was inside the table already");
+            let lexeme = self.symtable().lexeme(pool_id)
+                .expect("can't fail as the symbol was inside the table already");
 
-                diag.add_help(DiagHelp::RepId(lexeme, curr_span.clone()));
+            diag.add_help(DiagHelp::RepId(lexeme, curr_span.clone()));
 
-                return Err(diag);
-            }
-            return Ok(None);
+            return Err(diag);
         }
 
-        Ok(Some(Attr::Id(pool_id, id_span)))
+        Ok(Attr::Id(pool_id, id_span))
     }
 
-    fn func_rettype(&self, args: Vec<Attr>) -> Result<Attr, Diag> {
+    fn func_rettype(&mut self, args: Vec<Attr>) -> Result<Attr, Diag> {
         let args: [Attr; 1] = args.try_into().unwrap_or_else(|args| {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         });
@@ -374,6 +381,8 @@ impl<'a, 's> SemAction<'a, 's> {
         let [Attr::Type(LangType::Var(var_type))] = args else {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
+
+        self.symtable_mut().add_ret_type(var_type.clone());
 
         Ok(Attr::Type(LangType::Var(var_type)))
     }
@@ -386,8 +395,8 @@ impl<'a, 's> SemAction<'a, 's> {
         let [
             Attr::Unit(None, _),
             Attr::Type(LangType::Var(ret_type)),
-            Attr::Id(pool_id, id_span),
-            args,
+            Attr::Id(_, id_span),
+            Attr::Unit(None, _),
             Attr::Unit(None, _),
             Attr::Unit(ret_types, _),
             Attr::Unit(None, _),
@@ -395,28 +404,11 @@ impl<'a, 's> SemAction<'a, 's> {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
 
-        let func_type = if let Attr::Type(LangType::Func(mut func_type)) = args {
-            func_type.add_ret(ret_type.clone());
-
-            func_type
-        } else if let Attr::FuncParams(params) = args {
-            let mut arg_type = Vec::new();
-
-            for (.., var_type) in params.iter() {
-                arg_type.push(var_type.clone());
-            }
-
-            TypeFunc::new(ret_type.clone(), &arg_type)
-        } else {
-            unreachable!("invalid args type in function declaration: {:?}", args);
-        };
-
-        self.symtable_mut().add_func_type(pool_id, func_type);
         self.symtable_mut().pop_scope();
 
         if let Some(ret_types) = ret_types {
             for TypeVar {var_type: rt, reason: rt_span} in ret_types.0 {
-                if rt != ret_type.var_type && rt != Type::Func
+                if rt != ret_type.var_type
                     && let Some(rt_span) = rt_span
                     && let Some(rt_reason) = &ret_type.reason {
 
@@ -567,6 +559,21 @@ impl<'a, 's> SemAction<'a, 's> {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
 
+        let (is_new_insertion, sym) = self.symtable_mut().push_var(pool_id, id_type.clone(), id_span.clone());
+
+        if !is_new_insertion && let Some(curr_span) = id_span && let Some(old_span) = sym.span {
+            let mut diag = Diag::make(DiagKind::Redefinition, curr_span.clone(), true);
+
+            diag.add_span(old_span, DiagSever::Note, Some("previously defined here".into()), false);
+
+            let lexeme = self.symtable().lexeme(pool_id)
+                .expect("can't fail as the symbol was inside the table already");
+
+            diag.add_help(DiagHelp::RepId(lexeme, curr_span));
+
+            return Err(diag);
+        }
+
         if id_type.var_type != expr_type.var_type
             && let Some(expr_span) = expr_type.reason
             && let Some(type_span) = id_type.reason {
@@ -578,21 +585,6 @@ impl<'a, 's> SemAction<'a, 's> {
             );
 
             diag.add_span(type_span, DiagSever::Note, Some("expected because of this".into()), false);
-
-            return Err(diag);
-        }
-
-        let (is_new_insertion, sym) = self.symtable_mut().push_var(pool_id, id_type, id_span.clone());
-
-        if !is_new_insertion && let Some(curr_span) = id_span && let Some(old_span) = sym.span {
-            let mut diag = Diag::make(DiagKind::Redefinition, curr_span.clone(), true);
-
-            diag.add_span(old_span, DiagSever::Note, Some("previously defined here".into()), false);
-
-            let lexeme = self.symtable().lexeme(sym.pool_id)
-                .expect("can't fail as the symbol was inside the table already");
-
-            diag.add_help(DiagHelp::RepId(lexeme, curr_span));
 
             return Err(diag);
         }
@@ -622,7 +614,7 @@ impl<'a, 's> SemAction<'a, 's> {
 
             diag.add_span(old_span, DiagSever::Note, Some("previously defined here".into()), false);
 
-            let lexeme = self.symtable().lexeme(sym.pool_id)
+            let lexeme = self.symtable().lexeme(pool_id)
                 .expect("can't fail as the symbol was inside the table already");
 
             diag.add_help(DiagHelp::RepId(lexeme, curr_span));
@@ -704,7 +696,7 @@ impl<'a, 's> SemAction<'a, 's> {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
 
-        Ok(Attr::FuncArgs([TypeVar::new(Type::Void, None)].into()))
+        Ok(Attr::FuncArgs(VecDeque::new()))
     }
 
     fn func_arg_some(&self, args: Vec<Attr>) -> Result<Attr, Diag> {
@@ -904,40 +896,70 @@ impl<'a, 's> SemAction<'a, 's> {
             return Ok(Attr::Unit(None, None));
         };
 
-        if self.symtable().is_current_func(pool_id) {
-            return Ok(Attr::Unit(None, None));
-        }
-
         if let Some(arg_first) = args.front_mut() && arg_first.var_type == Type::Void {
-            arg_first.reason = call_span;
+            arg_first.reason = call_span.clone();
         }
 
-        for (arg_type, param_type) in args.iter().zip(func_type.param_type.iter()) {
-            if arg_type.var_type != param_type.var_type
-                && let Some(arg_reason) = &arg_type.reason
-                && let Some(param_reason) = &param_type.reason {
+        let param_iter = func_type
+            .param_type
+            .iter()
+            .filter(|v| v.var_type != Type::Void)
+            .collect::<Vec<&TypeVar>>();
 
+        if param_iter.len() != args.len() {
+            let count_span = if args.len() == 0 {
+                call_span
+            } else {
+                arg_span
+            };
+
+            if let Some(count_span) = &count_span && let Some(func_span) = &sym.span {
                 let mut diag = Diag::make(
-                    DiagKind::MismatchedTypes(arg_type.var_type, vec![param_type.var_type]),
-                    arg_reason.clone(),
+                    DiagKind::InvalidCall(args.len(), param_iter.len()),
+                    count_span.clone(),
                     true
                 );
 
                 diag.add_span(
-                    param_reason.clone(),
+                    func_span.clone(),
                     DiagSever::Note,
-                    Some("expected due to this".into()),
+                    Some("expected because of this".into()),
                     false
                 );
-
-                if param_type.var_type == Type::Void && let Some(arg_span) = arg_span {
-                    diag.add_help(DiagHelp::DelArgs(arg_span));
-                }
 
                 return Err(diag);
             }
 
             return Ok(Attr::Unit(None, None));
+        }
+
+        for (arg_type, param_type) in args.iter().zip(param_iter.iter()) {
+            if arg_type.var_type != param_type.var_type {
+                    if let Some(arg_reason) = &arg_type.reason
+                        && let Some(param_reason) = &param_type.reason {
+
+                    let mut diag = Diag::make(
+                        DiagKind::MismatchedTypes(arg_type.var_type, vec![param_type.var_type]),
+                        arg_reason.clone(),
+                        true
+                    );
+
+                    diag.add_span(
+                        param_reason.clone(),
+                        DiagSever::Note,
+                        Some("expected because of this".into()),
+                        false
+                    );
+
+                    if param_type.var_type == Type::Void && let Some(arg_span) = arg_span {
+                        diag.add_help(DiagHelp::DelArgs(arg_span));
+                    }
+
+                    return Err(diag);
+                }
+
+                return Ok(Attr::Unit(None, None));
+            }
         }
 
         Ok(Attr::Unit(None, None))
@@ -1063,7 +1085,7 @@ impl<'a, 's> SemAction<'a, 's> {
 
                 diag.add_span(old_span.clone(), DiagSever::Note, Some("previously defined here".into()), false);
 
-                let lexeme = self.symtable().lexeme(sym.pool_id)
+                let lexeme = self.symtable().lexeme(pool_id)
                     .expect("can't fail as the symbol was inside the table already");
 
                 diag.add_help(DiagHelp::RepId(lexeme, curr_span));
@@ -1115,7 +1137,7 @@ impl<'a, 's> SemAction<'a, 's> {
                 return Err(diag);
             }
 
-            return Ok(Attr::Unit(None, None));
+            return Ok(Attr::Type(LangType::new_var(Type::Void, None)));
         };
 
         let LangType::Var(var_type) = &sym.lang_type else {
@@ -1134,7 +1156,7 @@ impl<'a, 's> SemAction<'a, 's> {
             return Ok(Attr::Type(LangType::new_var(Type::Void, None)));
         };
 
-        Ok(Attr::Type(LangType::Var(var_type.clone())))
+        Ok(Attr::Type(LangType::new_var(var_type.var_type, id_span)))
     }
 
     fn expr_wrap(&self, args: Vec<Attr>) -> Result<Attr, Diag> {
@@ -1143,14 +1165,20 @@ impl<'a, 's> SemAction<'a, 's> {
         });
 
         let [
-            Attr::Unit(None, _),
+            Attr::Unit(None, start_span),
             Attr::Type(LangType::Var(expr_type)),
-            Attr::Unit(None, _),
+            Attr::Unit(None, end_span),
         ] = args else {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
 
-        Ok(Attr::Type(LangType::Var(expr_type)))
+        let span = if let Some(start_span) = start_span && let Some(end_span) = end_span {
+            Some(Span::new(start_span.start, end_span.end))
+        } else {
+            None
+        };
+
+        Ok(Attr::Type(LangType::new_var(expr_type.var_type, span)))
     }
 
     fn expr_call(&self, args: Vec<Attr>) -> Result<Attr, Diag> {
@@ -1228,15 +1256,44 @@ impl<'a, 's> SemAction<'a, 's> {
             return Ok(Attr::Type(LangType::new_var(Type::Void, None)));
         };
 
-        if self.symtable().is_current_func(pool_id) {
-            return Ok(Attr::Type(LangType::new_var(Type::Func, None)));
-        }
-
         if let Some(arg_first) = args.front_mut() && arg_first.var_type == Type::Void {
-            arg_first.reason = call_span;
+            arg_first.reason = call_span.clone();
         }
 
-        for (arg_type, param_type) in args.iter().zip(func_type.param_type.iter()) {
+        let param_iter = func_type
+            .param_type
+            .iter()
+            .filter(|v| v.var_type != Type::Void)
+            .collect::<Vec<&TypeVar>>();
+
+        if param_iter.len() != args.len() {
+            let count_span = if args.len() == 0 {
+                call_span
+            } else {
+                arg_span
+            };
+
+            if let Some(count_span) = &count_span && let Some(func_span) = &sym.span {
+                let mut diag = Diag::make(
+                    DiagKind::InvalidCall(args.len(), param_iter.len()),
+                    count_span.clone(),
+                    true
+                );
+
+                diag.add_span(
+                    func_span.clone(),
+                    DiagSever::Note,
+                    Some("expected because of this".into()),
+                    false
+                );
+
+                return Err(diag);
+            }
+
+            return Ok(Attr::Type(LangType::new_var(Type::Void, None)));
+        }
+
+        for (arg_type, param_type) in args.iter().zip(param_iter.iter()) {
             if arg_type.var_type != param_type.var_type {
                 if let Some(arg_reason) = &arg_type.reason
                     && let Some(param_reason) = &param_type.reason {
@@ -1250,7 +1307,7 @@ impl<'a, 's> SemAction<'a, 's> {
                     diag.add_span(
                         param_reason.clone(),
                         DiagSever::Note,
-                        Some("expected due to this".into()),
+                        Some("expected because of this".into()),
                         false
                     );
 
@@ -1320,7 +1377,7 @@ impl<'a, 's> SemAction<'a, 's> {
         }
 
         if expr_type1.var_type != expr_type2.var_type
-            && let Some(span1) = expr_type1.reason
+            && let Some(span1) = &expr_type1.reason
             && let Some(span2) = expr_type2.reason {
 
             let mut diag = Diag::make(
@@ -1330,14 +1387,22 @@ impl<'a, 's> SemAction<'a, 's> {
             );
 
             diag.add_span(
-                span1,
+                span1.clone(),
                 DiagSever::Note,
-                Some("expected due to this".into()),
+                Some(format!("because this has type `{}`", expr_type1.var_type)),
                 false
             );
+
+            return Err(diag);
         }
 
-        Ok(Attr::Type(LangType::new_var(expr_type1.var_type, None)))
+        let span = if let Some(expr1_span) = expr_type1.reason && let Some(expr2_span) = expr_type2.reason {
+            Some(Span::new(expr1_span.start, expr2_span.end))
+        } else {
+            None
+        };
+
+        Ok(Attr::Type(LangType::new_var(expr_type1.var_type, span)))
     }
 
     fn expr_oper_bin_cmp(&mut self, args: Vec<Attr>) -> Result<Attr, Diag> {
@@ -1392,7 +1457,7 @@ impl<'a, 's> SemAction<'a, 's> {
         }
 
         if expr_type1.var_type != expr_type2.var_type
-            && let Some(span1) = expr_type1.reason
+            && let Some(span1) = &expr_type1.reason
             && let Some(span2) = expr_type2.reason {
 
             let mut diag = Diag::make(
@@ -1402,16 +1467,22 @@ impl<'a, 's> SemAction<'a, 's> {
             );
 
             diag.add_span(
-                span1,
+                span1.clone(),
                 DiagSever::Note,
-                Some("expected due to this".into()),
+                Some(format!("because this has type `{}`", expr_type1.var_type)),
                 false
             );
 
             return Err(diag);
         }
 
-        Ok(Attr::Type(LangType::new_var(Type::Bool, None)))
+        let span = if let Some(expr1_span) = expr_type1.reason && let Some(expr2_span) = expr_type2.reason {
+            Some(Span::new(expr1_span.start, expr2_span.end))
+        } else {
+            None
+        };
+
+        Ok(Attr::Type(LangType::new_var(expr_type1.var_type, span)))
     }
 
     fn expr_oper_bin_bool(&self, args: Vec<Attr>) -> Result<Attr, Diag> {
@@ -1466,7 +1537,13 @@ impl<'a, 's> SemAction<'a, 's> {
             }
         }
 
-        Ok(Attr::Type(LangType::new_var(expr_type1.var_type, None)))
+        let span = if let Some(expr1_span) = expr_type1.reason && let Some(expr2_span) = expr_type2.reason {
+            Some(Span::new(expr1_span.start, expr2_span.end))
+        } else {
+            None
+        };
+
+        Ok(Attr::Type(LangType::new_var(Type::Bool, span)))
     }
 
     fn expr_oper_unr_bool(&self, args: Vec<Attr>) -> Result<Attr, Diag> {
@@ -1483,7 +1560,7 @@ impl<'a, 's> SemAction<'a, 's> {
 
 
         if expr_type.var_type != Type::Bool
-            && let Some(oper_span) = oper_span
+            && let Some(oper_span) = &oper_span
             && let Some(span) = expr_type.reason {
 
             let mut diag = Diag::make(
@@ -1493,7 +1570,7 @@ impl<'a, 's> SemAction<'a, 's> {
             );
 
             diag.add_span(
-                oper_span,
+                oper_span.clone(),
                 DiagSever::Note,
                 Some("expected due to this operator".into()),
                 false
@@ -1502,7 +1579,13 @@ impl<'a, 's> SemAction<'a, 's> {
             return Err(diag);
         }
 
-        Ok(Attr::Type(LangType::new_var(expr_type.var_type, None)))
+        let span = if let Some(oper_span) = oper_span && let Some(expr_span) = expr_type.reason {
+            Some(Span::new(oper_span.start, expr_span.end))
+        } else {
+            None
+        };
+
+        Ok(Attr::Type(LangType::new_var(expr_type.var_type, span)))
     }
 
     fn expr_oper_unr_num(&self, args: Vec<Attr>) -> Result<Attr, Diag> {
@@ -1520,7 +1603,7 @@ impl<'a, 's> SemAction<'a, 's> {
         let valid_types = vec![Type::Int, Type::Float];
 
         if !valid_types.contains(&expr_type.var_type)
-            && let Some(oper_span) = oper_span
+            && let Some(oper_span) = &oper_span
             && let Some(span) = expr_type.reason {
 
             let mut diag = Diag::make(
@@ -1530,7 +1613,7 @@ impl<'a, 's> SemAction<'a, 's> {
             );
 
             diag.add_span(
-                oper_span,
+                oper_span.clone(),
                 DiagSever::Note,
                 Some("expected due to this operator".into()),
                 false
@@ -1539,7 +1622,13 @@ impl<'a, 's> SemAction<'a, 's> {
             return Err(diag);
         }
 
-        Ok(Attr::Type(LangType::new_var(expr_type.var_type, None)))
+        let span = if let Some(oper_span) = oper_span && let Some(expr_span) = expr_type.reason {
+            Some(Span::new(oper_span.start, expr_span.end))
+        } else {
+            None
+        };
+
+        Ok(Attr::Type(LangType::new_var(expr_type.var_type, span)))
     }
 }
 
