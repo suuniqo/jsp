@@ -135,6 +135,7 @@ impl<'a, 's> SemAction<'a, 's> {
                 SemRule::StmntBlockDeclAssign => self.recovery_stmnt_block_decl_assign(args),
                 _ => (),
             }
+
             return Ok(None);
         };
 

@@ -1,0 +1,17 @@
+
+
+	let	 boolean	b;let int x ;
+read x;
+z=x;
+write z*x;
+
+
+let int  b ;
+if (b)
+x =
+  x + 6
+    * z
+    * 1
+    * (2
+    * y
+    * 7);

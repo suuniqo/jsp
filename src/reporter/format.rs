@@ -1,5 +1,7 @@
 use std::{collections::BTreeMap, fmt};
 
+use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
+
 use crate::{diag::{Diag, DiagHelp, DiagKind, DiagSever, DiagSpan, HelpAction}, grammar::MetaSym, span::Span, style::Style, target::Target};
 
 pub struct ReporterFmt;
@@ -65,6 +67,7 @@ impl ReporterFmt {
         );
 
         let max_padding = " ".repeat(ReporterFmt::max_padding(trg));
+        let pad_offset = max_padding.len() + 3;
 
         let mut last_row = None;
 
@@ -101,11 +104,12 @@ impl ReporterFmt {
 
                 if pos < span.start {
                     let frag = &line[pos..rel_span.start];
-
                     formatted.push_str(frag);
 
+                    let pad = Self::pad(&underline[0], frag, ' ', pad_offset);
+
                     for j in 0..=underline_col {
-                        underline[j].push_str(&" ".repeat(frag.chars().count()));
+                        underline[j].push_str(&pad);
                     }
                 }
 
@@ -114,17 +118,15 @@ impl ReporterFmt {
 
                 pos = rel_span.end;
 
-                let context_len = ReporterFmt::human_redable(
-                    &line[rel_span.start..rel_span.end]
-                ).chars().count();
+                let frag = ReporterFmt::human_redable(&line[rel_span.start..rel_span.end]);
 
                 if let Some(msg) = &diag_span.msg {
+                    let pad = Self::pad(&underline.get(1).unwrap_or(&"".to_string()), &frag, ' ', pad_offset);
+
                     for j in 1..underline_col {
-                        underline[j].push_str(&format!(
-                            "{}|{}",
-                            diag_span.sever.color(),
-                            " ".repeat(context_len - 1)
-                        ));
+                        underline[j].push_str(&diag_span.sever.color().to_string());
+                        underline[j].push('|');
+                        underline[j].push_str(&pad[1..]);
                     }
 
                     underline[underline_col].push_str(&format!(
@@ -140,8 +142,10 @@ impl ReporterFmt {
                         0
                     };
                 } else {
+                    let pad = Self::pad(&underline[0], &frag, ' ', pad_offset);
+
                     for j in 0..=underline_col {
-                        underline[j].push_str(&" ".repeat(context_len));
+                        underline[j].push_str(&pad);
                     }
                 }
 
@@ -184,8 +188,7 @@ impl ReporterFmt {
             let context = ReporterFmt::human_redable(&line[lspan.start..lspan.end]);
             let suffix = &line[lspan.end..];
 
-            let prefix_padding = " ".repeat(prefix.chars().count());
-            let context_len = context.chars().count();
+            let prefix_padding = Self::pad("", &prefix, ' ', pad_offset);
 
             let row_padding = " ".repeat(ReporterFmt::row_padding(row, trg));
 
@@ -216,7 +219,8 @@ impl ReporterFmt {
                             Style::Blue, underline, Style::Reset,
                         );
                     } else {
-                        let prefix_padding = format!("{}{}", prefix_padding, " ".repeat(context_len));
+                        let context_padding = Self::pad(&prefix_padding, &context, ' ', pad_offset);
+                        let padding = format!("{}{}", prefix_padding, context_padding);
 
                         eprintln!("{}{}{} | {}{}{}{}{}{}{}",
                             Style::High, row_padding, row + 1, Style::Reset, prefix,
@@ -224,7 +228,7 @@ impl ReporterFmt {
                         );
 
                         eprintln!("{}{} | {}{}{}{}",
-                            Style::High, max_padding, prefix_padding,
+                            Style::High, max_padding, padding,
                             Style::Blue, underline, Style::Reset
                         );
                     }
@@ -294,6 +298,27 @@ impl ReporterFmt {
     fn digits(num: usize) -> usize {
         (num as f64).log10() as usize + 1
     }
+
+    fn pad(curr: &str, frag: &str, fill: char, offset: usize) -> String {
+        let curr_len = strip_ansi_escapes::strip_str(curr).width();
+
+        let fill = String::from(fill);
+        let mut out = String::new();
+
+        for c in frag.chars() {
+            match c {
+                '\t' => {
+                    let len = curr_len + out.width();
+                    let width = 8 - ((len + offset) % 8);
+
+                    out.push_str(&fill.repeat(width));
+                }
+                other => out.push_str(&fill.repeat(other.width().unwrap_or(0))),
+            }
+        }
+
+        out
+    }
 }
 
 impl DiagSpan {
@@ -304,7 +329,7 @@ impl DiagSpan {
         };
 
         let len = if let Some(frag) = trg.slice_from_span(&self.span) {
-            frag.chars().count()
+            ReporterFmt::human_redable(frag).width()
         } else {
             self.span.len()
         }.max(1);

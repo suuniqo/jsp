@@ -449,11 +449,12 @@ impl Term {
             // operators 
             Term::Sum
             | Term::Sub
-            | Term::Mul
             | Term::And
             | Term::Not
             | Term::Lt
             | Term::Eq => 20,
+
+            Term::Mul => 19,
 
             // delims (common fix)
             Term::LParen

@@ -1,0 +1,15 @@
+let int a ;
+let  int   b  ;
+let boolean bbb ;
+a = 3;
+b=a					    		 	 	 	 	 	 	 	 	 	 	 	 	 	 	 																;
+let float rrr;
+let float ccc;let boolean
+c
+;
+c = a < b;
+if (c) bbb = c;
+a = a * b;
+write a ;
+write b;
+write ccc;
