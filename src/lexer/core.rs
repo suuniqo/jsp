@@ -257,9 +257,9 @@ impl<'t> LexerCore<'t> {
         if let Some(keyword) = TokenKind::as_keyword(lexeme) {
             keyword
         } else {
-            let (id, lexeme) = self.strpool.borrow_mut().intern(lexeme);
+            let id = self.strpool.borrow_mut().intern(lexeme);
 
-            TokenKind::Id(id, lexeme)
+            TokenKind::Id(id)
         }
     }
 

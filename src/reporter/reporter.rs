@@ -1,4 +1,8 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::diag::DiagSever;
+use crate::symtable::StrPool;
 use crate::target::Target;
 use crate::diag::Diag;
 
@@ -10,15 +14,17 @@ pub struct Reporter<'t> {
     warns: usize,
     quiet: bool,
     target: &'t Target,
+    pool: Rc<RefCell<StrPool>>,
 }
 
 impl<'t> Reporter<'t> {
-    pub fn new(target: &'t Target, quiet: bool) -> Self {
+    pub fn new(target: &'t Target, pool: Rc<RefCell<StrPool>>, quiet: bool) -> Self {
         Self {
             errs: 0,
             warns: 0,
             quiet,
             target,
+            pool,
         }
     }
 
@@ -30,7 +36,7 @@ impl<'t> Reporter<'t> {
         }
 
         if !self.quiet {
-            ReporterFmt::dump_diag(self.target, &diag);
+            ReporterFmt::dump_diag(self.target, &self.pool.borrow(), &diag);
         }
     }
 

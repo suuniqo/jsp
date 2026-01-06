@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::{grammar::{Insert, Insertion, MetaSym, Term}, langtype::Type, span::Span, token::Token};
+use crate::{grammar::{Insert, Insertion, MetaSym, Term}, langtype::Type, span::Span, symtable::StrPool, token::Token};
 
 
 #[derive(Clone)]
@@ -46,7 +46,7 @@ pub enum DiagHelp {
 }
 
 impl DiagHelp {
-    pub fn action(&self) -> HelpAction {
+    pub fn action(&self, pool: &StrPool) -> HelpAction {
         match self {
             DiagHelp::InsDecimal(span) => HelpAction::Insert(
                 span.clone(),
@@ -81,7 +81,7 @@ impl DiagHelp {
             ),
             DiagHelp::RepKw(token) => HelpAction::Replace(
                 token.span.clone(),
-                format!("my_{}", token.kind.lexeme()),
+                format!("my_{}", token.kind.lexeme(pool)),
             ),
             DiagHelp::DelTrailingComma(span) => HelpAction::Delete(span.clone()),
             DiagHelp::InsVarType(span) => HelpAction::Insert(

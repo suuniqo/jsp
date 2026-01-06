@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, fmt};
 
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
-use crate::{diag::{Diag, DiagHelp, DiagKind, DiagSever, DiagSpan, HelpAction}, grammar::MetaSym, span::Span, style::Style, target::Target};
+use crate::{diag::{Diag, DiagHelp, DiagKind, DiagSever, DiagSpan, HelpAction}, grammar::MetaSym, span::Span, style::Style, symtable::StrPool, target::Target};
 
 pub struct ReporterFmt;
 
@@ -33,7 +33,7 @@ impl ReporterFmt {
         );
     }
 
-    pub fn dump_diag(trg: &Target, diag: &Diag) {
+    pub fn dump_diag(trg: &Target, pool: &StrPool, diag: &Diag) {
         let mut span_map = diag.spans
             .iter()
             .map(|diag_span| {
@@ -63,7 +63,7 @@ impl ReporterFmt {
 
         eprintln!("{}{}:{}:{}: {}{}: {}{}",
             Style::High, trg.path(), row + 1, col + 1,
-            diag.kind.sever().color(), diag.kind.sever(), Style::Reset, diag.kind
+            diag.kind.sever().color(), diag.kind.sever(), Style::Reset, Fmt(&diag.kind, pool)
         );
 
         let max_padding = " ".repeat(ReporterFmt::max_padding(trg));
@@ -173,7 +173,7 @@ impl ReporterFmt {
         }
 
         if let Some(help) = &diag.help {
-            let action = help.action();
+            let action = help.action(pool);
             let span = action.span();
 
             let (row, _) = trg.coord_from_span(&span)
@@ -196,7 +196,7 @@ impl ReporterFmt {
 
             eprintln!("{}{}--> {}help: {}{}",
                 max_padding, Style::High,
-                Style::Blue, Style::Reset, Fmt(help),
+                Style::Blue, Style::Reset, Fmt(help, pool),
             );
 
             eprintln!("{}{} |", Style::High, max_padding);
@@ -358,7 +358,7 @@ impl DiagSpan {
     }
 }
 
-struct Fmt<'a, T>(&'a T);
+struct Fmt<'a, T>(&'a T, &'a StrPool);
 
 impl<'a> fmt::Display for Fmt<'a, MetaSym> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -460,7 +460,7 @@ impl<'a> fmt::Display for Fmt<'a, DiagHelp> {
                     write!(f, "insert ")?;
 
                     for (i, sym) in insertion.iter().enumerate() {
-                        write!(f, "{}", Fmt(sym))?;
+                        write!(f, "{}", Fmt(sym, self.1))?;
 
                         if i + 2 < insertion.len() {
                             write!(f, ", ")?;
@@ -471,19 +471,19 @@ impl<'a> fmt::Display for Fmt<'a, DiagHelp> {
 
                     write!(f, " {} `{}{}{}`",
                         if *before { "before" } else { "after" },
-                        Style::High, found.kind.lexeme(), Style::Reset,
+                        Style::High, found.kind.lexeme(self.1), Style::Reset,
                     )
                 }
             },
             DiagHelp::DelToken(found) => write!(
                 f,
                 "{}remove the unnecessary `{}{}{}`",
-                Style::Reset, Style::High, found.kind.lexeme(), Style::Reset
+                Style::Reset, Style::High, found.kind.lexeme(self.1), Style::Reset
             ),
             DiagHelp::RepToken(found, rep) => write!(
                 f,
                 "{}replace `{}{}{}` by {}",
-                Style::Reset, Style::High, found.kind.lexeme(), Style::Reset, Fmt(rep),
+                Style::Reset, Style::High, found.kind.lexeme(self.1), Style::Reset, Fmt(rep, self.1),
             ),
             DiagHelp::RepKw(_) => write!(f, "{}change the name to use it as an identifier", Style::Reset),
             DiagHelp::DelTrailingComma(_) => write!(f, "{}remove the trailing comma", Style::Reset),
@@ -507,9 +507,9 @@ impl<'a> fmt::Display for Fmt<'a, DiagHelp> {
     }
 }
 
-impl fmt::Display for DiagKind {
+impl<'a> fmt::Display for Fmt<'a, DiagKind> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
+        match self.0 {
             DiagKind::StrayChar(c) => write!(f, "{}illegal character `{}{}{}` in program",
                 Style::Reset, Style::High,
                 if c.is_control() {
@@ -537,13 +537,13 @@ impl fmt::Display for DiagKind {
             ),
             DiagKind::UnexpectedTok(found, expected) => {
                 if expected.is_empty() {
-                    return write!(f, "unexpected `{}{}{}`", Style::High, found.lexeme(), Style::Reset);
+                    return write!(f, "unexpected `{}{}{}`", Style::High, found.lexeme(self.1), Style::Reset);
                 }
 
                 write!(f, "expected ")?;
 
                 for (i, sym) in expected.iter().enumerate() {
-                    write!(f, "{}", Fmt(sym))?;
+                    write!(f, "{}", Fmt(sym, self.1))?;
 
                     if i + 2 < expected.len() {
                         write!(f, ", ")?;
@@ -552,14 +552,14 @@ impl fmt::Display for DiagKind {
                     }
                 }
 
-                write!(f, ", found `{}{}{}`", Style::High, found.lexeme(), Style::Reset)
+                write!(f, ", found `{}{}{}`", Style::High, found.lexeme(self.1), Style::Reset)
             },
             DiagKind::MismatchedDelim(kind) => write!(f, "{}mismatched closing delimiter `{}{}{}`",
-                Style::Reset, Style::High, kind.lexeme(), Style::Reset
+                Style::Reset, Style::High, kind.lexeme(self.1), Style::Reset
             ),
             DiagKind::UnclosedDelim => write!(f, "{}unclosed delimiter", Style::Reset),
             DiagKind::KeywordAsId(kw) => write!(f, "{}keyword `{}{}{}` used as an identifier",
-                Style::Reset, Style::High, kw.lexeme(), Style::Reset),
+                Style::Reset, Style::High, kw.lexeme(self.1), Style::Reset),
             DiagKind::MissingSemi => write!(f, "{}missing `{};{}` at the end of a statement",
                 Style::Reset, Style::High, Style::Reset
             ),

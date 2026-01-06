@@ -67,8 +67,8 @@ fn analyze_source(cli: &Cli) {
         process::exit(1);
     });
 
-    let reporter = Rc::new(RefCell::new(Reporter::new(&target, cli.quiet)));
     let strpool = Rc::new(RefCell::new(StrPool::new()));
+    let reporter = Rc::new(RefCell::new(Reporter::new(&target, strpool.clone(), cli.quiet)));
 
     let lexer = LexerCore::new(Rc::clone(&reporter), Rc::clone(&strpool), &target);
     let mut lexer = make_lexer(&cli.lexer_trace, lexer);

@@ -321,7 +321,7 @@ impl<'t, 'l> Heuristic {
 }
 
 impl TokenKind {
-    fn is_sync(&self) -> bool {
+    const fn is_sync(&self) -> bool {
         match self {
             TokenKind::Semi
             | TokenKind::RBrack
@@ -332,7 +332,7 @@ impl TokenKind {
         }
     }
 
-    fn sync_score(&self) -> usize {
+    const fn sync_score(&self) -> usize {
         match self {
             TokenKind::RParen => 5,
             TokenKind::RBrack => 5,
@@ -365,7 +365,7 @@ impl TokenKind {
 }
 
 impl Term {
-    fn delete_cost(&self) -> usize {
+    const fn delete_cost(&self) -> usize {
         match self {
             // never delete structural starters
             Term::If
@@ -413,7 +413,7 @@ impl Term {
         }
     }
 
-    fn insert_cost(&self) -> usize {
+    const fn insert_cost(&self) -> usize {
         match self {
             // never auto-insert whole statements
             Term::If

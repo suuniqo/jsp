@@ -48,7 +48,7 @@ impl<'s> SemAnalyzer<'s> {
             TokenKind::Str | TokenKind::StrLit(_) => Attr::Type(
                 LangType::new_var(Type::Str, span),
             ),
-            TokenKind::Id(pool_id, _) => Attr::Id(
+            TokenKind::Id(pool_id) => Attr::Id(
                 pool_id, span,
             ),
             _ => Attr::Unit(None, span),
@@ -1762,7 +1762,7 @@ enum SemRule {
 }
 
 impl SemRule {
-    pub fn from_idx(idx: usize) -> Self {
+    pub const fn from_idx(idx: usize) -> Self {
         match idx {
             0 => SemRule::Axiom,
             1 | 4 => SemRule::Lambda,
@@ -1806,10 +1806,7 @@ impl SemRule {
             57 => SemRule::ExprOperBinBool,
             47 => SemRule::ExprOperUnrBool,
             58 | 59 => SemRule::ExprOperUnrNum,
-            _ => unreachable!(
-                "unexpected invalid rule index: got {} but len is: {}",
-                idx, Grammar::LEN,
-            )
+            _ => panic!("unexpected invalid rule index")
         }
     }
 }

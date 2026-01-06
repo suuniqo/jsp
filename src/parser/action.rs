@@ -1,7 +1,6 @@
-use std::rc::Rc;
-
 use crate::grammar::{NotTerm, Term};
 use crate::token::TokenKind;
+
 
 #[derive(Debug, Clone, Copy)]
 pub enum Action {
@@ -94,7 +93,7 @@ impl NotTerm {
 impl TokenKind {
     pub(super) const COUNT: usize = TokenKind::Eof.idx();
 
-    pub(super) fn from_idx(idx: usize) -> Self {
+    pub(super) const fn from_idx(idx: usize) -> Self {
         match idx {
             0 => TokenKind::If,
             1 => TokenKind::Do,
@@ -114,7 +113,7 @@ impl TokenKind {
             15 => TokenKind::FloatLit(0.0),
             16 => TokenKind::IntLit(0),
             17 => TokenKind::StrLit(String::new()),
-            18 => TokenKind::Id(0, Rc::from("")),
+            18 => TokenKind::Id(0),
             19 => TokenKind::Assign,
             20 => TokenKind::AndAssign,
             21 => TokenKind::Comma,
@@ -131,7 +130,7 @@ impl TokenKind {
             32 => TokenKind::Lt,
             33 => TokenKind::Eq,
             34 => TokenKind::Eof,
-            other => unreachable!("should always be a valid TokenKind index, but got {other}"),
+            _ => panic!("got invalid TokenKind index"),
         }
     }
 
