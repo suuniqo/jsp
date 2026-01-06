@@ -9,6 +9,19 @@ pub struct LexerTracer<'t> {
     inner: LexerCore<'t>,
 }
 
+impl<'t> LexerTracer<'t> {
+    fn new(inner: LexerCore<'t>, dump_path: Option<&str>) -> Box<LexerTracer<'t>> {
+        let writer = Writer::new(dump_path);
+        let trace = Vec::new();
+
+        Box::new(Self {
+            writer,
+            trace,
+            inner,
+        })
+    }
+}
+
 impl Iterator for LexerTracer<'_> {
     type Item = Token;
 
@@ -23,35 +36,26 @@ impl Iterator for LexerTracer<'_> {
     }
 }
 
-impl Lexer for LexerTracer<'_> {
-    fn before_drop(&mut self) -> Option<Result<(), WriterErr>> {
-        Some(self.dump())
-    }
-}
+impl<'t> Lexer<'t> for LexerTracer<'t> {}
 
 impl<'t> Tracer<LexerCore<'t>> for LexerTracer<'t> {
-    fn new(inner: LexerCore<'t>, dump_path: Option<&str>) -> Result<Box<Self>, WriterErr> {
-        let writer = Writer::new(dump_path)?;
-        let trace = Vec::new();
-
-        Ok(Box::new(Self {
-            writer,
-            trace,
-            inner,
-        }))
-    }
-
     fn dump(&mut self) -> Result<(), WriterErr> {
         self.trace
             .iter()
             .try_for_each(|kind| self.writer.write(format_args!("{}\n", kind)))
+    }
+
+    fn before_drop(&mut self) -> Option<Result<(), WriterErr>> {
+        Some(self.dump())
     }
 }
 
 impl<'t> HasTracer for LexerCore<'t> {
     type Tracer = LexerTracer<'t>;
 
-    fn tracer(self, dump_path: Option<&str>) -> Result<Box<Self::Tracer>, WriterErr> {
+    fn tracer(self, dump_path: Option<&str>) -> Box<LexerTracer<'t>> {
         LexerTracer::new(self, dump_path)
     }
 }
+
+impl<'t> Tracer<LexerCore<'t>> for LexerCore<'t> {}

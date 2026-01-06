@@ -155,9 +155,9 @@ impl SymTable for SymTableCore {
     fn search(&self, pool_id: usize) -> Option<&Sym> {
         if let Some(id) = self.curr_scope().id()
             && id == pool_id
-            && let Some(sym) = &self.scope_func {
-
-            return Some(&sym.0);
+            && let Some(sym) = &self.scope_func
+        {
+            return Some(self.curr_scope().find(pool_id).unwrap_or(&sym.0));
         }
 
         self.scopes

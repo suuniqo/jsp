@@ -24,11 +24,11 @@ use super::{
     Parser,
 };
 
-type LexerChained<'l> = iter::Chain<&'l mut (dyn Lexer + 'l), iter::Once<Token>>;
+type LexerChained<'t, 'l> = iter::Chain<&'l mut (dyn Lexer<'t> + 'l), iter::Once<Token>>;
 
 pub struct ParserCore<'t, 'l, 's> {
     reporter: Rc<RefCell<Reporter<'t>>>,
-    lexer: MultiPeek<LexerChained<'l>>,
+    lexer: MultiPeek<LexerChained<'t, 'l>>,
 
     panic: bool,
     prev: Option<Token>,
@@ -43,7 +43,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
 
     pub fn new(
         reporter: Rc<RefCell<Reporter<'t>>>,
-        lexer: &'l mut dyn Lexer,
+        lexer: &'l mut dyn Lexer<'t>,
         symtable: &'s mut dyn SymTable,
     ) -> Self {
         Self {
@@ -379,7 +379,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
     }
 }
 
-impl<'t, 'l, 's> Parser for ParserCore<'t, 'l, 's> {
+impl<'t: 'l, 'l: 's, 's> Parser<'t, 'l, 's> for ParserCore<'t, 'l, 's> {
     fn parse(&mut self) -> Option<Vec<usize>> {
         let mut parse = vec![];
 

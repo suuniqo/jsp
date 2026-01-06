@@ -11,6 +11,18 @@ pub struct SymTableTracer {
     inner: SymTableCore,
 }
 
+impl SymTableTracer {
+    fn new(inner: SymTableCore, dump_path: Option<&str>) -> Box<Self> {
+        let writer = Writer::new(dump_path);
+
+        Box::new(Self {
+            writer,
+            trace: Vec::new(),
+            inner,
+        })
+    }
+}
+
 impl SymTable for SymTableTracer {
     fn pop_scope(&mut self) {
         if let Some(scope) = self.inner.pop_scope_inner() {
@@ -49,10 +61,6 @@ impl SymTable for SymTableTracer {
     fn search(&self, pool_id: usize) -> Option<&Sym> {
         self.inner.search(pool_id)
     }
-
-    fn before_drop(&mut self) -> Option<Result<(), WriterErr>> {
-        Some(self.dump())
-    }
 }
 
 struct SymTableTracerDisplay<'a> {
@@ -75,16 +83,6 @@ impl<'a> fmt::Display for SymTableTracerDisplay<'a> {
 }
 
 impl Tracer<SymTableCore> for SymTableTracer {
-    fn new(inner: SymTableCore, dump_path: Option<&str>) -> Result<Box<Self>, WriterErr> {
-        let writer = Writer::new(dump_path)?;
-
-        Ok(Box::new(Self {
-            writer,
-            trace: Vec::new(),
-            inner,
-        }))
-    }
-
     fn dump(&mut self) -> Result<(), WriterErr> {
         let display = SymTableTracerDisplay {
             trace: &self.trace,
@@ -93,12 +91,18 @@ impl Tracer<SymTableCore> for SymTableTracer {
 
         self.writer.write(format_args!("{}", display))
     }
+
+    fn before_drop(&mut self) -> Option<Result<(), WriterErr>> {
+        Some(self.dump())
+    }
 }
 
 impl HasTracer for SymTableCore {
     type Tracer = SymTableTracer;
 
-    fn tracer(self, dump_path: Option<&str>) -> Result<Box<Self::Tracer>, WriterErr> {
+    fn tracer(self, dump_path: Option<&str>) -> Box<Self::Tracer> {
         SymTableTracer::new(self, dump_path)
     }
 }
+
+impl Tracer<SymTableCore> for SymTableCore {}

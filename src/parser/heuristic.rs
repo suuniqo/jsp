@@ -35,11 +35,11 @@ impl Fix {
     }
 }
 
-type LexerChained<'l> = iter::Chain<&'l mut (dyn Lexer + 'l), iter::Once<Token>>;
+type LexerChained<'t, 'l> = iter::Chain<&'l mut (dyn Lexer<'t> + 'l), iter::Once<Token>>;
 
 pub struct Heuristic;
 
-impl<'l> Heuristic {
+impl<'t, 'l> Heuristic {
     pub fn expected(stack: &[usize]) -> HashSet<MetaSym> {
         let paths: Vec<(usize, Vec<usize>)> = (0..TokenKind::COUNT)
             .filter_map(|i| {
@@ -67,7 +67,7 @@ impl<'l> Heuristic {
     const MAX_RECOVERY_LEN: usize = 32;
 
     pub fn eval_insertion(
-        lexer: &mut MultiPeek<LexerChained<'l>>, 
+        lexer: &mut MultiPeek<LexerChained<'t, 'l>>, 
         stack: &[usize],
     ) -> Option<(Fix, Vec<MetaSym>)> {
         let mut curr_stack = stack.to_vec();
@@ -170,7 +170,7 @@ impl<'l> Heuristic {
         None
     }
 
-    pub fn eval_deletion(lexer: &mut MultiPeek<LexerChained<'l>>, stack: &[usize]) -> Option<Fix> {
+    pub fn eval_deletion(lexer: &mut MultiPeek<LexerChained<'t, 'l>>, stack: &[usize]) -> Option<Fix> {
         let mut cost = 0;
         let mut skips = 0;
 
@@ -193,7 +193,7 @@ impl<'l> Heuristic {
     }
 
     pub fn eval_replacement(
-        lexer: &mut MultiPeek<LexerChained<'l>>,
+        lexer: &mut MultiPeek<LexerChained<'t, 'l>>,
         stack: &[usize],
     ) -> Option<(Fix, MetaSym)> {
 

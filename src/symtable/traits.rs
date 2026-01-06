@@ -1,11 +1,11 @@
 use std::rc::Rc;
 
-use crate::{langtype::TypeVar, span::Span, writer::WriterErr};
+use crate::{langtype::TypeVar, span::Span, symtable::SymTableCore, writer::Tracer};
 
 use super::scope::Sym;
 
 
-pub trait SymTable {
+pub trait SymTable: Tracer<SymTableCore> {
     fn pop_scope(&mut self);
 
     fn push_func(&mut self, pool_id: usize, span: Option<Span>) -> (bool, Sym);
@@ -18,6 +18,4 @@ pub trait SymTable {
     fn scopes(&self) -> usize;
     fn lexeme(&self, pool_id: usize) -> Option<Rc<str>>;
     fn search(&self, pool_id: usize) -> Option<&Sym>;
-
-    fn before_drop(&mut self) -> Option<Result<(), WriterErr>> { None }
 }

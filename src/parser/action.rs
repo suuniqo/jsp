@@ -1,4 +1,4 @@
-use std::{f32, i16, rc::Rc, usize};
+use std::rc::Rc;
 
 use crate::grammar::{NotTerm, Term};
 use crate::token::TokenKind;
@@ -11,7 +11,7 @@ pub enum Action {
 }
 
 impl Term {
-    pub(super) fn from_idx(idx: usize) -> Self {
+    pub(super) const fn from_idx(idx: usize) -> Self {
         match idx {
              0 => Term::If, 
              1 => Term::Do,
@@ -47,7 +47,7 @@ impl Term {
             31 => Term::Not,
             32 => Term::Lt,
             33 => Term::Eq,
-            other => unreachable!("should always be a valid TokenKind index, but got {other}"),
+            _ => panic!("should always be a valid TokenKind index, but got"),
         }
     }
 }
@@ -56,11 +56,11 @@ impl NotTerm {
     const AXIOM: Self = Self::PP;
     const COUNT: usize = Self::AXIOM as usize;
 
-    pub(super) fn idx(&self) -> usize {
+    pub(super) const fn idx(&self) -> usize {
         *self as usize
     }
 
-    pub(super) fn from_idx(idx: usize) -> Self {
+    pub(super) const fn from_idx(idx: usize) -> Self {
         match idx {
             0 => Self::E,
             1 => Self::R,
@@ -86,7 +86,7 @@ impl NotTerm {
             21 => Self::C,
             22 => Self::P,
             23 => Self::PP,
-            other => unreachable!("should always be a valid NotTerm index, but got {other}"),
+            _ => panic!("got invalid NotTerm index"),
         }
     }
 }
@@ -111,10 +111,10 @@ impl TokenKind {
             12 => TokenKind::Write,
             13 => TokenKind::True,
             14 => TokenKind::False,
-            15 => TokenKind::FloatLit(f32::default()),
-            16 => TokenKind::IntLit(i16::default()),
-            17 => TokenKind::StrLit(String::default()),
-            18 => TokenKind::Id(usize::default(), Rc::from("")),
+            15 => TokenKind::FloatLit(0.0),
+            16 => TokenKind::IntLit(0),
+            17 => TokenKind::StrLit(String::new()),
+            18 => TokenKind::Id(0, Rc::from("")),
             19 => TokenKind::Assign,
             20 => TokenKind::AndAssign,
             21 => TokenKind::Comma,

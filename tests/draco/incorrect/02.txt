@@ -1,0 +1,51 @@
+let float llff11;
+
+let string	cadena;
+read 
+cadena;
+let boolean logico1	;
+let boolean logico2 	;
+let int int2			;
+
+
+
+/* Ejemplo #1*/
+
+int1 = 873;
+
+int2 = 378;
+if (logico1 && logico2) cadena = " hello!";
+
+function string ff(string sss)
+{
+	global = 33;
+	logico1 =  logico2;
+	return sss;
+	if (logico1) sss = ff (cadena);
+}
+		
+function 
+boolean 
+l
+(float l_)
+{
+return 0.91<l_;
+}
+function string funciOn  (string logico2)
+{	let  int var;
+
+  do{
+	logico1 &= int1 == int2;write(0.0);logico2="";
+  }while(logico1);
+
+  return logico2;
+}
+cadena = funciOn(ff(cadena));
+
+write cadena;
+
+cadena = funcion(cadena);
+
+
+
+

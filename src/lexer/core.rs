@@ -376,4 +376,4 @@ impl Iterator for LexerCore<'_> {
     }
 }
 
-impl Lexer for LexerCore<'_> {}
+impl<'t> Lexer<'t> for LexerCore<'t> {}
