@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::{langtype::TypeVar, span::Span, symtable::SymTableCore, writer::Tracer};
+use crate::{langtype::TypeVar, span::Span, symtable::SymTableCore, writer::{Tracer, HasTracer}};
 
 use super::scope::Sym;
 
@@ -18,4 +18,14 @@ pub trait SymTable: Tracer<SymTableCore> {
     fn scopes(&self) -> usize;
     fn lexeme(&self, pool_id: usize) -> Option<Rc<str>>;
     fn search(&self, pool_id: usize) -> Option<&Sym>;
+}
+
+impl dyn SymTable {
+    pub fn make(trace: &Option<Option<String>>, inner: SymTableCore) -> Box<dyn SymTable> {
+        if let Some(file) = trace {
+            inner.tracer(file.as_deref())
+        } else {
+            Box::new(inner)
+        }
+    }
 }

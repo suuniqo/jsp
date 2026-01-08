@@ -44,7 +44,7 @@ impl<'t> Reporter<'t> {
         self.errs > 0
     }
 
-    pub fn finnish(&self) {
+    pub fn finish(&self) {
         ReporterFmt::dump_warns(self.target, self.warns);
 
         if self.found_err() {

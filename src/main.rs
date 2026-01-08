@@ -1,14 +1,19 @@
-use std::fmt;
-use std::{cell::RefCell, process, rc::Rc};
+use std::{cell::RefCell, fmt, rc::Rc};
 
-use crate::cli::Cli;
-use crate::lexer::{Lexer, LexerCore};
-use crate::parser::{Parser, ParserCore};
-use crate::reporter::Reporter;
-use crate::style::Style;
-use crate::symtable::{StrPool, SymTable, SymTableCore};
-use crate::target::Target;
-use crate::writer::{HasTracer, Tracer};
+use crate::{
+    cli::Cli,
+    style::Style,
+
+    writer::Tracer,
+    result::AnalysisResult,
+
+    target::Target,
+    reporter::Reporter,
+
+    lexer::{Lexer, LexerCore},
+    symtable::{StrPool, SymTable, SymTableCore},
+    parser::{Parser, ParserCore},
+};
 
 mod target;
 mod window;
@@ -24,72 +29,61 @@ mod span;
 mod langtype;
 mod grammar;
 mod cli;
+mod result;
 
 
 fn dump_err(err: impl fmt::Display) {
     eprintln!("{}error: {}{}", Style::Red, Style::Reset, err)
 }
 
-fn finish<'a, I>(mut comp: Box<dyn Tracer<I> + 'a>) {
-    comp.before_drop().transpose().unwrap_or_else(|err| {
+fn finish<'a, I>(mut comp: Box<dyn Tracer<I> + 'a>) -> Result<(), AnalysisResult> {
+    comp.before_drop().transpose().map(|_| ()).map_err(|err| {
         dump_err(err);
-        process::exit(1);
-    });
+        AnalysisResult::IOError
+    })
 }
 
-fn make_symtabl(trace: &Option<Option<String>>, inner: SymTableCore) -> Box<dyn SymTable> {
-    if let Some(file) = trace {
-        inner.tracer(file.as_deref())
-    } else {
-        Box::new(inner)
-    }
-}
-
-fn make_lexer<'t>(trace: &Option<Option<String>>, inner: LexerCore<'t>) -> Box<dyn Lexer<'t> + 't> {
-    if let Some(file) = trace {
-        inner.tracer(file.as_deref())
-    } else {
-        Box::new(inner)
-    }
-}
-
-fn make_parser<'t: 'l, 'l: 's, 's>(trace: &Option<Option<String>>, inner: ParserCore<'t, 'l, 's>) -> Box<dyn Parser<'t, 'l, 's> + 's> {
-    if let Some(file) = trace {
-        inner.tracer(file.as_deref())
-    } else {
-        Box::new(inner)
-    }
-}
-
-fn analyze_source(cli: &Cli) {
-    let target = Target::from_path(&cli.source).unwrap_or_else(|err| {
-        dump_err(err);
-        process::exit(1);
-    });
+fn analyze(cli: Cli) -> AnalysisResult {
+    let target = match Target::from_path(&cli.source) {
+        Ok(target) => target,
+        Err(err) => {
+            dump_err(err);
+            return AnalysisResult::IOError;
+        }
+    };
 
     let strpool = Rc::new(RefCell::new(StrPool::new()));
+
     let reporter = Rc::new(RefCell::new(Reporter::new(&target, strpool.clone(), cli.quiet)));
 
-    let lexer = LexerCore::new(Rc::clone(&reporter), Rc::clone(&strpool), &target);
-    let mut lexer = make_lexer(&cli.lexer_trace, lexer);
+    let mut lexer = <dyn Lexer>::make(
+        &cli.lexer_trace,
+        LexerCore::new(Rc::clone(&reporter), Rc::clone(&strpool), &target),
+    );
 
-    let symtable = SymTableCore::new(strpool);
-    let mut symtable = make_symtabl(&cli.symtb_trace, symtable);
+    let mut symtable = <dyn SymTable>::make(
+        &cli.symtb_trace,
+        SymTableCore::new(strpool)
+    );
 
-    let parser = ParserCore::new(Rc::clone(&reporter), lexer.as_mut(), symtable.as_mut());
-    let mut parser = make_parser(&cli.parse_trace, parser);
+    let mut parser = <dyn Parser>::make(
+        &cli.parse_trace,
+        ParserCore::new(Rc::clone(&reporter), lexer.as_mut(), symtable.as_mut()),
+    );
 
     parser.parse();
 
     if !reporter.borrow().found_err() {
-        finish(parser);
-        finish(symtable);
-        finish(lexer);
+        if let Err(result) = finish(parser)   { return result }
+        if let Err(result) = finish(symtable) { return result }
+        if let Err(result) = finish(lexer)    { return result }
     }
 
-    reporter.borrow().finnish();
+    reporter.borrow().finish();
+
+    AnalysisResult::Success
 }
 
-fn main() {
-    analyze_source(&Cli::parse_args());
+fn main() -> AnalysisResult {
+    analyze(Cli::parse_args())
 }

@@ -1,0 +1,17 @@
+use std::process::{ExitCode, Termination};
+
+pub enum AnalysisResult {
+    Success,
+    CodeError,
+    IOError,
+}
+
+impl Termination for AnalysisResult {
+    fn report(self) -> ExitCode {
+        ExitCode::from(match self {
+            Self::Success   => 0,
+            Self::CodeError => 1,
+            Self::IOError   => 2,
+        })
+    }
+}
