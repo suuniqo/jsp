@@ -56,4 +56,7 @@ doom = noop(pram1, pram2, pram3);
 function int repeat(int x, float x) {
     x = 5.0;
     return repeat(x);
+    let int hola = a;
 }
+
+do { return doom; } while (!doom);

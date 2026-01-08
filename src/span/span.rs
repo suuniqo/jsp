@@ -18,6 +18,11 @@ impl Span {
     pub fn len(&self) -> usize {
         self.end - self.start
     }
+
+    pub fn intersect(&self, other: &Self) -> bool {
+        self.start.max(other.start) < self.end.min(other.end)
+
+    }
 }
 
 impl Target {

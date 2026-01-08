@@ -22,10 +22,10 @@ pub enum Color {
 impl Color {
     pub const fn code(&self) -> u8 {
         match self {
-            Color::Red    => 211,
-            Color::Orange => 217,
-            Color::Blue   => 117,
-            Color::White  => 189,
+            Color::Red    => 211,   // 9
+            Color::Orange => 217,   // 11
+            Color::Blue   => 117,   // 12
+            Color::White  => 189,   // 15
         }
     }
 }

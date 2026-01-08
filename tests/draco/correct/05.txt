@@ -1,0 +1,55 @@
+let int n1;let int n2;let float f1;let float f2;
+
+let boolean l1;let boolean l2;
+let string
+		cad		;
+let boolean lllll;
+let int aa_aa;
+let int iiii;
+let string s64;
+let boolean boo;
+let boolean booo;
+let int aaaaa;
+let int iiiii;
+let float rr_rr;
+
+abc1=abc0;
+
+ let boolean  var_iable ;
+
+let
+float
+a1b2c3 ;
+
+
+write 123;
+
+
+if (booo) write 0.0;
+
+ read n1;
+l1 = l2;
+if (! l2) cad = "hello";
+n2 = n1 * 378;
+
+write		33 
+		* 
+		n1 
+		* 
+		n2;
+
+f2 = f2 + f1;
+
+function boolean ff (boolean ss)
+{
+	letglobal = 8;
+	if (l1) l2 = ff (ss);
+	return !ss;
+}
+		
+		
+		
+if (ff(!l1)) 
+    write letglobal;
+	
+write f2;

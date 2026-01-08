@@ -1,0 +1,12 @@
+
+
+	let	 boolean	b;let int x ;
+read x;write x;read z;
+write x+z;
+b&=x==z;if (b) z =
+  x + 7
+    * z
+    * (1
+    * 2
+    * y)
+    * 3;
