@@ -9,6 +9,10 @@ pub trait Tracer<T> {
     fn before_drop(&mut self) -> Option<Result<(), WriterErr>> {
         None
     }
+
+    fn finish(mut self: Box<Self>) -> Result<(), WriterErr> {
+        self.before_drop().transpose().map(|_| ())
+    }
 }
 
 pub trait HasTracer: Sized {

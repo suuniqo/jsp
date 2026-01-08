@@ -3,44 +3,40 @@ use std::{cell::RefCell, fmt, rc::Rc};
 use crate::{
     cli::Cli,
     style::Style,
-
-    writer::Tracer,
     result::AnalysisResult,
 
     target::Target,
     reporter::Reporter,
+    strpool::StrPool,
 
     lexer::{Lexer, LexerCore},
-    symtable::{StrPool, SymTable, SymTableCore},
+    symtable::{SymTable, SymTableCore},
     parser::{Parser, ParserCore},
 };
 
+mod cli;
+mod style;
+mod result;
+
 mod target;
-mod window;
+mod reporter;
+mod strpool;
+
 mod lexer;
 mod parser;
-mod reporter;
 mod symtable;
+
 mod writer;
-mod style;
 mod token;
 mod diag;
 mod span;
+
 mod langtype;
 mod grammar;
-mod cli;
-mod result;
 
 
 fn dump_err(err: impl fmt::Display) {
     eprintln!("{}error: {}{}", Style::Red, Style::Reset, err)
-}
-
-fn finish<'a, I>(mut comp: Box<dyn Tracer<I> + 'a>) -> Result<(), AnalysisResult> {
-    comp.before_drop().transpose().map(|_| ()).map_err(|err| {
-        dump_err(err);
-        AnalysisResult::IOError
-    })
 }
 
 fn analyze(cli: Cli) -> AnalysisResult {
@@ -73,13 +69,26 @@ fn analyze(cli: Cli) -> AnalysisResult {
 
     parser.parse();
 
-    if !reporter.borrow().found_err() {
-        if let Err(result) = finish(parser)   { return result }
-        if let Err(result) = finish(symtable) { return result }
-        if let Err(result) = finish(lexer)    { return result }
+    reporter.borrow().finish();
+
+    if reporter.borrow().found_err() {
+        return AnalysisResult::CodeError;
+    }
+    
+    if let Err(err) = parser.finish() {
+        dump_err(err);
+        return AnalysisResult::IOError;
     }
 
-    reporter.borrow().finish();
+    if let Err(err) = symtable.finish() {
+        dump_err(err);
+        return AnalysisResult::IOError;
+    }
+
+    if let Err(err) = lexer.finish() {
+        dump_err(err);
+        return AnalysisResult::IOError;
+    }
 
     AnalysisResult::Success
 }

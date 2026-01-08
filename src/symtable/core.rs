@@ -1,8 +1,8 @@
 use std::{rc::Rc, cell::RefCell, cell::Ref};
 
-use crate::{langtype::{LangType, TypeFunc, TypeVar}, span::Span};
+use crate::{langtype::{LangType, TypeFunc, TypeVar}, span::Span, strpool::StrPool};
 
-use super::{scope::{Scope, Sym}, StrPool, SymTable};
+use super::{scope::{Scope, Sym}, SymTable};
 
 
 pub struct SymTableCore {

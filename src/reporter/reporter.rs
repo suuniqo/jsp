@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::diag::DiagSever;
-use crate::symtable::StrPool;
+use crate::strpool::StrPool;
 use crate::target::Target;
 use crate::diag::Diag;
 

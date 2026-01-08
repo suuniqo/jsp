@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, hash_map::Entry}, fmt};
 
-use crate::{langtype::LangType, span::Span, symtable::pool::StrPool};
+use crate::{langtype::LangType, span::Span, strpool::StrPool};
 
 use super::Sym;
 

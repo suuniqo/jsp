@@ -5,13 +5,12 @@ use std::rc::Rc;
 
 use crate::reporter::Reporter;
 use crate::diag::{Diag, DiagHelp, DiagKind};
-use crate::symtable::StrPool;
+use crate::strpool::StrPool;
 use crate::target::Target;
 use crate::token::{Token, TokenKind};
-use crate::window::Window;
 use crate::span::Span;
 
-use super::Lexer;
+use super::{Lexer, window::Window};
 
 
 #[derive(Clone)]

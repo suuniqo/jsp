@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, fmt};
 
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
-use crate::{diag::{Diag, DiagHelp, DiagKind, DiagSever, DiagSpan, HelpAction}, grammar::MetaSym, span::Span, style::Style, symtable::StrPool, target::Target};
+use crate::{diag::{Diag, DiagHelp, DiagKind, DiagSever, DiagSpan, HelpAction}, grammar::MetaSym, span::Span, style::Style, strpool::StrPool, target::Target};
 
 pub struct ReporterFmt;
 

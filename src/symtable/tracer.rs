@@ -1,8 +1,8 @@
 use std::{cell::Ref, fmt, rc::Rc};
 
-use crate::{langtype::TypeVar, span::Span, writer::{HasTracer, Tracer, Writer, WriterErr}};
+use crate::{langtype::TypeVar, span::Span, writer::{HasTracer, Tracer, Writer, WriterErr}, strpool::StrPool};
 
-use super::{scope::{Scope, Sym}, SymTableCore, SymTable, StrPool};
+use super::{scope::{Scope, Sym}, SymTableCore, SymTable};
 
 
 pub struct SymTableTracer {

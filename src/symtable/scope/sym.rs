@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{langtype::{LangType, Type, TypeVar}, span::Span, symtable::pool::StrPool};
+use crate::{langtype::{LangType, Type, TypeVar}, span::Span, strpool::StrPool};
 
 
 #[derive(Debug, Clone)]
