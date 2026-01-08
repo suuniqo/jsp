@@ -1,17 +1,7 @@
 use std::{cell::RefCell, fmt, rc::Rc};
 
 use crate::{
-    cli::Cli,
-    style::Style,
-    result::AnalysisResult,
-
-    target::Target,
-    reporter::Reporter,
-    strpool::StrPool,
-
-    lexer::{Lexer, LexerCore},
-    symtable::{SymTable, SymTableCore},
-    parser::{Parser, ParserCore},
+    cli::Cli, diag::DiagLevel, lexer::{Lexer, LexerCore}, parser::{Parser, ParserCore}, reporter::Reporter, result::AnalysisResult, strpool::StrPool, style::Style, symtable::{SymTable, SymTableCore}, target::Target
 };
 
 mod cli;
@@ -69,28 +59,28 @@ fn analyze(cli: Cli) -> AnalysisResult {
 
     parser.parse();
 
-    reporter.borrow().finish();
+    let level = reporter.borrow().finish();
 
-    if reporter.borrow().found_err() {
-        return AnalysisResult::CodeError;
-    }
-    
-    if let Err(err) = parser.finish() {
+    if let Err(err) = parser.finish(DiagLevel::Syntactic, level) {
         dump_err(err);
         return AnalysisResult::IOError;
     }
 
-    if let Err(err) = symtable.finish() {
+    if let Err(err) = symtable.finish(DiagLevel::Semantic, level) {
         dump_err(err);
         return AnalysisResult::IOError;
     }
 
-    if let Err(err) = lexer.finish() {
+    if let Err(err) = lexer.finish(DiagLevel::Lexical, level) {
         dump_err(err);
         return AnalysisResult::IOError;
     }
 
-    AnalysisResult::Success
+    if level < DiagLevel::None {
+        AnalysisResult::CodeError
+    } else {
+        AnalysisResult::Success
+    }
 }
 
 fn main() -> AnalysisResult {

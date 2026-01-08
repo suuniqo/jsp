@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::diag::DiagSever;
+use crate::diag::{DiagLevel, DiagSever};
 use crate::strpool::StrPool;
 use crate::target::Target;
 use crate::diag::Diag;
@@ -15,6 +15,7 @@ pub struct Reporter<'t> {
     quiet: bool,
     target: &'t Target,
     pool: Rc<RefCell<StrPool>>,
+    level: DiagLevel,
 }
 
 impl<'t> Reporter<'t> {
@@ -25,6 +26,7 @@ impl<'t> Reporter<'t> {
             quiet,
             target,
             pool,
+            level: DiagLevel::None,
         }
     }
 
@@ -35,22 +37,22 @@ impl<'t> Reporter<'t> {
             self.warns += 1;
         }
 
+        self.level = self.level.min(diag.kind.level());
+
         if !self.quiet {
             ReporterFmt::dump_diag(self.target, &self.pool.borrow(), &diag);
         }
     }
 
-    pub fn found_err(&self) -> bool {
-        self.errs > 0
-    }
-
-    pub fn finish(&self) {
+    pub fn finish(&self) -> DiagLevel {
         ReporterFmt::dump_warns(self.target, self.warns);
 
-        if self.found_err() {
+        if self.level != DiagLevel::None {
             ReporterFmt::dump_failure(self.target, self.errs);
         } else {
             ReporterFmt::dump_success(self.target);
         }
+
+        self.level
     }
 }
