@@ -3,8 +3,8 @@ use std::{collections::HashSet, iter};
 use itertools::MultiPeek;
 
 use crate::lexer::Lexer;
-use crate::token::{Token, TokenKind};
-use crate::grammar::{Grammar, MetaSym, NotTerm, Term};
+use crate::tok::{Token, TokenKind};
+use crate::gram::{Grammar, MetaSym, NotTerm, Term};
 
 use super::action::{GOTO_TABLE, ACTION_TABLE, Action};
 
@@ -132,9 +132,7 @@ impl<'t, 'l> Heuristic {
             });
 
             // ensure insertion never is empty
-            let Some((i, ..)) = candidates.pop() else {
-                return None;
-            };
+            let (i, ..) = candidates.pop()?;
 
             let pos = paths
                 .iter()
@@ -177,7 +175,7 @@ impl<'t, 'l> Heuristic {
         lexer.reset_peek();
 
         while let Some(next) = lexer.peek() {
-            if Self::token_shifts(next.kind.idx(), &stack).is_some() {
+            if Self::token_shifts(next.kind.idx(), stack).is_some() {
                 return Some(Fix::delete(skips * cost, skips));
             }
 
@@ -206,12 +204,10 @@ impl<'t, 'l> Heuristic {
         let delete_cost = next.delete_cost();
 
         let paths: Vec<(usize, Vec<usize>, Vec<FixAction>)> = (0..TokenKind::COUNT)
-            .filter_map(|i| Self::token_shifts(i, &stack).map(|(st, tr)| (i, st, tr)))
+            .filter_map(|i| Self::token_shifts(i, stack).map(|(st, tr)| (i, st, tr)))
             .collect();
 
-        let Some(next) = lexer.peek() else {
-            return None;
-        };
+        let next = lexer.peek()?;
 
         let mut candidates: Vec<(usize, Vec<FixAction>)> = paths
             .into_iter()
@@ -250,9 +246,7 @@ impl<'t, 'l> Heuristic {
         let stack_idx = *stack.last()
             .expect("unexpected empty parser stack");
 
-        let Some(action) = ACTION_TABLE[stack_idx][token_idx] else {
-            return None;
-        };
+        let action = ACTION_TABLE[stack_idx][token_idx]?;
 
         let mut stack_clone = stack.to_vec();
         let mut trace = Vec::new();
@@ -280,9 +274,7 @@ impl<'t, 'l> Heuristic {
             let stack_idx = *stack_clone.last()
                 .expect("unexpected empty parser stack");
 
-            let Some(action) = ACTION_TABLE[stack_idx][token_idx] else {
-                return None;
-            };
+            let action = ACTION_TABLE[stack_idx][token_idx]?;
 
             let Action::Reduce(new_rule_idx) = action else {
                 return Some((stack_clone, trace));
@@ -301,9 +293,7 @@ impl<'t, 'l> Heuristic {
         let stack_idx = *stack_clone.last()
             .expect("unexpected empty parser stack");
 
-        let Some(action) = ACTION_TABLE[stack_idx][token_idx] else {
-            return None;
-        };
+        let action = ACTION_TABLE[stack_idx][token_idx]?;
 
         let Action::Shift(state_idx) = action else {
             return Some((stack_clone, trace));
@@ -312,7 +302,8 @@ impl<'t, 'l> Heuristic {
         trace.push(FixAction::Shift(TokenKind::from_idx(token_idx), state_idx));
 
         stack_clone.push(state_idx);
-        return Some((stack_clone, trace));
+
+        Some((stack_clone, trace))
     }
 
     pub fn eval_panic(reduced: &TokenKind) -> bool {
@@ -322,14 +313,11 @@ impl<'t, 'l> Heuristic {
 
 impl TokenKind {
     const fn is_sync(&self) -> bool {
-        match self {
-            TokenKind::Semi
+        matches!(self, TokenKind::Semi
             | TokenKind::RBrack
             | TokenKind::RParen
             | TokenKind::Comma
-            | TokenKind::Eof => true,
-            _ => false,
-        }
+            | TokenKind::Eof)
     }
 
     const fn sync_score(&self) -> usize {

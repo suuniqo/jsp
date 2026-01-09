@@ -10,6 +10,28 @@ pub enum DiagLevel {
     None,
 }
 
+impl DiagLevel {
+    fn validates(&self, threshold: Self) -> bool {
+        *self > threshold
+    }
+
+    pub fn valid_lexical(&self) -> bool {
+        self.validates(DiagLevel::Lexical)
+    }
+
+    pub fn valid_syntactic(&self) -> bool {
+        self.validates(DiagLevel::Syntactic)
+    }
+
+    pub fn valid_semantic(&self) -> bool {
+        self.validates(DiagLevel::Semantic)
+    }
+
+    pub fn valid_all(&self) -> bool {
+        *self == DiagLevel::None
+    }
+}
+
 impl DiagKind {
     pub fn level(&self) -> DiagLevel {
         match self {

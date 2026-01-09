@@ -17,8 +17,8 @@ impl Target {
             None => "",
         };
 
-        let src = fs::read_to_string(&path)
-            .map_err(|e| TargetErr::OpenFailed(e))?;
+        let src = fs::read_to_string(path)
+            .map_err(TargetErr::OpenFailed)?;
 
         if !Self::EXT.contains(&extension) {
             return Err(TargetErr::WrongExt(extension.to_string()));

@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, hash_map::Entry}, fmt};
 
-use crate::{langtype::LangType, span::Span, strpool::StrPool};
+use crate::{ltype::LangType, span::Span, pool::StrPool};
 
 use super::Sym;
 
@@ -17,14 +17,12 @@ pub struct Scope {
 
 impl Scope {
     pub fn new(idx: usize, id: Option<usize>) -> Self {
-        let scope = Self {
+        Self {
             idx,
             id,
             vec: Vec::new(),
             map: HashMap::new(),
-        };
-
-        scope
+        }
     }
 
     pub fn id(&self) -> Option<usize> {

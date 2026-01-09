@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, fmt};
 
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
-use crate::{diag::{Diag, DiagHelp, DiagKind, DiagSever, DiagSpan, HelpAction}, grammar::MetaSym, span::Span, style::Style, strpool::StrPool, target::Target};
+use crate::{diag::{Diag, DiagHelp, DiagKind, DiagSever, DiagSpan, HelpAction}, gram::MetaSym, span::Span, style::Style, pool::StrPool, trg::Target};
 
 pub struct ReporterFmt;
 
@@ -108,8 +108,8 @@ impl ReporterFmt {
 
                     let pad = Self::pad(&underline[0], frag, ' ', pad_offset);
 
-                    for j in 0..=underline_col {
-                        underline[j].push_str(&pad);
+                    for ucol in underline.iter_mut().take(underline_col + 1) {
+                        ucol.push_str(&pad);
                     }
                 }
 
@@ -121,12 +121,12 @@ impl ReporterFmt {
                 let frag = ReporterFmt::human_redable(&line[rel_span.start..rel_span.end]);
 
                 if let Some(msg) = &diag_span.msg {
-                    let pad = Self::pad(&underline.get(1).unwrap_or(&"".to_string()), &frag, ' ', pad_offset);
+                    let pad = Self::pad(underline.get(1).unwrap_or(&"".to_string()), &frag, ' ', pad_offset);
 
-                    for j in 1..underline_col {
-                        underline[j].push_str(&diag_span.sever.color().to_string());
-                        underline[j].push('|');
-                        underline[j].push_str(&pad[1..]);
+                    for ucol in underline.iter_mut().take(underline_col).skip(1) {
+                        ucol.push_str(&diag_span.sever.color().to_string());
+                        ucol.push('|');
+                        ucol.push_str(&pad[1..]);
                     }
 
                     underline[underline_col].push_str(&format!(
@@ -144,8 +144,8 @@ impl ReporterFmt {
                 } else {
                     let pad = Self::pad(&underline[0], &frag, ' ', pad_offset);
 
-                    for j in 0..=underline_col {
-                        underline[j].push_str(&pad);
+                    for ucol in underline.iter_mut().take(underline_col + 1) {
+                        ucol.push_str(&pad);
                     }
                 }
 
@@ -188,7 +188,7 @@ impl ReporterFmt {
             let context = ReporterFmt::human_redable(&line[lspan.start..lspan.end]);
             let suffix = &line[lspan.end..];
 
-            let prefix_padding = Self::pad("", &prefix, ' ', pad_offset);
+            let prefix_padding = Self::pad("", prefix, ' ', pad_offset);
 
             let row_padding = " ".repeat(ReporterFmt::row_padding(row, trg));
 

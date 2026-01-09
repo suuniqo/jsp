@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::{grammar::{Insert, Insertion, MetaSym, Term}, langtype::Type, span::Span, strpool::StrPool, token::Token};
+use crate::{gram::{Insert, Insertion, MetaSym, Term}, ltype::Type, span::Span, pool::StrPool, tok::Token};
 
 
 #[derive(Clone)]

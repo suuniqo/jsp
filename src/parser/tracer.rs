@@ -1,4 +1,4 @@
-use crate::writer::{Tracer, HasTracer, Writer, WriterErr};
+use crate::write::{Tracer, HasTracer, Writer, WriterErr};
 
 use super::{ParserCore, Parser};
 

@@ -2,11 +2,11 @@ use std::collections::{HashSet, VecDeque};
 
 use crate::{
     diag::{Diag, DiagHelp, DiagKind, DiagSever},
-    grammar::Grammar,
-    langtype::{LangType, Type, TypeVar},
+    gram::Grammar,
+    ltype::{LangType, Type, TypeVar},
     span::Span,
     symtable::SymTable,
-    token::TokenKind
+    tok::TokenKind
 };
 
 #[derive(Debug, Clone)]
@@ -87,11 +87,11 @@ impl<'s> SemAnalyzer<'s> {
         match self.handle_rule(rule, args) {
             Ok(attr) => {
                 self.stack.push(attr);
-                return Ok(());
+                Ok(())
             },
             Err(diag) => {
                 self.stack.push(None);
-                return Err(diag);
+                Err(diag)
             },
         }
     }
@@ -193,7 +193,7 @@ impl<'a, 's> SemAction<'a, 's> {
             SemRule::FuncParamStop        => self.func_param_stop(args),
             SemRule::FuncParamMore        => self.func_param_more(args),
             SemRule::FuncParamNone        => self.func_param_none(args),
-            SemRule::FuncParamSome        => return self.func_param_some(args).map(|attr| Some(attr)),
+            SemRule::FuncParamSome        => return self.func_param_some(args).map(Some),
             SemRule::FuncRetNone          => self.func_ret_none(args),
             SemRule::FuncRetSome          => self.func_ret_some(args),
             SemRule::FuncParam            => self.func_param(args),
@@ -216,7 +216,7 @@ impl<'a, 's> SemAction<'a, 's> {
             SemRule::StmntRet             => self.stmnt_ret(args),
             SemRule::StmntRead            => self.stmnt_read(args),
             SemRule::StmntWrite           => self.stmnt_write(args),
-            SemRule::StmntCall            => return self.stmnt_call(args).map(|attr| Some(attr)),
+            SemRule::StmntCall            => return self.stmnt_call(args).map(Some),
             SemRule::StmntAndassign       => self.stmnt_andassign(args),
             SemRule::StmntAssign          => self.stmnt_assign(args),
             SemRule::ExprId               => return self.expr_id(args).map_err(|diag| vec![diag]),
@@ -228,7 +228,7 @@ impl<'a, 's> SemAction<'a, 's> {
             SemRule::ExprOperBinBool      => self.expr_oper_bin_bool(args),
             SemRule::ExprOperUnrBool      => self.expr_oper_unr_bool(args),
             SemRule::ExprOperUnrNum       => self.expr_oper_unr_num(args),
-        }.map(|attr| Some(attr)).map_err(|diag| vec![diag])
+        }.map(Some).map_err(|diag| vec![diag])
     }
 
     fn mismatched_types(&self, span: Span, found: Type, expected: Vec<Type>, pool_id: Option<usize>, extra: Option<Span>) -> Diag {
@@ -329,7 +329,7 @@ impl<'a, 's> SemAction<'a, 's> {
             span2
         };
 
-        types1.extend(types2.into_iter());
+        types1.extend(types2);
 
         Ok(Attr::Unit(Some((types1, retspan)), None))
     }
@@ -978,7 +978,7 @@ impl<'a, 's> SemAction<'a, 's> {
             .collect::<Vec<&TypeVar>>();
 
         if param_iter.len() != args.len() {
-            let count_span = if args.len() == 0 {
+            let count_span = if args.is_empty() {
                 call_span
             } else {
                 arg_span

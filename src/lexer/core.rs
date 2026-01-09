@@ -1,33 +1,35 @@
-use core::f32;
 use std::cell::RefCell;
-use std::i16;
 use std::rc::Rc;
 
-use crate::reporter::Reporter;
+use crate::report::Reporter;
 use crate::diag::{Diag, DiagHelp, DiagKind};
-use crate::strpool::StrPool;
-use crate::target::Target;
-use crate::token::{Token, TokenKind};
+use crate::pool::StrPool;
+use crate::trg::Target;
+use crate::tok::{Token, TokenKind};
 use crate::span::Span;
 
-use super::{Lexer, window::Window};
+use super::{Lexer, win::Window};
 
 
 #[derive(Clone)]
 pub struct LexerCore<'t> {
     win: Window<'t>,
-    trg: &'t Target,
+    target: &'t Target,
     reporter: Rc<RefCell<Reporter<'t>>>,
     strpool: Rc<RefCell<StrPool>>,
 }
 
 impl<'t> LexerCore<'t> {
-    pub fn new(reporter: Rc<RefCell<Reporter<'t>>>, strpool: Rc<RefCell<StrPool>>, trg: &'t Target) -> Self {
-        let win = Window::new(trg.src());
+    pub fn new(
+        reporter: Rc<RefCell<Reporter<'t>>>,
+        strpool: Rc<RefCell<StrPool>>,
+        target: &'t Target
+    ) -> Self {
+        let win = Window::new(target.src());
 
         Self {
             win,
-            trg,
+            target,
             reporter,
             strpool,
         }
@@ -70,7 +72,7 @@ impl<'t> LexerCore<'t> {
             }
         }
 
-        return Ok(TokenKind::IntLit(val as i16));
+        Ok(TokenKind::IntLit(val as i16))
     }
 
     fn parse_float(slice: &str) -> Result<TokenKind, DiagKind> {
@@ -130,7 +132,7 @@ impl<'t> LexerCore<'t> {
                     // remove '.'
                     span.end -= 1;
 
-                    let slice = self.trg.slice_from_span(&span)
+                    let slice = self.target.slice_from_span(&span)
                         .expect("invalid span when parsing number");
 
                     return Err(DiagKind::InvFmtFloat(slice.to_string().parse::<f32>().unwrap_or(0.0)));
@@ -142,7 +144,7 @@ impl<'t> LexerCore<'t> {
             self.win.consume();
         }
 
-        let slice = self.trg.slice_from_span(&self.win.span())
+        let slice = self.target.slice_from_span(&self.win.span())
             .expect("invalid span when parsing number");
 
         if !has_dot {
@@ -250,7 +252,7 @@ impl<'t> LexerCore<'t> {
     fn read_id(&mut self) -> TokenKind {
         self.win.consume_while(|next| next.is_ascii_alphanumeric() || next == '_');
 
-        let lexeme = self.trg.slice_from_span(&self.win.span())
+        let lexeme = self.target.slice_from_span(&self.win.span())
             .expect("invalid span when parsing lexeme");
         
         if let Some(keyword) = TokenKind::as_keyword(lexeme) {

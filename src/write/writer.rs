@@ -35,7 +35,7 @@ impl Writer {
         };
 
         write!(file, "{}", args)
-            .map_err(|e| WriterErr::Write(e))?;
+            .map_err(WriterErr::Write)?;
 
         Ok(())
     }

@@ -22,7 +22,7 @@ fn get_style() -> Styles {
     long_about = None,
     styles=get_style(),
 )]
-pub struct Cli {
+pub struct Config {
     /// Source file to compile
     #[arg(value_name = "SOURCE", required = true)]
     pub source: String,
@@ -44,8 +44,8 @@ pub struct Cli {
     pub quiet: bool,
 }
 
-impl Cli {
-    pub fn parse_args() -> Self {
-        Cli::parse()
+impl Config {
+    pub fn build() -> Self {
+        Config::parse()
     }
 }

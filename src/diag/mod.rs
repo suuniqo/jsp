@@ -1,10 +1,10 @@
-mod diag;
+mod core;
 mod kind;
 mod sever;
 mod help;
 mod level;
 
-pub use diag::{Diag, DiagSpan};
+pub use core::{Diag, DiagSpan};
 pub use help::{HelpAction, DiagHelp};
 pub use kind::DiagKind;
 pub use sever::DiagSever;

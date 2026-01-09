@@ -1,5 +1,3 @@
-use crate::diag::DiagLevel;
-
 use super::WriterErr;
 
 
@@ -12,8 +10,8 @@ pub trait Tracer<T> {
         None
     }
 
-    fn finish(mut self: Box<Self>, threshold: DiagLevel, level: DiagLevel) -> Result<(), WriterErr> {
-        if level <= threshold {
+    fn finish(mut self: Box<Self>, valid_trace: bool) -> Result<(), WriterErr> {
+        if !valid_trace {
             return Ok(())
         }
 

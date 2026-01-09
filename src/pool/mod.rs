@@ -1,6 +1,6 @@
 use std::{rc::Rc, collections::{HashMap, hash_map::Entry}};
 
-use crate::token::TokenKind;
+use crate::tok::TokenKind;
 
 
 #[derive(PartialEq, Eq)]
@@ -11,12 +11,10 @@ pub struct StrPool {
 
 impl StrPool {
     pub fn new() -> Self {
-        let scope = Self {
+        Self {
             vec: Vec::new(),
             map: HashMap::new(),
-        };
-
-        scope
+        }
     }
 
     pub fn intern(&mut self, lexeme: &str) -> usize {

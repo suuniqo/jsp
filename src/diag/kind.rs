@@ -1,6 +1,6 @@
 use std::{collections::HashSet, rc::Rc};
 
-use crate::{grammar::{MetaSym, Quoted}, langtype::Type, token::TokenKind};
+use crate::{gram::{MetaSym, Quoted}, ltype::Type, tok::TokenKind};
 
 #[derive(Debug, Clone)]
 pub enum DiagKind {
@@ -52,7 +52,7 @@ impl DiagKind {
             DiagKind::OverflowFloat => format!("maximum is {:e}", f32::MAX),
             DiagKind::InvFmtFloat(_) => "expected digit after `.`".into(),
             DiagKind::UnexpectedTok(_, expected) => {
-                if expected.len() == 0 {
+                if expected.is_empty() {
                     "here".to_string()
                 } else if expected.len() == 1 && let Some(candidate) = expected.iter().next() {
                     format!("expected {}", Quoted(candidate))
@@ -87,7 +87,7 @@ impl DiagKind {
             DiagKind::ExpectedRetType => "no return statements found".into(),
             DiagKind::Redefinition => "later redefined".into(),
             DiagKind::MismatchedTypes(found, expected) => {
-                if expected.len() == 0 {
+                if expected.is_empty() {
                     "here".to_string()
                 } else {
                     let mut msg = String::new();
@@ -105,8 +105,8 @@ impl DiagKind {
                     format!("expected {msg}, found `{found}`")
                 }
             },
-            DiagKind::UndefinedFunc(_) => format!("help: try defining it first"),
-            DiagKind::StrayRet => format!("cannot be used outside a function"),
+            DiagKind::UndefinedFunc(_) => "help: try defining it first".into(),
+            DiagKind::StrayRet => "cannot be used outside a function".into(),
             DiagKind::InvalidCall(found, expected) => format!(
                 "expected {} argument{}, found {}",
                 if *expected == 0 { "no".into() } else { expected.to_string() },

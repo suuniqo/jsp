@@ -1,5 +1,5 @@
-use crate::grammar::{NotTerm, Term};
-use crate::token::TokenKind;
+use crate::gram::{NotTerm, Term};
+use crate::tok::TokenKind;
 
 
 #[derive(Debug, Clone, Copy)]
@@ -177,7 +177,7 @@ impl TokenKind {
 
 const STATES: usize = 117;
 
-pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT + 1]; STATES] = [
+pub(super) static ACTION_TABLE: [[Option<Action>; TokenKind::COUNT + 1]; STATES] = [
     [
         Some(Action::Shift(7)),
         Some(Action::Shift(5)),
@@ -4509,7 +4509,7 @@ pub(super) const ACTION_TABLE: [[Option<Action>; TokenKind::COUNT + 1]; STATES] 
     ],
 ];
 
-pub(super) const GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES] = [
+pub(super) static GOTO_TABLE: [[Option<usize>; NotTerm::COUNT]; STATES] = [
     [
         None,
         None,

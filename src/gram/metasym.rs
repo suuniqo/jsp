@@ -56,13 +56,12 @@ impl MetaSym {
 
         let found: HashSet<GramSym> = term
             .into_iter()
-            .map(|t| GramSym::T(t))
-            .chain(non_term.into_iter().map(|nt| GramSym::N(nt)))
+            .map(GramSym::T)
+            .chain(non_term.into_iter().map(GramSym::N))
             .collect();
 
         let expected = found.difference(&redundant)
-            .into_iter()
-            .filter_map(|sym| Self::from_sym(sym))
+            .filter_map(Self::from_sym)
             .collect();
 
         Self::clean(expected)
@@ -77,7 +76,7 @@ impl MetaSym {
     }
 
     pub fn build_insertion(terminals: Vec<Term>) -> Vec<Self> {
-        terminals.iter().map(|term| Self::from_insert(&term)).collect()
+        terminals.iter().map(Self::from_insert).collect()
     }
 
     pub fn as_term(&self) -> Option<Term> {
@@ -185,8 +184,8 @@ impl MetaSym {
 
     pub fn from_sym(sym: &GramSym) -> Option<Self> {
         match sym {
-            GramSym::T(term) => Some(Self::from_term(&term)),
-            GramSym::N(not_term) => Self::from_not_term(&not_term),
+            GramSym::T(term) => Some(Self::from_term(term)),
+            GramSym::N(not_term) => Self::from_not_term(not_term),
         }
     }
 
@@ -358,7 +357,7 @@ impl fmt::Display for Insertion<'_> {
             return Ok(());
         };
         
-        if before.as_ref().is_some_and(|before| MetaSym::are_spaced(&before, &first)) {
+        if before.as_ref().is_some_and(|before| MetaSym::are_spaced(before, first)) {
             write!(f, " ")?;
         }
 
@@ -366,7 +365,7 @@ impl fmt::Display for Insertion<'_> {
             let curr = &w[0];
             let next = &w[1];
 
-            write!(f, "{}", Insert(&curr))?;
+            write!(f, "{}", Insert(curr))?;
 
             if MetaSym::are_spaced(curr, next) {
                 write!(f, " ")?;
@@ -374,9 +373,9 @@ impl fmt::Display for Insertion<'_> {
         }
 
         if let Some(last) = syms.last() {
-            write!(f, "{}", Insert(&last))?;
+            write!(f, "{}", Insert(last))?;
 
-            if after.as_ref().is_some_and(|after| MetaSym::are_spaced(last, &after)) {
+            if after.as_ref().is_some_and(|after| MetaSym::are_spaced(last, after)) {
                 write!(f, " ")?;
             }
         }

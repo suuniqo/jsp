@@ -1,8 +1,8 @@
 use std::rc::Rc;
 
-use crate::{langtype::TypeVar, span::Span, symtable::SymTableCore, writer::{Tracer, HasTracer}};
+use crate::{ltype::TypeVar, span::Span, symtable::SymTableCore, write::{Tracer, HasTracer}};
 
-use super::scope::Sym;
+use super::bind::Sym;
 
 
 pub trait SymTable: Tracer<SymTableCore> {

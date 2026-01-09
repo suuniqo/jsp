@@ -1,8 +1,8 @@
 use std::{rc::Rc, cell::RefCell, cell::Ref};
 
-use crate::{langtype::{LangType, TypeFunc, TypeVar}, span::Span, strpool::StrPool};
+use crate::{ltype::{LangType, TypeFunc, TypeVar}, span::Span, pool::StrPool};
 
-use super::{scope::{Scope, Sym}, SymTable};
+use super::{bind::{Scope, Sym}, SymTable};
 
 
 pub struct SymTableCore {
@@ -54,9 +54,8 @@ impl SymTableCore {
         }
 
         let ltype = LangType::Var(vtype);
-        let result = scope(self).intern(pool_id, ltype, span, implicit);
 
-        result 
+        scope(self).intern(pool_id, ltype, span, implicit)
     }
 
     pub(super) fn pop_scope_inner(&mut self) -> Option<Scope> {
@@ -123,7 +122,7 @@ impl SymTable for SymTableCore {
             unreachable!("scope func has type typevar");
         };
 
-        let func_type = TypeFunc::new(func_type.ret_type.clone(), &params);
+        let func_type = TypeFunc::new(func_type.ret_type.clone(), params);
 
         scope_func.0.lang_type = LangType::Func(func_type.clone());
 

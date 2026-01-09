@@ -2,8 +2,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::diag::{DiagLevel, DiagSever};
-use crate::strpool::StrPool;
-use crate::target::Target;
+use crate::pool::StrPool;
+use crate::trg::Target;
 use crate::diag::Diag;
 
 use super::format::ReporterFmt;

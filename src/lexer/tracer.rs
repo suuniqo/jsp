@@ -1,4 +1,4 @@
-use crate::{token::{Token, TokenKind}, writer::{HasTracer, Tracer, Writer, WriterErr}};
+use crate::{tok::{Token, TokenKind}, write::{HasTracer, Tracer, Writer, WriterErr}};
 
 use super::{LexerCore, Lexer};
 
@@ -26,9 +26,7 @@ impl Iterator for LexerTracer<'_> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let Some(token) = self.inner.next() else {
-            return None;
-        };
+        let token = self.inner.next()?;
 
         self.trace.push(token.kind.clone());
 

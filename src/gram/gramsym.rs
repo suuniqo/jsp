@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::token::TokenKind;
+use crate::tok::TokenKind;
 
 
 #[repr(u8)]
@@ -153,8 +153,7 @@ impl Term {
     }
 
     pub fn is_keyword(&self) -> bool {
-        match self {
-            Self::If
+        matches!(self, Self::If
             | Self::Do
             | Self::While
             | Self::Int
@@ -168,9 +167,7 @@ impl Term {
             | Self::Read
             | Self::Write
             | Self::True
-            | Self::False => true,
-            _ => false,
-        }
+            | Self::False)
     }
 
     pub fn is_left_delim(&self) -> bool {

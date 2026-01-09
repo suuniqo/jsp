@@ -1,22 +1,22 @@
 use std::cell::RefCell;
 use std::collections::HashSet;
-use std::{iter, usize};
+use std::iter;
 use std::rc::Rc;
 
 use itertools::{Itertools, MultiPeek};
 
 use crate::diag::{DiagHelp, DiagSever};
-use crate::grammar::{Grammar, MetaSym, Term};
+use crate::gram::{Grammar, MetaSym, Term};
 use crate::parser::heuristic::{Fix, FixAction, Heuristic};
 use crate::span::Span;
 use crate::symtable::SymTable;
 
 use crate::{
     diag::{Diag, DiagKind},
-    token::{Token, TokenKind},
+    tok::{Token, TokenKind},
 };
 
-use crate::{lexer::Lexer, reporter::Reporter};
+use crate::{lexer::Lexer, report::Reporter};
 
 use super::{
     action::{Action, ACTION_TABLE, GOTO_TABLE},
@@ -140,7 +140,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
     fn diag_deletion(&self, expected: HashSet<MetaSym>, curr: Token, cost: usize) -> Diag {
         let help = (DiagHelp::DelToken(curr.clone()), cost);
 
-        Self::diag_fallback(&self, expected, &curr, Some(help))
+        Self::diag_fallback(self, expected, &curr, Some(help))
     }
 
     fn diag_replacement(&self, expected: HashSet<MetaSym>, curr: Token, rep: MetaSym, cost: usize) -> Diag {
@@ -152,7 +152,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
 
         let help = (DiagHelp::RepToken(curr.clone(), rep), cost);
 
-        Self::diag_fallback(&self, expected, &curr, Some(help))
+        Self::diag_fallback(self, expected, &curr, Some(help))
     }
 
     fn diag_insertion_inner(&self, expected: HashSet<MetaSym>, curr: Token, ins: &[MetaSym]) -> Diag {
@@ -271,7 +271,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
             return diag.with_help(DiagHelp::InsParam(curr.span));
         }
 
-        Self::diag_fallback(&self, expected, &curr, None)
+        Self::diag_fallback(self, expected, &curr, None)
     }
 
     fn diag_insertion(&self, expected: HashSet<MetaSym>, curr: Token, ins: Vec<MetaSym>, cost: usize) -> Diag {
@@ -333,7 +333,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
                         GOTO_TABLE[stack_idx][lhs_idx].expect("unexpected invalid goto iterm: bad table"),
                     );
 
-                    let _ = self.on_reduce(rule_idx);
+                    self.on_reduce(rule_idx);
 
                     self.lexer.reset_peek();
                 }
@@ -367,7 +367,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
             (self.diag_insertion(expected, curr, syms, 0), ins_fix)
 
         } else {
-            let diag = Self::diag_fallback(&self, expected, &curr, None);
+            let diag = Self::diag_fallback(self, expected, &curr, None);
             
             self.report(diag);
             return false;
@@ -375,7 +375,8 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
 
         self.apply_fix(fix);
         self.report(diag);
-        return true;
+
+        true
     }
 }
 
@@ -440,7 +441,7 @@ impl<'t: 'l, 'l: 's, 's> Parser<'t, 'l, 's> for ParserCore<'t, 'l, 's> {
                     self.lexer.reset_peek();
                 }
                 Action::Accept => {
-                    parse.push(0 + 1);
+                    parse.push(1);
 
                     self.on_reduce(0);
 

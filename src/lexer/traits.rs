@@ -1,4 +1,4 @@
-use crate::{lexer::LexerCore, token::Token, writer::{Tracer, HasTracer}};
+use crate::{lexer::LexerCore, tok::Token, write::{Tracer, HasTracer}};
 
 
 pub trait Lexer<'t>: Iterator<Item = Token> + Tracer<LexerCore<'t>> {}
