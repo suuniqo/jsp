@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::tok::TokenKind;
+use crate::{token::TokenKind, metasym::MetaSym};
 
 
 #[repr(u8)]
@@ -248,3 +248,114 @@ impl fmt::Display for GramSym {
     }
 }
 
+impl MetaSym {
+    pub fn as_term(&self) -> Option<Term> {
+        Some(match self {
+            MetaSym::Id => Term::Id,
+            MetaSym::Assign => Term::Assign,
+            MetaSym::Comma => Term::Comma,
+            MetaSym::Semi => Term::Semi,
+            MetaSym::LParen => Term::LParen,
+            MetaSym::RParen => Term::RParen,
+            MetaSym::LBrack => Term::LBrack,
+            MetaSym::RBrack => Term::RBrack,
+            MetaSym::While => Term::While,
+            MetaSym::If => Term::If,
+            MetaSym::Do => Term::Do,
+            MetaSym::Let => Term::Let,
+            MetaSym::Read => Term::Read,
+            MetaSym::Write => Term::Write,
+            MetaSym::Ret => Term::Ret,
+            MetaSym::Func => Term::Func,
+            _ => return None,
+        })
+    }
+
+    pub fn from_term(term: &Term) -> Self {
+        match term {
+            Term::If => Self::If,
+            Term::Do => Self::Do,
+            Term::Let => Self::Let,
+            Term::Read => Self::Read,
+            Term::Write => Self::Write,
+            Term::Func => Self::Func,
+            Term::While => Self::While,
+            Term::Ret => Self::Ret,
+
+            Term::Int
+            | Term::Float
+            | Term::Str
+            | Term::Bool
+            | Term::Void => Self::Type,
+
+            Term::True
+            | Term::False
+            | Term::FloatLit
+            | Term::IntLit
+            | Term::StrLit => Self::Expr,
+
+            Term::Id => Self::Id,
+
+            Term::Assign
+            | Term::AndAssign => Self::Assign,
+
+            Term::Comma => Self::Comma,
+            Term::Semi => Self::Semi,
+            Term::LParen => Self::LParen,
+            Term::RParen => Self::RParen,
+            Term::LBrack => Self::LBrack,
+            Term::RBrack => Self::RBrack,
+
+            Term::Mul
+            | Term::Sum
+            | Term::And
+            | Term::Lt
+            | Term::Eq => Self::OperBinary,
+
+            Term::Sub
+            | Term::Not => Self::OperUnary,
+        }
+    }
+
+    pub fn from_not_term(not_term: &NotTerm) -> Option<Self> {
+        Some(match not_term {
+            NotTerm::E
+            | NotTerm::R
+            | NotTerm::RR
+            | NotTerm::U
+            | NotTerm::UU
+            | NotTerm::EE
+            | NotTerm::V => Self::Expr,
+
+            NotTerm::S
+            | NotTerm::C
+            | NotTerm::B => Self::Stmnt,
+
+
+            NotTerm::F1
+            | NotTerm::H => Self::FuncType,
+
+            NotTerm::F3
+            | NotTerm::A => Self::FuncParams,
+
+            NotTerm::L => Self::FuncArgs,
+            NotTerm::T => Self::Type,
+            NotTerm::F => Self::FuncBlock,
+            NotTerm::F2 => Self::FuncId,
+            NotTerm::K => Self::FuncParam,
+
+            NotTerm::Q
+            | NotTerm::P
+            | NotTerm::PP
+            | NotTerm::X
+            | NotTerm::M => return None,
+        })
+    }
+
+    pub fn from_sym(sym: &GramSym) -> Option<Self> {
+        match sym {
+            GramSym::T(term) => Some(Self::from_term(term)),
+            GramSym::N(not_term) => Self::from_not_term(not_term),
+        }
+    }
+}

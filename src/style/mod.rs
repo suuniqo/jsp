@@ -6,6 +6,7 @@ use crate::diag::DiagSever;
 pub enum Style {
     None,
     Reset,
+    Bold,
     High,
     Red,
     Orange,
@@ -34,6 +35,7 @@ impl fmt::Display for Style {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Style::None => write!(f, ""),
+            Style::Bold => write!(f, "\x1b[1;38;5;{}m", Color::White.code()),
             Style::Reset => write!(f, "\x1b[0m"),
             Style::High => write!(f, "\x1b[1;38;5;{}m", Color::White.code()),
             Style::Red => write!(f, "\x1b[1;38;5;{}m", Color::Red.code()),
@@ -52,4 +54,3 @@ impl DiagSever {
         }
     }
 }
-

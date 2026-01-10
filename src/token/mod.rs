@@ -1,6 +1,8 @@
 use crate::span::Span;
 
-use super::TokenKind;
+mod kind;
+
+pub use kind::TokenKind;
 
 
 #[derive(Debug, Clone)]

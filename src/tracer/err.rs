@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, error};
 
 
 #[derive(Debug)]
@@ -6,6 +6,8 @@ pub enum WriterErr {
     Io((std::io::Error, String)),
     Write(std::io::Error),
 }
+
+impl error::Error for WriterErr {}
 
 impl fmt::Display for WriterErr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

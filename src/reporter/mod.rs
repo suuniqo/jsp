@@ -1,12 +1,10 @@
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
-use crate::diag::{DiagLevel, DiagSever};
-use crate::pool::StrPool;
-use crate::trg::Target;
-use crate::diag::Diag;
+use crate::{diag::{Diag, DiagLevel, DiagSever}, pool::StrPool, target::Target};
 
-use super::format::ReporterFmt;
+mod format;
+
+use format::ReporterFmt;
 
 
 pub struct Reporter<'t> {

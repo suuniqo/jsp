@@ -1,11 +1,14 @@
-use std::{io, fmt};
+use std::{io, fmt, error};
 
 
+#[derive(Debug)]
 pub enum TargetErr {
     WrongExt(String),
     OpenFailed(io::Error),
     EmptyFile,
 }
+
+impl error::Error for TargetErr {}
 
 impl fmt::Display for TargetErr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

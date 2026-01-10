@@ -1,16 +1,18 @@
-use crate::write::{Tracer, HasTracer, Writer, WriterErr};
+use std::error;
+
+use crate::tracer::{Tracer, HasTracer, Writer, WriterErr};
 
 use super::{ParserCore, Parser};
 
 
-pub struct ParserTracer<'t, 'l, 's> {
+pub struct ParserTracer<P: Parser> {
     writer: Writer,
     trace: Option<Vec<usize>>,
-    inner: ParserCore<'t, 'l, 's>,
+    inner: P,
 }
 
-impl<'t, 'l, 's> ParserTracer<'t, 'l, 's> {
-    fn new(inner: ParserCore<'t, 'l, 's>, dump_path: Option<&str>) -> Box<Self> {
+impl<P: Parser> ParserTracer<P> {
+    fn new(inner: P, dump_path: Option<&str>) -> Box<Self> {
         let writer = Writer::new(dump_path);
         let trace = None;
 
@@ -22,15 +24,21 @@ impl<'t, 'l, 's> ParserTracer<'t, 'l, 's> {
     }
 }
 
-impl<'t: 'l, 'l: 's, 's> Parser<'t, 'l, 's> for ParserTracer<'t, 'l, 's> {
+impl<P: Parser> Parser for ParserTracer<P> {
     fn parse(&mut self) -> Option<Vec<usize>> {
         self.trace = self.inner.parse();
 
         self.trace.clone()
     }
+
+    fn finish(self: Box<Self>, failure: bool) -> Result<(), Box<dyn error::Error>> {
+        self.trace(failure)?;
+
+        Ok(())
+    }
 }
 
-impl<'t, 'l, 's> Tracer<ParserCore<'t, 'l, 's>> for ParserTracer<'t, 'l, 's> {
+impl<P: Parser> Tracer<P> for ParserTracer<P> {
     fn dump(&mut self) -> Result<(), WriterErr> {
         let Some(trace) = &self.trace else {
             self.writer.write(format_args!("ascending\n"))?;
@@ -49,18 +57,12 @@ impl<'t, 'l, 's> Tracer<ParserCore<'t, 'l, 's>> for ParserTracer<'t, 'l, 's> {
                  self.writer.write(format_args!(" {}\n", rule))
              })
     }
-
-    fn before_drop(&mut self) -> Option<Result<(), WriterErr>> {
-        Some(self.dump())
-    }
 }
 
 impl<'t: 'l, 'l: 's, 's> HasTracer for ParserCore<'t, 'l, 's> {
-    type Tracer = ParserTracer<'t, 'l, 's>;
+    type Tracer = ParserTracer<ParserCore<'t, 'l, 's>>;
 
-    fn tracer(self, dump_path: Option<&str>) -> Box<ParserTracer<'t, 'l, 's>> {
+    fn tracer(self, dump_path: Option<&str>) -> Box<ParserTracer<ParserCore<'t, 'l, 's>>> {
         ParserTracer::new(self, dump_path)
     }
 }
-
-impl<'t, 'l, 's> Tracer<ParserCore<'t, 'l, 's>> for ParserCore<'t, 'l, 's> {}

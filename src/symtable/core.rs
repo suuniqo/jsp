@@ -1,21 +1,21 @@
 use std::{rc::Rc, cell::RefCell, cell::Ref};
 
-use crate::{ltype::{LangType, TypeFunc, TypeVar}, span::Span, pool::StrPool};
+use crate::{ltype::{LangType, TypeFunc, TypeVar}, span::Span, pool::PoolLookup};
 
-use super::{bind::{Scope, Sym}, SymTable};
+use super::{scope::{Scope, Sym}, SymTable};
 
 
-pub struct SymTableCore {
-    pool: Rc<RefCell<StrPool>>,
+pub struct SymTableCore<P: PoolLookup> {
+    pool: Rc<RefCell<P>>,
     scopes: Vec<Scope>,
     curr_idx: usize,
     scope_func: Option<(Sym, bool)>,
 }
 
-impl SymTableCore {
+impl<P: PoolLookup> SymTableCore<P> {
     const MAX_NESTED_FUNCS: usize = 2;
 
-    pub fn new(pool: Rc<RefCell<StrPool>>) -> Self {
+    pub fn new(pool: Rc<RefCell<P>>) -> Self {
         Self {
             pool,
             scopes: vec![Scope::new(0, None)],
@@ -49,7 +49,7 @@ impl SymTableCore {
     where
         F: FnOnce(&mut Self) -> &mut Scope
     {
-        if self.pool().get(pool_id).is_none() {
+        if self.pool().lookup(pool_id).is_none() {
             unreachable!("tried to push variable with invalid pool id");
         }
 
@@ -62,18 +62,18 @@ impl SymTableCore {
         self.scopes.pop()
     }
 
-    pub(super) fn pool(&self) -> Ref<'_, StrPool> {
+    pub(super) fn pool(&self) -> Ref<'_, P> {
         self.pool.borrow()
     }
 }
 
-impl SymTable for SymTableCore {
+impl<P: PoolLookup> SymTable for SymTableCore<P> {
     fn pop_scope(&mut self) {
         self.scopes.pop();
     }
 
     fn push_func(&mut self, pool_id: usize, span: Option<Span>) -> (bool, Sym) {
-        if self.pool().get(pool_id).is_none() {
+        if self.pool().lookup(pool_id).is_none() {
             unreachable!("tried to push function with invalid pool id");
         }
 
@@ -148,7 +148,7 @@ impl SymTable for SymTableCore {
     }
 
     fn lexeme(&self, pool_id: usize) -> Option<Rc<str>> {
-        self.pool().get(pool_id).cloned()
+        self.pool().lookup(pool_id).cloned()
     }
 
     fn search(&self, pool_id: usize) -> Option<&Sym> {

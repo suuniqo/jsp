@@ -1,8 +1,10 @@
 use std::{collections::{HashMap, hash_map::Entry}, fmt};
 
-use crate::{ltype::LangType, span::Span, pool::StrPool};
+use crate::{ltype::LangType, pool::PoolLookup, span::Span};
 
-use super::Sym;
+mod sym;
+
+pub use sym::Sym;
 
 
 /// Stores the scope symbols, mapping each
@@ -62,12 +64,12 @@ impl Scope {
         self.vec.get(*pos)
     }
 
-    pub fn fmt(&self, f: &mut fmt::Formatter<'_>, pool: &StrPool) -> fmt::Result {
+    pub fn fmt(&self, f: &mut fmt::Formatter<'_>, pool: &impl PoolLookup) -> fmt::Result {
         writeln!(
             f,
             "{} table #{}:",
             self.id.map(
-                |id| pool.get(id).expect("invalid id in scope func").to_string()
+                |id| pool.lookup(id).expect("invalid id in scope func").to_string()
             ).unwrap_or(
                 "global".into()
             ),

@@ -1,18 +1,18 @@
-use std::{cell::Ref, fmt, rc::Rc};
+use std::{cell::Ref, fmt, error, rc::Rc};
 
-use crate::{ltype::TypeVar, span::Span, write::{HasTracer, Tracer, Writer, WriterErr}, pool::StrPool};
+use crate::{ltype::TypeVar, pool::PoolLookup, span::Span, tracer::{HasTracer, Tracer, Writer, WriterErr}};
 
-use super::{bind::{Scope, Sym}, SymTableCore, SymTable};
+use super::{scope::{Scope, Sym}, SymTableCore, SymTable};
 
 
-pub struct SymTableTracer {
+pub struct SymTableTracer<S: SymTable> {
     writer: Writer,
     trace: Vec<Scope>,
-    inner: SymTableCore,
+    inner: S,
 }
 
-impl SymTableTracer {
-    fn new(inner: SymTableCore, dump_path: Option<&str>) -> Box<Self> {
+impl<S: SymTable> SymTableTracer<S> {
+    fn new(inner: S, dump_path: Option<&str>) -> Box<Self> {
         let writer = Writer::new(dump_path);
 
         Box::new(Self {
@@ -23,7 +23,7 @@ impl SymTableTracer {
     }
 }
 
-impl SymTable for SymTableTracer {
+impl<P: PoolLookup> SymTable for SymTableTracer<SymTableCore<P>> {
     fn pop_scope(&mut self) {
         if let Some(scope) = self.inner.pop_scope_inner() {
             self.trace.push(scope);
@@ -61,17 +61,23 @@ impl SymTable for SymTableTracer {
     fn search(&self, pool_id: usize) -> Option<&Sym> {
         self.inner.search(pool_id)
     }
+
+    fn finish(self: Box<Self>, failure: bool) -> Result<(), Box<dyn error::Error>> {
+        self.trace(failure)?;
+
+        Ok(())
+    }
 }
 
-struct SymTableTracerDisplay<'a> {
+struct SymTableTracerDisplay<'a, P: PoolLookup> {
     trace: &'a [Scope],
-    pool: Ref<'a, StrPool>,
+    pool: Ref<'a, P>,
 }
 
-impl<'a> fmt::Display for SymTableTracerDisplay<'a> {
+impl<'a, P: PoolLookup> fmt::Display for SymTableTracerDisplay<'a, P> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.trace.iter().enumerate().try_for_each(|(i, scope)| {
-            scope.fmt(f, &self.pool)?;
+            scope.fmt(f, &*self.pool)?;
 
             if i != self.trace.len() - 1 {
                 writeln!(f)?;
@@ -82,7 +88,7 @@ impl<'a> fmt::Display for SymTableTracerDisplay<'a> {
     }
 }
 
-impl Tracer<SymTableCore> for SymTableTracer {
+impl<P: PoolLookup> Tracer<SymTableCore<P>> for SymTableTracer<SymTableCore<P>> {
     fn dump(&mut self) -> Result<(), WriterErr> {
         let display = SymTableTracerDisplay {
             trace: &self.trace,
@@ -91,18 +97,12 @@ impl Tracer<SymTableCore> for SymTableTracer {
 
         self.writer.write(format_args!("{}", display))
     }
-
-    fn before_drop(&mut self) -> Option<Result<(), WriterErr>> {
-        Some(self.dump())
-    }
 }
 
-impl HasTracer for SymTableCore {
-    type Tracer = SymTableTracer;
+impl<P: PoolLookup> HasTracer for SymTableCore<P> {
+    type Tracer = SymTableTracer<SymTableCore<P>>;
 
     fn tracer(self, dump_path: Option<&str>) -> Box<Self::Tracer> {
         SymTableTracer::new(self, dump_path)
     }
 }
-
-impl Tracer<SymTableCore> for SymTableCore {}

@@ -1,4 +1,4 @@
-mod bind;
+mod scope;
 mod core;
 mod tracer;
 mod traits;

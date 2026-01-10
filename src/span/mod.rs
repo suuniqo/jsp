@@ -1,4 +1,4 @@
-use crate::trg::Target;
+use crate::target::Target;
 
 
 #[derive(Clone, PartialEq, Eq, Debug, Hash, Default)]

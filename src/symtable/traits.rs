@@ -1,11 +1,11 @@
-use std::rc::Rc;
+use std::{error, rc::Rc};
 
-use crate::{ltype::TypeVar, span::Span, symtable::SymTableCore, write::{Tracer, HasTracer}};
+use crate::{ltype::TypeVar, pool::PoolLookup, span::Span, symtable::SymTableCore, tracer::HasTracer};
 
-use super::bind::Sym;
+use super::scope::Sym;
 
 
-pub trait SymTable: Tracer<SymTableCore> {
+pub trait SymTable {
     fn pop_scope(&mut self);
 
     fn push_func(&mut self, pool_id: usize, span: Option<Span>) -> (bool, Sym);
@@ -18,10 +18,14 @@ pub trait SymTable: Tracer<SymTableCore> {
     fn scopes(&self) -> usize;
     fn lexeme(&self, pool_id: usize) -> Option<Rc<str>>;
     fn search(&self, pool_id: usize) -> Option<&Sym>;
+
+    fn finish(self: Box<Self>, _failure: bool) -> Result<(), Box<dyn error::Error>> {
+        Ok(())
+    }
 }
 
 impl dyn SymTable {
-    pub fn make(trace: &Option<Option<String>>, inner: SymTableCore) -> Box<dyn SymTable> {
+    pub fn make<P: PoolLookup>(trace: &Option<Option<String>>, inner: SymTableCore<P>) -> Box<dyn SymTable> {
         if let Some(file) = trace {
             inner.tracer(file.as_deref())
         } else {

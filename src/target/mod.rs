@@ -1,6 +1,9 @@
 use std::{fs, ops::RangeBounds, path::Path, str};
 
-use super::TargetErr;
+mod err;
+
+pub use err::TargetErr;
+
 
 pub struct Target {
     path: String,

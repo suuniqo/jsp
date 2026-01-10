@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::{gram::{Insert, Insertion, MetaSym, Term}, ltype::Type, span::Span, pool::StrPool, tok::Token};
+use crate::{metasym::{Insert, Insertion, MetaSym}, ltype::Type, span::Span, pool::StrPool, token::Token};
 
 
 #[derive(Clone)]
@@ -27,7 +27,7 @@ pub enum DiagHelp {
     InsQuote(Span),
 
     // parser
-    InsToken(Token, bool, Vec<MetaSym>),
+    InsToken(Token, bool, MetaSym, Vec<MetaSym>),
     DelToken(Token),
     RepToken(Token, MetaSym),
     RepKw(Token),
@@ -58,16 +58,13 @@ impl DiagHelp {
                 false,
                 "\"".to_string()
             ),
-            DiagHelp::InsToken(token, before, syms) => {
-                let term = Term::from_token_kind(&token.kind)
-                    .expect("reference to eof on insertion");
-
-                let meta = MetaSym::from_term(&term);
+            DiagHelp::InsToken(token, before, reference, syms) => {
+                let reference = reference.clone();
 
                 let insertion = if *before {
-                    Insertion(None, syms, Some(meta))
+                    Insertion(None, syms, Some(reference))
                 } else {
-                    Insertion(Some(meta), syms, None)
+                    Insertion(Some(reference), syms, None)
                 }.to_string();
 
                 HelpAction::Insert(token.span.clone(), *before, insertion)

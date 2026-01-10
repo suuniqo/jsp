@@ -2,12 +2,14 @@ use std::collections::{HashSet, VecDeque};
 
 use crate::{
     diag::{Diag, DiagHelp, DiagKind, DiagSever},
-    gram::Grammar,
     ltype::{LangType, Type, TypeVar},
     span::Span,
     symtable::SymTable,
-    tok::TokenKind
+    token::TokenKind
 };
+
+use super::gram::Gram;
+
 
 #[derive(Debug, Clone)]
 pub enum Attr {
@@ -80,7 +82,7 @@ impl<'s> SemAnalyzer<'s> {
     }
     
     pub fn on_reduce(&mut self, rule: usize) -> Result<(), Vec<Diag>> {
-        let (_, rhs) = Grammar::RULES[rule];
+        let (_, rhs) = Gram::RULES[rule];
 
         let args = self.stack.split_off(self.stack.len() - rhs.len());
 
@@ -238,17 +240,28 @@ impl<'a, 's> SemAction<'a, 's> {
             true
         );
 
-        if let Some(pool_id) = pool_id && let Some(sym) = self.symtable().search(pool_id)
-            && let Some(sym_span) = &sym.span
-            && !span.intersect(sym_span)
-            && extra.is_none_or(|extra| !extra.intersect(sym_span))
-        {
+        if let Some(pool_id) = pool_id && let Some(sym) = self.symtable().search(pool_id) && let Some(sym_span) = &sym.span {
+            let def_span = {
+                let reason = match &sym.lang_type {
+                    LangType::Var(type_var) => &type_var.reason,
+                    LangType::Func(type_func) => &type_func.ret_type.reason,
+                };
+
+                if let Some(reason) = reason {
+                    Span::new(reason.start, sym_span.end)
+                } else {
+                    sym_span.clone()
+                }
+            };
+
+            if !span.intersect(sym_span) && extra.is_none_or(|extra| !extra.intersect(sym_span)) {
                 diag.add_span(
-                    sym_span.clone(),
+                    def_span,
                     DiagSever::Note,
                     Some(format!("defined here as `{}`", found)),
                     false
                 );
+            }
         }
 
         diag
@@ -1096,7 +1109,13 @@ impl<'a, 's> SemAction<'a, 's> {
             if let Some(span) = id_span && let Some(andassign_span) = andassign_span {
                 let _ = self.symtable_mut().push_global(pool_id, TypeVar::new(Type::Int, Some(span.clone())), Some(span.clone()));
 
-                let mut diag = self.mismatched_types(span, Type::Int, vec![Type::Bool], None, None);
+                let mut diag = self.mismatched_types(
+                    span,
+                    Type::Int,
+                    vec![Type::Bool],
+                    Some(pool_id),
+                    Some(andassign_span.clone()),
+                );
 
                 diag.add_span(
                     andassign_span,
@@ -1203,11 +1222,13 @@ impl<'a, 's> SemAction<'a, 's> {
                 Some(reason.clone())
             );
 
-            if sym.implicit {
-                diag.add_span(reason.clone(), DiagSever::Note, Some("expected `int` due to this implicit declaration".into()), false);
+            let msg = if sym.implicit {
+                "expected `int` due to this implicit declaration".into()
             } else {
-                diag.add_span(reason.clone(), DiagSever::Note, Some("expected because of this".into()), false);
-            }
+                format!("expected `{}` due to explicit declaration", var_type.var_type)
+            };
+
+            diag.add_span(reason.clone(), DiagSever::Note, Some(msg), false);
 
             return Err(diag);
         }

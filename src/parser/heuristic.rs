@@ -3,10 +3,10 @@ use std::{collections::HashSet, iter};
 use itertools::MultiPeek;
 
 use crate::lexer::Lexer;
-use crate::tok::{Token, TokenKind};
-use crate::gram::{Grammar, MetaSym, NotTerm, Term};
+use crate::token::{Token, TokenKind};
+use crate::metasym::MetaSym;
 
-use super::action::{GOTO_TABLE, ACTION_TABLE, Action};
+use super::gram::{Gram, Action, Term, NotTerm, GramSym};
 
 #[derive(Debug)]
 pub enum FixAction {
@@ -35,7 +35,7 @@ impl Fix {
     }
 }
 
-type LexerChained<'t, 'l> = iter::Chain<&'l mut (dyn Lexer<'t> + 'l), iter::Once<Token>>;
+type LexerChained<'t, 'l> = iter::Chain<&'l mut (dyn Lexer + 'l), iter::Once<Token>>;
 
 pub struct Heuristic;
 
@@ -55,7 +55,7 @@ impl<'t, 'l> Heuristic {
         let stack_idx = *stack.last()
             .expect("unexpected empty parser stack");
 
-        let not_term: HashSet<NotTerm> = GOTO_TABLE[stack_idx]
+        let not_term: HashSet<NotTerm> = Action::GOTO_TABLE[stack_idx]
             .iter()
             .enumerate()
             .filter_map(|(idx, v)| if v.is_some() { Some(NotTerm::from_idx(idx)) } else { None })
@@ -246,7 +246,7 @@ impl<'t, 'l> Heuristic {
         let stack_idx = *stack.last()
             .expect("unexpected empty parser stack");
 
-        let action = ACTION_TABLE[stack_idx][token_idx]?;
+        let action = Action::ACTION_TABLE[stack_idx][token_idx]?;
 
         let mut stack_clone = stack.to_vec();
         let mut trace = Vec::new();
@@ -256,7 +256,7 @@ impl<'t, 'l> Heuristic {
         };
 
         loop {
-            let (lhs, rhs) = Grammar::RULES[rule_idx];
+            let (lhs, rhs) = Gram::RULES[rule_idx];
 
             stack_clone.truncate(stack_clone.len() - rhs.len());
 
@@ -265,7 +265,7 @@ impl<'t, 'l> Heuristic {
                 .expect("unexpected empty parser stack");
 
             stack_clone.push(
-                GOTO_TABLE[stack_idx][lhs_idx]
+                Action::GOTO_TABLE[stack_idx][lhs_idx]
                     .expect("if this fails there is something wrong with the goto table"),
             );
 
@@ -274,7 +274,7 @@ impl<'t, 'l> Heuristic {
             let stack_idx = *stack_clone.last()
                 .expect("unexpected empty parser stack");
 
-            let action = ACTION_TABLE[stack_idx][token_idx]?;
+            let action = Action::ACTION_TABLE[stack_idx][token_idx]?;
 
             let Action::Reduce(new_rule_idx) = action else {
                 return Some((stack_clone, trace));
@@ -293,7 +293,7 @@ impl<'t, 'l> Heuristic {
         let stack_idx = *stack_clone.last()
             .expect("unexpected empty parser stack");
 
-        let action = ACTION_TABLE[stack_idx][token_idx]?;
+        let action = Action::ACTION_TABLE[stack_idx][token_idx]?;
 
         let Action::Shift(state_idx) = action else {
             return Some((stack_clone, trace));
@@ -458,3 +458,79 @@ impl Term {
     }
 }
 
+impl MetaSym {
+    pub fn build_expected(term: HashSet<Term>, non_term: HashSet<NotTerm>) -> HashSet<MetaSym> {
+        let mut redundant = HashSet::new();
+
+        for nt in non_term.iter().filter(|nt| !matches!(nt, NotTerm::P | NotTerm::PP)) {
+            let begs: HashSet<GramSym> = Gram::RULES
+                .iter()
+                .filter(|(lhs, _)| lhs == nt)
+                .filter_map(|(_, rhs)| rhs.first().cloned())
+                .filter(|sym| *sym != GramSym::N(*nt))
+                .collect();
+
+            redundant.extend(begs);
+        }
+
+        let found: HashSet<GramSym> = term
+            .into_iter()
+            .map(GramSym::T)
+            .chain(non_term.into_iter().map(GramSym::N))
+            .collect();
+
+        let expected = found.difference(&redundant)
+            .filter_map(Self::from_sym)
+            .collect();
+
+        Self::clean(expected)
+    }
+
+    pub fn from_insert(term: &Term) -> Self {
+        if *term == Term::Void {
+            Self::FuncParam
+        } else {
+            Self::from_term(term)
+        }
+    }
+
+    pub fn build_insertion(terminals: Vec<Term>) -> Vec<Self> {
+        terminals.iter().map(Self::from_insert).collect()
+    }
+
+    fn clean(mut set: HashSet<Self>) -> HashSet<Self> {
+        if set.contains(&Self::Expr) {
+            set.clear();
+            set.insert(Self::Expr);
+        }
+
+        if set.contains(&Self::Write)
+            && set.contains(&Self::Read)
+            && set.contains(&Self::Let)
+            && set.contains(&Self::Do)
+            && set.contains(&Self::If) {
+
+            set.remove(&Self::Write);
+            set.remove(&Self::Read);
+            set.remove(&Self::Let);
+            set.remove(&Self::Do);
+            set.remove(&Self::If);
+            set.remove(&Self::Ret);
+            set.remove(&Self::Id);
+            set.insert(Self::Stmnt);
+        }
+
+        if set.contains(&Self::RParen) {
+            set.remove(&Self::OperBinary);
+            set.remove(&Self::LParen);
+        }
+
+        if set.contains(&Self::Func) && set.contains(&Self::Stmnt) {
+            set.remove(&Self::Func);
+            set.insert(Self::FuncBlock);
+        }
+
+        set
+    }
+
+}

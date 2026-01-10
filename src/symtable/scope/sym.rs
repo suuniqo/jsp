@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{ltype::{LangType, Type, TypeVar}, span::Span, pool::StrPool};
+use crate::{ltype::{LangType, Type, TypeVar}, span::Span, pool::PoolLookup};
 
 
 #[derive(Debug, Clone)]
@@ -34,7 +34,7 @@ impl Sym {
         }
     }
 
-    pub fn fmt(&self, f: &mut fmt::Formatter<'_>, pool: &StrPool) -> fmt::Result {
+    pub fn fmt(&self, f: &mut fmt::Formatter<'_>, pool: &impl PoolLookup) -> fmt::Result {
         match &self.lang_type {
             LangType::Var(var) => writeln!(
                 f,
@@ -42,12 +42,12 @@ impl Sym {
 * lexema: '{}'
   + tipo: '{}'
   + despl: {}",
-                pool.get(self.pool_id).expect("couldn't find symbol pool id"),
+                pool.lookup(self.pool_id).expect("couldn't find symbol pool id"),
                 var.var_type,
                 self.offset
             ),
             LangType::Func(func) => {
-                let lexeme = pool.get(self.pool_id)
+                let lexeme = pool.lookup(self.pool_id)
                     .expect("couldn't find symbol pool id");
 
                 let len = if matches!(func.param_type.first(), Some(TypeVar { var_type: Type::Void, .. } )) {

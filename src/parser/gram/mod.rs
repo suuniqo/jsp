@@ -1,11 +1,14 @@
-use super::{Term, NotTerm, GramSym};
+mod sym;
+mod action;
 
+pub(super) use sym::{Term, NotTerm, GramSym};
+pub(super) use action::Action;
 
 pub type Rule = (NotTerm, &'static [GramSym]);
 
-pub struct Grammar;
+pub struct Gram;
 
-impl Grammar {
+impl Gram {
     pub const LEN: usize = 60;
 
     pub const RULES: [Rule; Self::LEN] = [

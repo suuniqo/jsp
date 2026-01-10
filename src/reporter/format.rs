@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, fmt};
 
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
-use crate::{diag::{Diag, DiagHelp, DiagKind, DiagSever, DiagSpan, HelpAction}, gram::MetaSym, span::Span, style::Style, pool::StrPool, trg::Target};
+use crate::{diag::{Diag, DiagHelp, DiagKind, DiagSever, DiagSpan, HelpAction}, metasym::MetaSym, span::Span, style::Style, pool::StrPool, target::Target};
 
 pub struct ReporterFmt;
 
@@ -364,85 +364,85 @@ impl<'a> fmt::Display for Fmt<'a, MetaSym> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.0 {
             MetaSym::Stmnt => write!(f, "{}a {}statement{}",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::FuncBlock => write!(f, "{}a {}function{}",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::Expr => write!(f, "{}an {}expression{}",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::Type => write!(f, "{}a {}type{}",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::Id => write!(f, "{}an {}identifier{}",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::Assign => write!(f, "{}an {}assignment{}",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::Comma => write!(f, "{}`{},{}`",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::Semi => write!(f, "{}`{};{}`",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::LParen => write!(f, "{}`{}({}`",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::RParen => write!(f, "{}`{}){}`",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::LBrack => write!(f, "{}`{}{{{}`",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::RBrack => write!(f, "{}`{}}}{}`",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::OperBinary => write!(f, "{}a {}binary operator{}",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::OperUnary => write!(f, "{}an {}unary operator{}",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::FuncArgs => write!(f, "{}an {}argument list{}",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::FuncParams => write!(f, "{}a {}parameter list{}",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::FuncType => write!(f, "{}a {}return type{}",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::FuncId => write!(f, "{}a {}function name{}",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::FuncParam => write!(f, "{}a {}parameter{}",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::Func => write!(f, "{}`{}function{}`",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::While => write!(f, "{}`{}while{}`",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::If => write!(f, "{}`{}if{}`",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::Do => write!(f, "{}`{}do{}`",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::Let => write!(f, "{}`{}let{}`",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::Read => write!(f, "{}`{}read{}`",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::Write => write!(f, "{}`{}write{}`",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             MetaSym::Ret => write!(f, "{}`{}return{}`",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
         }
     }
@@ -453,7 +453,7 @@ impl<'a> fmt::Display for Fmt<'a, DiagHelp> {
         match self.0 {
             DiagHelp::InsDecimal(_) => write!(f, "{}add a decimal part", Style::Reset),
             DiagHelp::InsQuote(_) => write!(f, "{}close the string literal", Style::Reset),
-            DiagHelp::InsToken(found, before, insertion) => {
+            DiagHelp::InsToken(found, before, _, insertion) => {
                 if insertion.is_empty() {
                     unreachable!("insertion can't be empty");
                 } else {
@@ -471,31 +471,31 @@ impl<'a> fmt::Display for Fmt<'a, DiagHelp> {
 
                     write!(f, " {} `{}{}{}`",
                         if *before { "before" } else { "after" },
-                        Style::High, found.kind.lexeme(self.1), Style::Reset,
+                        Style::Bold, found.kind.lexeme(self.1), Style::Reset,
                     )
                 }
             },
             DiagHelp::DelToken(found) => write!(
                 f,
                 "{}remove the unnecessary `{}{}{}`",
-                Style::Reset, Style::High, found.kind.lexeme(self.1), Style::Reset
+                Style::Reset, Style::Bold, found.kind.lexeme(self.1), Style::Reset
             ),
             DiagHelp::RepToken(found, rep) => write!(
                 f,
                 "{}replace `{}{}{}` by {}",
-                Style::Reset, Style::High, found.kind.lexeme(self.1), Style::Reset, Fmt(rep, self.1),
+                Style::Reset, Style::Bold, found.kind.lexeme(self.1), Style::Reset, Fmt(rep, self.1),
             ),
             DiagHelp::RepKw(_) => write!(f, "{}change the name to use it as an identifier", Style::Reset),
             DiagHelp::DelTrailingComma(_) => write!(f, "{}remove the trailing comma", Style::Reset),
             DiagHelp::InsVarType(_) => write!(f, "{}add the missing type", Style::Reset),
-            DiagHelp::InsRetType(_) => write!(f, "{}add a {}return type", Style::Reset, Style::High),
-            DiagHelp::InsParamList(..) => write!(f, "{}add a {}parameter list", Style::Reset, Style::High),
+            DiagHelp::InsRetType(_) => write!(f, "{}add a {}return type", Style::Reset, Style::Bold),
+            DiagHelp::InsParamList(..) => write!(f, "{}add a {}parameter list", Style::Reset, Style::Bold),
             DiagHelp::InsParam(_) => write!(f, "{}perhaps you meant to have no parameters", Style::Reset),
             DiagHelp::RepRetType(ret_type, _) => write!(
                 f,
                 "{}change the return type to `{}{}{}`",
                 Style::Reset,
-                Style::High,
+                Style::Bold,
                 ret_type,
                 Style::Reset
             ),
@@ -511,7 +511,7 @@ impl<'a> fmt::Display for Fmt<'a, DiagKind> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.0 {
             DiagKind::StrayChar(c) => write!(f, "{}illegal character `{}{}{}` in program",
-                Style::Reset, Style::High,
+                Style::Reset, Style::Bold,
                 if c.is_control() {
                     c.escape_default().to_string()
                 } else {
@@ -521,23 +521,23 @@ impl<'a> fmt::Display for Fmt<'a, DiagKind> {
             ),
             DiagKind::UntermComm => write!(f, "{}unterminated block comment", Style::Reset),
             DiagKind::UntermStr(_) => write!(f, "{}missing terminating character `{}\"{}` on string literal",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             DiagKind::OverflowStr(_) => write!(f, "{}string literal is too long", Style::Reset),
             DiagKind::InvEscSeq(c) => write!(f, "{}unknown escape sequence `{}\\{c}{}`",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             DiagKind::OverflowInt => write!(f, "{}integer literal out of range for 16-byte type", Style::Reset),
             DiagKind::OverflowFloat => write!(f, "{}float literal out of range for 32-byte type", Style::Reset),
             DiagKind::InvFmtFloat(_) => write!(f, "{}missing decimal part after `{}.{}` in float literal",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             DiagKind::MalformedStr(c, _) => write!(f, "{}malformed string literal, contains control character `{}{}{}`",
-                Style::Reset, Style::High, c.escape_default(), Style::Reset
+                Style::Reset, Style::Bold, c.escape_default(), Style::Reset
             ),
             DiagKind::UnexpectedTok(found, expected) => {
                 if expected.is_empty() {
-                    return write!(f, "unexpected `{}{}{}`", Style::High, found.lexeme(self.1), Style::Reset);
+                    return write!(f, "unexpected `{}{}{}`", Style::Bold, found.lexeme(self.1), Style::Reset);
                 }
 
                 write!(f, "expected ")?;
@@ -552,39 +552,39 @@ impl<'a> fmt::Display for Fmt<'a, DiagKind> {
                     }
                 }
 
-                write!(f, ", found `{}{}{}`", Style::High, found.lexeme(self.1), Style::Reset)
+                write!(f, ", found `{}{}{}`", Style::Bold, found.lexeme(self.1), Style::Reset)
             },
             DiagKind::MismatchedDelim(kind) => write!(f, "{}mismatched closing delimiter `{}{}{}`",
-                Style::Reset, Style::High, kind.lexeme(self.1), Style::Reset
+                Style::Reset, Style::Bold, kind.lexeme(self.1), Style::Reset
             ),
             DiagKind::UnclosedDelim => write!(f, "{}unclosed delimiter", Style::Reset),
             DiagKind::KeywordAsId(kw) => write!(f, "{}keyword `{}{}{}` used as an identifier",
-                Style::Reset, Style::High, kw.lexeme(self.1), Style::Reset),
+                Style::Reset, Style::Bold, kw.lexeme(self.1), Style::Reset),
             DiagKind::MissingSemi => write!(f, "{}missing `{};{}` at the end of a statement",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             DiagKind::TrailingCommaParam => write!(f, "{}trailing comma in a function parameter list", Style::Reset),
             DiagKind::TrailingCommaArg => write!(f, "{}trailing comma in a function call", Style::Reset),
             DiagKind::MissingVarType => write!(f, "{}missing {}type{} in a variable declaration",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             DiagKind::MissingRetType => write!(f, "{}missing {}return type{} in a function declaration",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             DiagKind::MissingParamList => write!(f, "{}missing {}parameter list{} in a function declaration",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             DiagKind::EmptyParamList => write!(f, "{}empty {}parameter list{} in a function declaration",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             DiagKind::MismatchedRetType(..) => write!(f, "{}mismatched {}return type{} in a function",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             DiagKind::UnexpectedRetType(_) => write!(f, "{}unexpected {}return type{} in a void function",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             DiagKind::ExpectedRetType => write!(f, "{}no {}return statements{} in a non-void function",
-                Style::Reset, Style::High, Style::Reset
+                Style::Reset, Style::Bold, Style::Reset
             ),
             DiagKind::Redefinition => write!(f, "{}identifier already defined", Style::Reset),
             DiagKind::MismatchedTypes(..) => write!(f, "{}mismatched types", Style::Reset),

@@ -5,9 +5,9 @@ use crate::{
     style::Style,
     result::AnalysisResult,
 
-    trg::Target,
     pool::StrPool,
-    report::Reporter,
+    target::Target,
+    reporter::Reporter,
 
     lexer::{Lexer, LexerCore},
     parser::{Parser, ParserCore},
@@ -18,21 +18,21 @@ mod cli;
 mod style;
 mod result;
 
-mod trg;
 mod pool;
-mod report;
+mod target;
+mod reporter;
 
 mod lexer;
 mod parser;
 mod symtable;
 
-mod tok;
+mod token;
 mod diag;
 mod span;
-mod write;
+mod tracer;
 
 mod ltype;
-mod gram;
+mod metasym;
 
 
 fn dump_err(err: impl fmt::Display) {

@@ -6,29 +6,29 @@ use std::rc::Rc;
 use itertools::{Itertools, MultiPeek};
 
 use crate::diag::{DiagHelp, DiagSever};
-use crate::gram::{Grammar, MetaSym, Term};
+use crate::metasym::MetaSym;
 use crate::parser::heuristic::{Fix, FixAction, Heuristic};
 use crate::span::Span;
 use crate::symtable::SymTable;
 
 use crate::{
     diag::{Diag, DiagKind},
-    tok::{Token, TokenKind},
+    token::{Token, TokenKind},
 };
 
-use crate::{lexer::Lexer, report::Reporter};
+use crate::{lexer::Lexer, reporter::Reporter};
 
 use super::{
-    action::{Action, ACTION_TABLE, GOTO_TABLE},
+    gram::{Gram, Action, Term},
     sem::SemAnalyzer,
     Parser,
 };
 
-type LexerChained<'t, 'l> = iter::Chain<&'l mut (dyn Lexer<'t> + 'l), iter::Once<Token>>;
+type LexerChained<'l> = iter::Chain<&'l mut (dyn Lexer + 'l), iter::Once<Token>>;
 
 pub struct ParserCore<'t, 'l, 's> {
     reporter: Rc<RefCell<Reporter<'t>>>,
-    lexer: MultiPeek<LexerChained<'t, 'l>>,
+    lexer: MultiPeek<LexerChained<'l>>,
 
     panic: bool,
     prev: Option<Token>,
@@ -43,7 +43,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
 
     pub fn new(
         reporter: Rc<RefCell<Reporter<'t>>>,
-        lexer: &'l mut dyn Lexer<'t>,
+        lexer: &'l mut dyn Lexer,
         symtable: &'s mut dyn SymTable,
     ) -> Self {
         Self {
@@ -284,7 +284,11 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
             return diag;
         };
 
-        diag.with_help(DiagHelp::InsToken(reference, before, ins))
+        let reference_sym = MetaSym::from_term(
+            &Term::from_token_kind(&reference.kind).expect("reference to EOF on insertion")
+        );
+
+        diag.with_help(DiagHelp::InsToken(reference, before, reference_sym, ins))
     }
 
     fn norm_token(prev: Option<&Token>, curr: &Token) -> Token {
@@ -321,7 +325,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
                     self.prev = None;
                 }
                 FixAction::Reduce(rule_idx) => {
-                    let (lhs, rhs) = Grammar::RULES[rule_idx];
+                    let (lhs, rhs) = Gram::RULES[rule_idx];
 
                     self.stack.truncate(self.stack.len() - rhs.len());
 
@@ -330,7 +334,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
                     let stack_idx = self.stack_last();
 
                     self.stack.push(
-                        GOTO_TABLE[stack_idx][lhs_idx].expect("unexpected invalid goto iterm: bad table"),
+                        Action::GOTO_TABLE[stack_idx][lhs_idx].expect("unexpected invalid goto iterm: bad table"),
                     );
 
                     self.on_reduce(rule_idx);
@@ -380,7 +384,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
     }
 }
 
-impl<'t: 'l, 'l: 's, 's> Parser<'t, 'l, 's> for ParserCore<'t, 'l, 's> {
+impl<'t: 'l, 'l: 's, 's> Parser for ParserCore<'t, 'l, 's> {
     fn parse(&mut self) -> Option<Vec<usize>> {
         let mut parse = vec![];
 
@@ -390,7 +394,7 @@ impl<'t: 'l, 'l: 's, 's> Parser<'t, 'l, 's> for ParserCore<'t, 'l, 's> {
             let stack_idx = self.stack_last();
             let token_idx = curr.kind.idx();
 
-            let Some(action) = ACTION_TABLE[stack_idx][token_idx] else {
+            let Some(action) = Action::ACTION_TABLE[stack_idx][token_idx] else {
                 if !self.recover_and_emit(curr) {
                     return None;
                 }
@@ -424,7 +428,7 @@ impl<'t: 'l, 'l: 's, 's> Parser<'t, 'l, 's> for ParserCore<'t, 'l, 's> {
                 Action::Reduce(rule_idx) => {
                     parse.push(rule_idx + 1);
 
-                    let (lhs, rhs) = Grammar::RULES[rule_idx];
+                    let (lhs, rhs) = Gram::RULES[rule_idx];
 
                     self.stack.truncate(self.stack.len() - rhs.len());
 
@@ -433,7 +437,7 @@ impl<'t: 'l, 'l: 's, 's> Parser<'t, 'l, 's> for ParserCore<'t, 'l, 's> {
                     let stack_idx = self.stack_last();
 
                     self.stack.push(
-                        GOTO_TABLE[stack_idx][lhs_idx].expect("unexpected invalid goto iterm: bad table"),
+                        Action::GOTO_TABLE[stack_idx][lhs_idx].expect("unexpected invalid goto iterm: bad table"),
                     );
 
                     self.on_reduce(rule_idx);

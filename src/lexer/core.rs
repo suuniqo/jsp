@@ -1,28 +1,28 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::report::Reporter;
+use crate::reporter::Reporter;
 use crate::diag::{Diag, DiagHelp, DiagKind};
-use crate::pool::StrPool;
-use crate::trg::Target;
-use crate::tok::{Token, TokenKind};
+use crate::pool::PoolInterner;
+use crate::target::Target;
+use crate::token::{Token, TokenKind};
 use crate::span::Span;
 
 use super::{Lexer, win::Window};
 
 
 #[derive(Clone)]
-pub struct LexerCore<'t> {
+pub struct LexerCore<'t, P: PoolInterner> {
     win: Window<'t>,
     target: &'t Target,
     reporter: Rc<RefCell<Reporter<'t>>>,
-    strpool: Rc<RefCell<StrPool>>,
+    strpool: Rc<RefCell<P>>,
 }
 
-impl<'t> LexerCore<'t> {
+impl<'t, P: PoolInterner> LexerCore<'t, P> {
     pub fn new(
         reporter: Rc<RefCell<Reporter<'t>>>,
-        strpool: Rc<RefCell<StrPool>>,
+        strpool: Rc<RefCell<P>>,
         target: &'t Target
     ) -> Self {
         let win = Window::new(target.src());
@@ -338,7 +338,7 @@ impl<'t> LexerCore<'t> {
     }
 }
 
-impl Iterator for LexerCore<'_> {
+impl<P: PoolInterner> Iterator for LexerCore<'_, P> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -377,4 +377,4 @@ impl Iterator for LexerCore<'_> {
     }
 }
 
-impl<'t> Lexer<'t> for LexerCore<'t> {}
+impl<'t, P: PoolInterner> Lexer for LexerCore<'t, P> {}
