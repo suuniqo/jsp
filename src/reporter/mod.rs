@@ -1,23 +1,23 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{diag::{Diag, DiagLevel, DiagSever}, pool::StrPool, target::Target};
+use crate::{diag::{DiagRef, DiagLevel, DiagSever}, pool::PoolLookup, target::Target};
 
 mod format;
 
 use format::ReporterFmt;
 
 
-pub struct Reporter<'t> {
+pub struct Reporter<'t, Pool: PoolLookup> {
     errs: usize,
     warns: usize,
     quiet: bool,
     target: &'t Target,
-    pool: Rc<RefCell<StrPool>>,
+    pool: Rc<RefCell<Pool>>,
     level: DiagLevel,
 }
 
-impl<'t> Reporter<'t> {
-    pub fn new(target: &'t Target, pool: Rc<RefCell<StrPool>>, quiet: bool) -> Self {
+impl<'t, Pool: PoolLookup> Reporter<'t, Pool> {
+    pub fn new(target: &'t Target, pool: Rc<RefCell<Pool>>, quiet: bool) -> Self {
         Self {
             errs: 0,
             warns: 0,
@@ -28,7 +28,7 @@ impl<'t> Reporter<'t> {
         }
     }
 
-    pub fn emit(&mut self, diag: Diag) {
+    pub fn emit(&mut self, diag: DiagRef) {
         if diag.kind.sever() == DiagSever::Error {
             self.errs += 1;
         } else {
@@ -38,7 +38,7 @@ impl<'t> Reporter<'t> {
         self.level = self.level.min(diag.kind.level());
 
         if !self.quiet {
-            ReporterFmt::dump_diag(self.target, &self.pool.borrow(), &diag);
+            ReporterFmt::dump_diag(self.target, &*self.pool.borrow(), &diag);
         }
     }
 

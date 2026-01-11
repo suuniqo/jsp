@@ -2,6 +2,7 @@ use std::{collections::HashSet, rc::Rc};
 
 use crate::{metasym::{MetaSym, Quoted}, ltype::Type, token::TokenKind};
 
+
 #[derive(Debug, Clone)]
 pub enum DiagKind {
     // lexer

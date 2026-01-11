@@ -2,8 +2,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::reporter::Reporter;
-use crate::diag::{Diag, DiagHelp, DiagKind};
-use crate::pool::PoolInterner;
+use crate::diag::{DiagRef, DiagHelp, DiagKind, Diag};
+use crate::pool::{PoolInterner, PoolLookup};
 use crate::target::Target;
 use crate::token::{Token, TokenKind};
 use crate::span::Span;
@@ -12,17 +12,20 @@ use super::{Lexer, win::Window};
 
 
 #[derive(Clone)]
-pub struct LexerCore<'t, P: PoolInterner> {
+pub struct LexerCore<'t, Pool: PoolInterner + PoolLookup> {
     win: Window<'t>,
     target: &'t Target,
-    reporter: Rc<RefCell<Reporter<'t>>>,
-    strpool: Rc<RefCell<P>>,
+    reporter: Rc<RefCell<Reporter<'t, Pool>>>,
+    pool: Rc<RefCell<Pool>>,
 }
 
-impl<'t, P: PoolInterner> LexerCore<'t, P> {
+impl<'t, Pool> LexerCore<'t, Pool>
+where
+    Pool: PoolLookup + PoolInterner
+{
     pub fn new(
-        reporter: Rc<RefCell<Reporter<'t>>>,
-        strpool: Rc<RefCell<P>>,
+        reporter: Rc<RefCell<Reporter<'t, Pool>>>,
+        pool: Rc<RefCell<Pool>>,
         target: &'t Target
     ) -> Self {
         let win = Window::new(target.src());
@@ -31,11 +34,11 @@ impl<'t, P: PoolInterner> LexerCore<'t, P> {
             win,
             target,
             reporter,
-            strpool,
+            pool,
         }
     }
 
-    fn skip_comment(&mut self) -> Result<(), Diag> {
+    fn skip_comment(&mut self) -> Result<(), DiagRef> {
         // eat initial '/' and '*'
         self.win.consume();
         self.win.consume();
@@ -154,15 +157,13 @@ impl<'t, P: PoolInterner> LexerCore<'t, P> {
         }
     }
 
-    fn make_unterm_str_diag(&self, string: String) -> Diag {
-        let mut diag = Diag::make(DiagKind::UntermStr(string), self.win.span(), false);
+    fn make_unterm_str_diag(&self, string: String) -> DiagRef {
+        let diag = Diag::make(DiagKind::UntermStr(string), self.win.span(), false);
 
-        diag.add_help(DiagHelp::InsQuote(self.win.span()));
-
-        diag
+        diag.with_help(DiagHelp::InsQuote(self.win.span()))
     }
 
-    fn read_str(&mut self) -> Result<Token, Diag> {
+    fn read_str(&mut self) -> Result<Token, DiagRef> {
         let mut string = String::new();
 
         loop {
@@ -258,13 +259,13 @@ impl<'t, P: PoolInterner> LexerCore<'t, P> {
         if let Some(keyword) = TokenKind::as_keyword(lexeme) {
             keyword
         } else {
-            let id = self.strpool.borrow_mut().intern(lexeme);
+            let id = self.pool.borrow_mut().intern(lexeme);
 
             TokenKind::Id(id)
         }
     }
 
-    fn next_token(&mut self) -> Result<Token, Diag> {
+    fn next_token(&mut self) -> Result<Token, DiagRef> {
         loop {
             self.win.consume_while(|c| c.is_ascii_whitespace());
             self.win.collapse();
@@ -338,7 +339,10 @@ impl<'t, P: PoolInterner> LexerCore<'t, P> {
     }
 }
 
-impl<P: PoolInterner> Iterator for LexerCore<'_, P> {
+impl<Pool> Iterator for LexerCore<'_, Pool>
+where
+    Pool: PoolLookup + PoolInterner
+{
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -377,4 +381,7 @@ impl<P: PoolInterner> Iterator for LexerCore<'_, P> {
     }
 }
 
-impl<'t, P: PoolInterner> Lexer for LexerCore<'t, P> {}
+impl<'t, Pool> Lexer for LexerCore<'t, Pool>
+where
+    Pool: PoolLookup + PoolInterner
+{}

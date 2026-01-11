@@ -1,6 +1,6 @@
 use std::error;
 
-use crate::tracer::{Tracer, HasTracer, Writer, WriterErr};
+use crate::{pool::PoolLookup, tracer::{HasTracer, Tracer, Writer, WriterErr}};
 
 use super::{ParserCore, Parser};
 
@@ -59,10 +59,10 @@ impl<P: Parser> Tracer<P> for ParserTracer<P> {
     }
 }
 
-impl<'t: 'l, 'l: 's, 's> HasTracer for ParserCore<'t, 'l, 's> {
-    type Tracer = ParserTracer<ParserCore<'t, 'l, 's>>;
+impl<'t: 'l, 'l: 's, 's, Pool: PoolLookup> HasTracer for ParserCore<'t, 'l, 's, Pool> {
+    type Tracer = ParserTracer<ParserCore<'t, 'l, 's, Pool>>;
 
-    fn tracer(self, dump_path: Option<&str>) -> Box<ParserTracer<ParserCore<'t, 'l, 's>>> {
+    fn tracer(self, dump_path: Option<&str>) -> Box<ParserTracer<ParserCore<'t, 'l, 's, Pool>>> {
         ParserTracer::new(self, dump_path)
     }
 }

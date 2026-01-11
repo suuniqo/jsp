@@ -1,6 +1,6 @@
 use std::error;
 
-use crate::tracer::HasTracer;
+use crate::{pool::PoolLookup, tracer::HasTracer};
 
 use super::ParserCore;
 
@@ -14,7 +14,15 @@ pub trait Parser {
 }
 
 impl dyn Parser {
-    pub fn make<'t: 'l, 'l: 's, 's>(trace: &Option<Option<String>>, inner: ParserCore<'t, 'l, 's>) -> Box<dyn Parser + 's> {
+    pub fn make<'t, 'l, 's, Pool>(
+        trace: &Option<Option<String>>,
+        inner: ParserCore<'t, 'l, 's, Pool>
+    ) -> Box<dyn Parser + 's>
+    where
+        't: 'l,
+        'l: 's,
+        Pool: PoolLookup
+    {
         if let Some(file) = trace {
             inner.tracer(file.as_deref())
         } else {

@@ -23,7 +23,7 @@ impl<S: SymTable> SymTableTracer<S> {
     }
 }
 
-impl<P: PoolLookup> SymTable for SymTableTracer<SymTableCore<P>> {
+impl<Pool: PoolLookup> SymTable for SymTableTracer<SymTableCore<Pool>> {
     fn pop_scope(&mut self) {
         if let Some(scope) = self.inner.pop_scope_inner() {
             self.trace.push(scope);
@@ -69,12 +69,12 @@ impl<P: PoolLookup> SymTable for SymTableTracer<SymTableCore<P>> {
     }
 }
 
-struct SymTableTracerDisplay<'a, P: PoolLookup> {
+struct SymTableTracerDisplay<'a, Pool: PoolLookup> {
     trace: &'a [Scope],
-    pool: Ref<'a, P>,
+    pool: Ref<'a, Pool>,
 }
 
-impl<'a, P: PoolLookup> fmt::Display for SymTableTracerDisplay<'a, P> {
+impl<'a, Pool: PoolLookup> fmt::Display for SymTableTracerDisplay<'a, Pool> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.trace.iter().enumerate().try_for_each(|(i, scope)| {
             scope.fmt(f, &*self.pool)?;
@@ -88,7 +88,7 @@ impl<'a, P: PoolLookup> fmt::Display for SymTableTracerDisplay<'a, P> {
     }
 }
 
-impl<P: PoolLookup> Tracer<SymTableCore<P>> for SymTableTracer<SymTableCore<P>> {
+impl<Pool: PoolLookup> Tracer<SymTableCore<Pool>> for SymTableTracer<SymTableCore<Pool>> {
     fn dump(&mut self) -> Result<(), WriterErr> {
         let display = SymTableTracerDisplay {
             trace: &self.trace,
@@ -99,8 +99,8 @@ impl<P: PoolLookup> Tracer<SymTableCore<P>> for SymTableTracer<SymTableCore<P>> 
     }
 }
 
-impl<P: PoolLookup> HasTracer for SymTableCore<P> {
-    type Tracer = SymTableTracer<SymTableCore<P>>;
+impl<Pool: PoolLookup> HasTracer for SymTableCore<Pool> {
+    type Tracer = SymTableTracer<SymTableCore<Pool>>;
 
     fn tracer(self, dump_path: Option<&str>) -> Box<Self::Tracer> {
         SymTableTracer::new(self, dump_path)

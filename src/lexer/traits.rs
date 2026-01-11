@@ -1,6 +1,6 @@
 use std::error;
 
-use crate::{lexer::LexerCore, pool::PoolInterner, token::Token, tracer::HasTracer};
+use crate::{lexer::LexerCore, pool::{PoolInterner, PoolLookup}, token::Token, tracer::HasTracer};
 
 
 pub trait Lexer: Iterator<Item = Token> {
@@ -10,7 +10,10 @@ pub trait Lexer: Iterator<Item = Token> {
 }
 
 impl dyn Lexer {
-    pub fn make<'t, P: PoolInterner>(trace: &Option<Option<String>>, inner: LexerCore<'t, P>) -> Box<dyn Lexer + 't> {
+    pub fn make<'t, Pool>(trace: &Option<Option<String>>, inner: LexerCore<'t, Pool>) -> Box<dyn Lexer + 't>
+    where
+        Pool: PoolLookup + PoolInterner
+    {
         if let Some(file) = trace {
             inner.tracer(file.as_deref())
         } else {

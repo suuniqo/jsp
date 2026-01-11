@@ -1,33 +1,30 @@
-use std::cell::RefCell;
-use std::collections::HashSet;
-use std::iter;
-use std::rc::Rc;
+use std::{cell::RefCell, collections::HashSet, iter, rc::Rc};
 
 use itertools::{Itertools, MultiPeek};
 
-use crate::diag::{DiagHelp, DiagSever};
-use crate::metasym::MetaSym;
-use crate::parser::heuristic::{Fix, FixAction, Heuristic};
-use crate::span::Span;
-use crate::symtable::SymTable;
-
 use crate::{
-    diag::{Diag, DiagKind},
+    diag::{DiagRef, DiagHelp, Diag, DiagKind},
+    metasym::MetaSym,
+    pool::PoolLookup,
+    span::Span,
+    symtable::SymTable,
     token::{Token, TokenKind},
+    lexer::Lexer,
+    reporter::Reporter
 };
-
-use crate::{lexer::Lexer, reporter::Reporter};
 
 use super::{
     gram::{Gram, Action, Term},
     sem::SemAnalyzer,
+    heuristic::{Fix, FixAction, Heuristic},
     Parser,
 };
 
+
 type LexerChained<'l> = iter::Chain<&'l mut (dyn Lexer + 'l), iter::Once<Token>>;
 
-pub struct ParserCore<'t, 'l, 's> {
-    reporter: Rc<RefCell<Reporter<'t>>>,
+pub struct ParserCore<'t, 'l, 's, Pool: PoolLookup> {
+    reporter: Rc<RefCell<Reporter<'t, Pool>>>,
     lexer: MultiPeek<LexerChained<'l>>,
 
     panic: bool,
@@ -38,11 +35,11 @@ pub struct ParserCore<'t, 'l, 's> {
     semanter: SemAnalyzer<'s>,
 }
 
-impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
+impl<'t, 'l, 's, Pool: PoolLookup> ParserCore<'t, 'l, 's, Pool> {
     const MAX_RECOVERY_COST: usize = 512;
 
     pub fn new(
-        reporter: Rc<RefCell<Reporter<'t>>>,
+        reporter: Rc<RefCell<Reporter<'t, Pool>>>,
         lexer: &'l mut dyn Lexer,
         symtable: &'s mut dyn SymTable,
     ) -> Self {
@@ -71,7 +68,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
         self.prev.as_ref()
     }
 
-    fn report(&mut self, diag: Diag) {
+    fn report(&mut self, diag: DiagRef) {
         if !self.panic {
             self.reporter.borrow_mut().emit(diag);
             self.panic = true;
@@ -119,7 +116,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
         Some((token, before))
     }
 
-    fn diag_fallback(&self, expected: HashSet<MetaSym>, curr: &Token, help: Option<(DiagHelp, usize)>) -> Diag {
+    fn diag_fallback(&self, expected: HashSet<MetaSym>, curr: &Token, help: Option<(DiagHelp, usize)>) -> DiagRef {
         let mut diag =  Diag::make(
             DiagKind::UnexpectedTok(curr.kind.clone(), expected),
             curr.span.clone(),
@@ -127,7 +124,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
         );
 
         if let Some(prev) = self.prev() {
-            diag.add_span(prev.span.clone(), DiagSever::Note, Some("after this".to_string()), false);
+            diag.add_note(prev.span.clone(), "after this");
         }
 
         if let Some((help, cost)) = help && cost < Self::MAX_RECOVERY_COST {
@@ -137,13 +134,13 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
         }
     }
 
-    fn diag_deletion(&self, expected: HashSet<MetaSym>, curr: Token, cost: usize) -> Diag {
+    fn diag_deletion(&self, expected: HashSet<MetaSym>, curr: Token, cost: usize) -> DiagRef {
         let help = (DiagHelp::DelToken(curr.clone()), cost);
 
         Self::diag_fallback(self, expected, &curr, Some(help))
     }
 
-    fn diag_replacement(&self, expected: HashSet<MetaSym>, curr: Token, rep: MetaSym, cost: usize) -> Diag {
+    fn diag_replacement(&self, expected: HashSet<MetaSym>, curr: Token, rep: MetaSym, cost: usize) -> DiagRef {
         if let Some(curr_term) = Term::from_token_kind(&curr.kind) && curr_term.is_keyword() && rep == MetaSym::Id {
             let diag = Diag::make(DiagKind::KeywordAsId(curr.kind.clone()), curr.span.clone(), true);
 
@@ -155,7 +152,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
         Self::diag_fallback(self, expected, &curr, Some(help))
     }
 
-    fn diag_insertion_inner(&self, expected: HashSet<MetaSym>, curr: Token, ins: &[MetaSym]) -> Diag {
+    fn diag_insertion_inner(&self, expected: HashSet<MetaSym>, curr: Token, ins: &[MetaSym]) -> DiagRef {
         let candidate = ins.first()
             .expect("unexpected empty insertion: incorrect eval_insertion method");
 
@@ -164,23 +161,13 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
                 let mut diag = Diag::make(DiagKind::MismatchedDelim(curr.kind.clone()), curr.span, false);
 
                 if let Some(last) = self.delims.last() && let Some(span) = &last.1 {
-                    diag.add_span(
-                        span.clone(),
-                        DiagSever::Error,
-                        Some("unclosed delimiter".to_string()),
-                        false
-                    );
+                    diag.add_error(span.clone(), "unclosed delimiter");
                 }
 
                 for (term, span) in self.delims.iter().rev() {
                     if term.delim_match(&curr_term) {
                         if let Some(span) = span {
-                            diag.add_span(
-                                span.clone(),
-                                DiagSever::Note,
-                                Some("closing delimiter possibly meant for this".to_string()),
-                                false
-                            );
+                            diag.add_note(span.clone(), "closing delimiter possibly meant for this");
                         }
 
                         break;
@@ -193,12 +180,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
                 let mut diag = Diag::make(DiagKind::UnclosedDelim, curr.span, false);
 
                 if let Some(last) = self.delims.last() && let Some(span) = &last.1 {
-                    diag.add_span(
-                        span.clone(),
-                        DiagSever::Note,
-                        Some("unclosed delimiter".to_string()),
-                        false
-                    );
+                    diag.add_note(span.clone(), "unclosed delimiter");
                 }
 
                 return diag;
@@ -209,7 +191,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
             let mut diag = Diag::make(DiagKind::MissingSemi, curr.span, false);
 
             if let Some(prev) = self.prev() {
-                diag.add_span(prev.span.clone(), DiagSever::Note, Some("after this".to_string()), false);
+                diag.add_note(prev.span.clone(), "after this");
             }
 
             return diag;
@@ -274,7 +256,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
         Self::diag_fallback(self, expected, &curr, None)
     }
 
-    fn diag_insertion(&self, expected: HashSet<MetaSym>, curr: Token, ins: Vec<MetaSym>, cost: usize) -> Diag {
+    fn diag_insertion(&self, expected: HashSet<MetaSym>, curr: Token, ins: Vec<MetaSym>, cost: usize) -> DiagRef {
         let diag = self.diag_insertion_inner(expected, curr.clone(), &ins);
 
         if diag.has_help() || cost > Self::MAX_RECOVERY_COST {
@@ -384,7 +366,7 @@ impl<'t, 'l, 's> ParserCore<'t, 'l, 's> {
     }
 }
 
-impl<'t: 'l, 'l: 's, 's> Parser for ParserCore<'t, 'l, 's> {
+impl<'t: 'l, 'l: 's, 's, Pool: PoolLookup> Parser for ParserCore<'t, 'l, 's, Pool> {
     fn parse(&mut self) -> Option<Vec<usize>> {
         let mut parse = vec![];
 

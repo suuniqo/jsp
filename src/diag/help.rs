@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::{metasym::{Insert, Insertion, MetaSym}, ltype::Type, span::Span, pool::StrPool, token::Token};
+use crate::{ltype::Type, metasym::{Insert, Insertion, MetaSym}, pool::PoolLookup, span::Span, token::Token};
 
 
 #[derive(Clone)]
@@ -46,7 +46,7 @@ pub enum DiagHelp {
 }
 
 impl DiagHelp {
-    pub fn action(&self, pool: &StrPool) -> HelpAction {
+    pub fn action<Pool: PoolLookup>(&self, pool: &Pool) -> HelpAction {
         match self {
             DiagHelp::InsDecimal(span) => HelpAction::Insert(
                 span.clone(),

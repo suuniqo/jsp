@@ -5,17 +5,17 @@ use crate::{ltype::{LangType, TypeFunc, TypeVar}, span::Span, pool::PoolLookup};
 use super::{scope::{Scope, Sym}, SymTable};
 
 
-pub struct SymTableCore<P: PoolLookup> {
-    pool: Rc<RefCell<P>>,
+pub struct SymTableCore<Pool: PoolLookup> {
+    pool: Rc<RefCell<Pool>>,
     scopes: Vec<Scope>,
     curr_idx: usize,
     scope_func: Option<(Sym, bool)>,
 }
 
-impl<P: PoolLookup> SymTableCore<P> {
+impl<Pool: PoolLookup> SymTableCore<Pool> {
     const MAX_NESTED_FUNCS: usize = 2;
 
-    pub fn new(pool: Rc<RefCell<P>>) -> Self {
+    pub fn new(pool: Rc<RefCell<Pool>>) -> Self {
         Self {
             pool,
             scopes: vec![Scope::new(0, None)],
@@ -62,12 +62,12 @@ impl<P: PoolLookup> SymTableCore<P> {
         self.scopes.pop()
     }
 
-    pub(super) fn pool(&self) -> Ref<'_, P> {
+    pub(super) fn pool(&self) -> Ref<'_, Pool> {
         self.pool.borrow()
     }
 }
 
-impl<P: PoolLookup> SymTable for SymTableCore<P> {
+impl<Pool: PoolLookup> SymTable for SymTableCore<Pool> {
     fn pop_scope(&mut self) {
         self.scopes.pop();
     }

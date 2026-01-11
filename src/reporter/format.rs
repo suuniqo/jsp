@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, fmt};
 
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
-use crate::{diag::{Diag, DiagHelp, DiagKind, DiagSever, DiagSpan, HelpAction}, metasym::MetaSym, span::Span, style::Style, pool::StrPool, target::Target};
+use crate::{diag::{DiagRef, DiagHelp, DiagKind, DiagSever, DiagSpan, HelpAction}, metasym::MetaSym, pool::PoolLookup, span::Span, style::Style, target::Target};
 
 pub struct ReporterFmt;
 
@@ -33,7 +33,7 @@ impl ReporterFmt {
         );
     }
 
-    pub fn dump_diag(trg: &Target, pool: &StrPool, diag: &Diag) {
+    pub fn dump_diag<Pool: PoolLookup>(trg: &Target, pool: &Pool, diag: &DiagRef) {
         let mut span_map = diag.spans
             .iter()
             .map(|diag_span| {
@@ -63,7 +63,7 @@ impl ReporterFmt {
 
         eprintln!("{}{}:{}:{}: {}{}: {}{}",
             Style::High, trg.path(), row + 1, col + 1,
-            diag.kind.sever().color(), diag.kind.sever(), Style::Reset, Fmt(&diag.kind, pool)
+            diag.kind.sever().color(), diag.kind.sever(), Style::Reset, Fmt(pool, &diag.kind)
         );
 
         let max_padding = " ".repeat(ReporterFmt::max_padding(trg));
@@ -196,7 +196,7 @@ impl ReporterFmt {
 
             eprintln!("{}{}--> {}help: {}{}",
                 max_padding, Style::High,
-                Style::Blue, Style::Reset, Fmt(help, pool),
+                Style::Blue, Style::Reset, Fmt(pool, help),
             );
 
             eprintln!("{}{} |", Style::High, max_padding);
@@ -358,11 +358,11 @@ impl DiagSpan {
     }
 }
 
-struct Fmt<'a, T>(&'a T, &'a StrPool);
+struct Fmt<'a, 'b, Pool: PoolLookup, T>(&'a Pool, &'b T);
 
-impl<'a> fmt::Display for Fmt<'a, MetaSym> {
+impl<'a, 'b, Pool: PoolLookup> fmt::Display for Fmt<'a, 'b, Pool, MetaSym> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.0 {
+        match self.1 {
             MetaSym::Stmnt => write!(f, "{}a {}statement{}",
                 Style::Reset, Style::Bold, Style::Reset
             ),
@@ -448,9 +448,9 @@ impl<'a> fmt::Display for Fmt<'a, MetaSym> {
     }
 }
 
-impl<'a> fmt::Display for Fmt<'a, DiagHelp> {
+impl<'a, 'b, Pool: PoolLookup> fmt::Display for Fmt<'a, 'b, Pool, DiagHelp> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.0 {
+        match self.1 {
             DiagHelp::InsDecimal(_) => write!(f, "{}add a decimal part", Style::Reset),
             DiagHelp::InsQuote(_) => write!(f, "{}close the string literal", Style::Reset),
             DiagHelp::InsToken(found, before, _, insertion) => {
@@ -460,7 +460,7 @@ impl<'a> fmt::Display for Fmt<'a, DiagHelp> {
                     write!(f, "insert ")?;
 
                     for (i, sym) in insertion.iter().enumerate() {
-                        write!(f, "{}", Fmt(sym, self.1))?;
+                        write!(f, "{}", Fmt(self.0, sym))?;
 
                         if i + 2 < insertion.len() {
                             write!(f, ", ")?;
@@ -471,19 +471,19 @@ impl<'a> fmt::Display for Fmt<'a, DiagHelp> {
 
                     write!(f, " {} `{}{}{}`",
                         if *before { "before" } else { "after" },
-                        Style::Bold, found.kind.lexeme(self.1), Style::Reset,
+                        Style::Bold, found.kind.lexeme(self.0), Style::Reset,
                     )
                 }
             },
             DiagHelp::DelToken(found) => write!(
                 f,
                 "{}remove the unnecessary `{}{}{}`",
-                Style::Reset, Style::Bold, found.kind.lexeme(self.1), Style::Reset
+                Style::Reset, Style::Bold, found.kind.lexeme(self.0), Style::Reset
             ),
             DiagHelp::RepToken(found, rep) => write!(
                 f,
                 "{}replace `{}{}{}` by {}",
-                Style::Reset, Style::Bold, found.kind.lexeme(self.1), Style::Reset, Fmt(rep, self.1),
+                Style::Reset, Style::Bold, found.kind.lexeme(self.0), Style::Reset, Fmt(self.0, rep),
             ),
             DiagHelp::RepKw(_) => write!(f, "{}change the name to use it as an identifier", Style::Reset),
             DiagHelp::DelTrailingComma(_) => write!(f, "{}remove the trailing comma", Style::Reset),
@@ -507,9 +507,9 @@ impl<'a> fmt::Display for Fmt<'a, DiagHelp> {
     }
 }
 
-impl<'a> fmt::Display for Fmt<'a, DiagKind> {
+impl<'a, 'b, Pool: PoolLookup> fmt::Display for Fmt<'a, 'b, Pool, DiagKind> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.0 {
+        match self.1 {
             DiagKind::StrayChar(c) => write!(f, "{}illegal character `{}{}{}` in program",
                 Style::Reset, Style::Bold,
                 if c.is_control() {
@@ -537,13 +537,13 @@ impl<'a> fmt::Display for Fmt<'a, DiagKind> {
             ),
             DiagKind::UnexpectedTok(found, expected) => {
                 if expected.is_empty() {
-                    return write!(f, "unexpected `{}{}{}`", Style::Bold, found.lexeme(self.1), Style::Reset);
+                    return write!(f, "unexpected `{}{}{}`", Style::Bold, found.lexeme(self.0), Style::Reset);
                 }
 
                 write!(f, "expected ")?;
 
                 for (i, sym) in expected.iter().enumerate() {
-                    write!(f, "{}", Fmt(sym, self.1))?;
+                    write!(f, "{}", Fmt(self.0, sym))?;
 
                     if i + 2 < expected.len() {
                         write!(f, ", ")?;
@@ -552,14 +552,14 @@ impl<'a> fmt::Display for Fmt<'a, DiagKind> {
                     }
                 }
 
-                write!(f, ", found `{}{}{}`", Style::Bold, found.lexeme(self.1), Style::Reset)
+                write!(f, ", found `{}{}{}`", Style::Bold, found.lexeme(self.0), Style::Reset)
             },
             DiagKind::MismatchedDelim(kind) => write!(f, "{}mismatched closing delimiter `{}{}{}`",
-                Style::Reset, Style::Bold, kind.lexeme(self.1), Style::Reset
+                Style::Reset, Style::Bold, kind.lexeme(self.0), Style::Reset
             ),
             DiagKind::UnclosedDelim => write!(f, "{}unclosed delimiter", Style::Reset),
             DiagKind::KeywordAsId(kw) => write!(f, "{}keyword `{}{}{}` used as an identifier",
-                Style::Reset, Style::Bold, kw.lexeme(self.1), Style::Reset),
+                Style::Reset, Style::Bold, kw.lexeme(self.0), Style::Reset),
             DiagKind::MissingSemi => write!(f, "{}missing `{};{}` at the end of a statement",
                 Style::Reset, Style::Bold, Style::Reset
             ),

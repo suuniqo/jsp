@@ -12,8 +12,25 @@ pub struct DiagSpan {
 }
 
 impl DiagSpan {
-    pub(super) fn new(span: Span, span_type: DiagSever, msg: Option<String>, highlight: bool) -> Self {
-        Self { span, sever: span_type, msg, highlight }
+    pub fn new(span: Span, sever: DiagSever, msg: Option<String>, highlight: bool) -> Self {
+        Self { span, sever, msg, highlight }
+    }
+
+    pub fn new_note(span: Span, msg: &str) -> Self {
+        Self {
+            span,
+            sever: DiagSever::Note,
+            msg: Some(msg.into()),
+            highlight: false,
+        }
+    }
+
+    pub fn new_error(span: Span, msg: &str) -> Self {
+        Self {
+            span,
+            sever: DiagSever::Note,
+            msg: Some(msg.into()),
+            highlight: true,
+        }
     }
 }
-

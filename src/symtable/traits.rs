@@ -25,7 +25,7 @@ pub trait SymTable {
 }
 
 impl dyn SymTable {
-    pub fn make<P: PoolLookup>(trace: &Option<Option<String>>, inner: SymTableCore<P>) -> Box<dyn SymTable> {
+    pub fn make<Pool: PoolLookup>(trace: &Option<Option<String>>, inner: SymTableCore<Pool>) -> Box<dyn SymTable> {
         if let Some(file) = trace {
             inner.tracer(file.as_deref())
         } else {

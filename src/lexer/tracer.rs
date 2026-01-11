@@ -1,6 +1,6 @@
 use std::error;
 
-use crate::{pool::PoolInterner, token::{Token, TokenKind}, tracer::{HasTracer, Tracer, Writer, WriterErr}};
+use crate::{pool::{PoolInterner, PoolLookup}, token::{Token, TokenKind}, tracer::{HasTracer, Tracer, Writer, WriterErr}};
 
 use super::{LexerCore, Lexer};
 
@@ -52,10 +52,13 @@ impl<L: Lexer> Tracer<L> for LexerTracer<L> {
     }
 }
 
-impl<'t, P: PoolInterner> HasTracer for LexerCore<'t, P> {
-    type Tracer = LexerTracer<LexerCore<'t, P>>;
+impl<'t, Pool> HasTracer for LexerCore<'t, Pool>
+where
+    Pool: PoolLookup + PoolInterner
+{
+    type Tracer = LexerTracer<LexerCore<'t, Pool>>;
 
-    fn tracer(self, dump_path: Option<&str>) -> Box<LexerTracer<LexerCore<'t, P>>> {
+    fn tracer(self, dump_path: Option<&str>) -> Box<LexerTracer<LexerCore<'t, Pool>>> {
         LexerTracer::new(self, dump_path)
     }
 }

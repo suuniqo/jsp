@@ -1,4 +1,4 @@
-use std::{cell::RefCell, fmt, rc::Rc};
+use std::{cell::RefCell, rc::Rc, error};
 
 use crate::{
     cli::Config,
@@ -35,7 +35,7 @@ mod ltype;
 mod metasym;
 
 
-fn dump_err(err: impl fmt::Display) {
+fn dump_err(err: impl error::Error) {
     eprintln!("{}error: {}{}", Style::Red, Style::Reset, err)
 }
 
@@ -48,18 +48,18 @@ fn analyze(config: Config) -> AnalysisResult {
         }
     };
 
-    let strpool = Rc::new(RefCell::new(StrPool::new()));
+    let pool = Rc::new(RefCell::new(StrPool::new()));
 
-    let reporter = Rc::new(RefCell::new(Reporter::new(&target, strpool.clone(), config.quiet)));
+    let reporter = Rc::new(RefCell::new(Reporter::new(&target, pool.clone(), config.quiet)));
 
     let mut lexer = <dyn Lexer>::make(
         &config.lexer_trace,
-        LexerCore::new(Rc::clone(&reporter), Rc::clone(&strpool), &target),
+        LexerCore::new(Rc::clone(&reporter), Rc::clone(&pool), &target),
     );
 
     let mut symtable = <dyn SymTable>::make(
         &config.symtb_trace,
-        SymTableCore::new(strpool)
+        SymTableCore::new(pool)
     );
 
     let mut parser = <dyn Parser>::make(
@@ -72,17 +72,17 @@ fn analyze(config: Config) -> AnalysisResult {
     let level = reporter.borrow().finish();
 
     if let Err(err) = parser.finish(level.valid_syntactic()) {
-        dump_err(err);
+        dump_err(err.as_ref());
         return AnalysisResult::IOError;
     }
 
     if let Err(err) = symtable.finish(level.valid_semantic()) {
-        dump_err(err);
+        dump_err(err.as_ref());
         return AnalysisResult::IOError;
     }
 
     if let Err(err) = lexer.finish(level.valid_lexical()) {
-        dump_err(err);
+        dump_err(err.as_ref());
         return AnalysisResult::IOError;
     }
 

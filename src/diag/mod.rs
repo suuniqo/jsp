@@ -1,6 +1,5 @@
 use crate::span::Span;
 
-mod core;
 mod kind;
 mod sever;
 mod help;
@@ -14,6 +13,8 @@ pub use level::DiagLevel;
 pub use span::DiagSpan;
 
 
+pub type DiagRef = Box<Diag>;
+
 #[derive(Debug, Clone)]
 pub struct Diag {
     pub kind: DiagKind,
@@ -22,26 +23,30 @@ pub struct Diag {
 }
 
 impl Diag {
-    pub fn make(kind: DiagKind, span: Span, highlight: bool) -> Self {
+    pub fn make(kind: DiagKind, span: Span, highlight: bool) -> DiagRef {
         let msg = kind.msg();
         let sever = kind.sever();
 
-        Self {
+        Box::new(Self {
             kind,
             spans: vec![DiagSpan::new(span, sever, Some(msg), highlight)],
             help: None,
-        }
-    }
-
-    pub fn add_span(&mut self, span: Span, sever: DiagSever, message: Option<String>, highlight: bool) {
-        self.spans.push(DiagSpan::new(span, sever, message, highlight));
+        })
     }
 
     pub fn add_help(&mut self, help: DiagHelp) {
         self.help = Some(help)
     }
 
-    pub fn with_help(mut self, help: DiagHelp) -> Diag {
+    pub fn add_note(&mut self, span: Span, msg: &str) {
+        self.spans.push(DiagSpan::new_note(span, msg));
+    }
+
+    pub fn add_error(&mut self, span: Span, msg: &str) {
+        self.spans.push(DiagSpan::new_error(span, msg));
+    }
+
+    pub fn with_help(mut self: DiagRef, help: DiagHelp) -> DiagRef {
         self.add_help(help);
 
         self
