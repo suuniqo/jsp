@@ -16,7 +16,7 @@ use crate::{
 use super::{
     gram::{Gram, Action, Term},
     sem::SemAnalyzer,
-    heuristic::{Fix, FixAction, Heuristic},
+    heur::{Fix, FixAction, Heur},
     Parser,
 };
 
@@ -328,11 +328,11 @@ impl<'t, 'l, 's, Pool: PoolLookup> ParserCore<'t, 'l, 's, Pool> {
     }
 
     fn recover_and_emit(&mut self, curr: Token) -> bool {
-        let expected = Heuristic::expected(&self.stack);
+        let expected = Heur::expected(&self.stack);
 
-        let deletion    = Heuristic::eval_deletion(   &mut self.lexer, &self.stack);
-        let insertion   = Heuristic::eval_insertion(  &mut self.lexer, &self.stack);
-        let replacement = Heuristic::eval_replacement(&mut self.lexer, &self.stack);
+        let deletion    = Heur::eval_deletion(   &mut self.lexer, &self.stack);
+        let insertion   = Heur::eval_insertion(  &mut self.lexer, &self.stack);
+        let replacement = Heur::eval_replacement(&mut self.lexer, &self.stack);
 
         let curr = Self::norm_token(self.prev(), &curr);
 
@@ -394,7 +394,7 @@ impl<'t: 'l, 'l: 's, 's, Pool: PoolLookup> Parser for ParserCore<'t, 'l, 's, Poo
                     self.stack.push(state_idx);
 
                     if self.panic {
-                        self.panic = Heuristic::eval_panic(&curr.kind);
+                        self.panic = Heur::eval_panic(&curr.kind);
                     }
 
                     if term.is_left_delim() {

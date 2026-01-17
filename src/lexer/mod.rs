@@ -1,7 +1,7 @@
 mod core;
 mod tracer;
 mod traits;
-mod win;
+mod window;
 
 pub use traits::Lexer;
 pub use core::LexerCore;

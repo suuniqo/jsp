@@ -158,14 +158,14 @@ impl fmt::Display for Insert<'_> {
 }
 
 pub struct Insertion<'a>(
-    pub Option<MetaSym>,
     pub &'a Vec<MetaSym>,
+    pub Option<MetaSym>,
     pub Option<MetaSym>
 );
 
 impl fmt::Display for Insertion<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let Insertion(before, syms, after) = self;
+        let Insertion(syms, before, after) = self;
 
         let Some(first) = syms.first() else {
             return Ok(());

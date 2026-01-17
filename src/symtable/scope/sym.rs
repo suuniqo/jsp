@@ -1,11 +1,11 @@
 use std::fmt;
 
-use crate::{ltype::{LangType, Type, TypeVar}, span::Span, pool::PoolLookup};
+use crate::{types::{TypeId, Type, TypeVar}, span::Span, pool::PoolLookup};
 
 
 #[derive(Debug, Clone)]
 pub struct Sym {
-    pub lang_type: LangType,
+    pub lang_type: TypeId,
     pub span: Option<Span>,
     pub implicit: bool,
 
@@ -14,7 +14,7 @@ pub struct Sym {
 }
 
 impl Sym {
-    pub fn new(lang_type: LangType, offset: usize, pool_id: usize, span: Option<Span>, implicit: bool) -> Self {
+    pub fn new(lang_type: TypeId, offset: usize, pool_id: usize, span: Option<Span>, implicit: bool) -> Self {
         Self {
             pool_id,
             offset,
@@ -24,7 +24,7 @@ impl Sym {
         }
     }
 
-    pub fn explicit(lang_type: LangType, offset: usize, pool_id: usize, span: Option<Span>) -> Self {
+    pub fn explicit(lang_type: TypeId, offset: usize, pool_id: usize, span: Option<Span>) -> Self {
         Self {
             pool_id,
             offset,
@@ -36,7 +36,7 @@ impl Sym {
 
     pub fn fmt(&self, f: &mut fmt::Formatter<'_>, pool: &impl PoolLookup) -> fmt::Result {
         match &self.lang_type {
-            LangType::Var(var) => writeln!(
+            TypeId::Var(var) => writeln!(
                 f,
                 "\
 * lexema: '{}'
@@ -46,7 +46,7 @@ impl Sym {
                 var.var_type,
                 self.offset
             ),
-            LangType::Func(func) => {
+            TypeId::Func(func) => {
                 let lexeme = pool.lookup(self.pool_id)
                     .expect("couldn't find symbol pool id");
 

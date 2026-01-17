@@ -1,6 +1,6 @@
 use std::{error, rc::Rc};
 
-use crate::{ltype::TypeVar, pool::PoolLookup, span::Span, symtable::SymTableCore, tracer::HasTracer};
+use crate::{diag::DiagLevel, span::Span, types::TypeVar};
 
 use super::scope::Sym;
 
@@ -19,17 +19,7 @@ pub trait SymTable {
     fn lexeme(&self, pool_id: usize) -> Option<Rc<str>>;
     fn search(&self, pool_id: usize) -> Option<&Sym>;
 
-    fn finish(self: Box<Self>, _failure: bool) -> Result<(), Box<dyn error::Error>> {
+    fn finish(self: Box<Self>, _failure: Option<DiagLevel>) -> Result<(), Box<dyn error::Error>> {
         Ok(())
-    }
-}
-
-impl dyn SymTable {
-    pub fn make<Pool: PoolLookup>(trace: &Option<Option<String>>, inner: SymTableCore<Pool>) -> Box<dyn SymTable> {
-        if let Some(file) = trace {
-            inner.tracer(file.as_deref())
-        } else {
-            Box::new(inner)
-        }
     }
 }

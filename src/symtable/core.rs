@@ -1,6 +1,6 @@
 use std::{rc::Rc, cell::RefCell, cell::Ref};
 
-use crate::{ltype::{LangType, TypeFunc, TypeVar}, span::Span, pool::PoolLookup};
+use crate::{types::{TypeId, TypeFunc, TypeVar}, span::Span, pool::PoolLookup};
 
 use super::{scope::{Scope, Sym}, SymTable};
 
@@ -53,7 +53,7 @@ impl<Pool: PoolLookup> SymTableCore<Pool> {
             unreachable!("tried to push variable with invalid pool id");
         }
 
-        let ltype = LangType::Var(vtype);
+        let ltype = TypeId::Var(vtype);
 
         scope(self).intern(pool_id, ltype, span, implicit)
     }
@@ -77,11 +77,11 @@ impl<Pool: PoolLookup> SymTable for SymTableCore<Pool> {
             unreachable!("tried to push function with invalid pool id");
         }
 
-        let Some(LangType::Func(func_type)) = self.scope_func.as_ref().map(|sym| sym.0.lang_type.clone()) else {
+        let Some(TypeId::Func(func_type)) = self.scope_func.as_ref().map(|sym| sym.0.lang_type.clone()) else {
             unreachable!("scope func has type typevar");
         };
 
-        let (inserted, sym) = self.curr_scope_mut().intern(pool_id, LangType::Func(func_type), span.clone(), false);
+        let (inserted, sym) = self.curr_scope_mut().intern(pool_id, TypeId::Func(func_type), span.clone(), false);
 
         if inserted {
             self.scope_func = Some((sym.clone(), false));
@@ -118,23 +118,23 @@ impl<Pool: PoolLookup> SymTable for SymTableCore<Pool> {
             unreachable!("tried to add parameters to empty func type");
         };
 
-        let LangType::Func(func_type) = scope_func.0.lang_type.clone() else {
+        let TypeId::Func(func_type) = scope_func.0.lang_type.clone() else {
             unreachable!("scope func has type typevar");
         };
 
         let func_type = TypeFunc::new(func_type.ret_type.clone(), params);
 
-        scope_func.0.lang_type = LangType::Func(func_type.clone());
+        scope_func.0.lang_type = TypeId::Func(func_type.clone());
 
         if !scope_func.1 {
-            self.global_scope_mut().change_type(pool_id, LangType::Func(func_type));
+            self.global_scope_mut().change_type(pool_id, TypeId::Func(func_type));
         }
     }
 
     fn add_ret_type(&mut self, ret_type: TypeVar) {
         self.scope_func = Some((
             Sym::explicit(
-                LangType::Func(TypeFunc::new(ret_type, &[])),
+                TypeId::Func(TypeFunc::new(ret_type, &[])),
                 0,
                 0,
                 None,

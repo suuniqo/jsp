@@ -13,7 +13,7 @@ pub struct Reporter<'t, Pool: PoolLookup> {
     quiet: bool,
     target: &'t Target,
     pool: Rc<RefCell<Pool>>,
-    level: DiagLevel,
+    level: Option<DiagLevel>,
 }
 
 impl<'t, Pool: PoolLookup> Reporter<'t, Pool> {
@@ -24,7 +24,7 @@ impl<'t, Pool: PoolLookup> Reporter<'t, Pool> {
             quiet,
             target,
             pool,
-            level: DiagLevel::None,
+            level: None,
         }
     }
 
@@ -35,17 +35,23 @@ impl<'t, Pool: PoolLookup> Reporter<'t, Pool> {
             self.warns += 1;
         }
 
-        self.level = self.level.min(diag.kind.level());
+        if let Some(next) = diag.kind.level() {
+            self.level = Some(self.level.map_or(next, |curr| curr.min(next)));
+        }
 
         if !self.quiet {
             ReporterFmt::dump_diag(self.target, &*self.pool.borrow(), &diag);
         }
     }
 
-    pub fn finish(&self) -> DiagLevel {
+    pub fn finish(&self) -> Option<DiagLevel> {
+        if self.quiet {
+            return self.level;
+        }
+
         ReporterFmt::dump_warns(self.target, self.warns);
 
-        if self.level != DiagLevel::None {
+        if self.level.is_some() {
             ReporterFmt::dump_failure(self.target, self.errs);
         } else {
             ReporterFmt::dump_success(self.target);

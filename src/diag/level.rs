@@ -7,35 +7,30 @@ pub enum DiagLevel {
     Lexical,
     Syntactic,
     Semantic,
-    None,
 }
 
 impl DiagLevel {
-    fn validates(&self, threshold: Self) -> bool {
+    fn preserves(&self, threshold: Self) -> bool {
         *self > threshold
     }
 
-    pub fn valid_lexical(&self) -> bool {
-        self.validates(DiagLevel::Lexical)
+    pub fn is_lexical(&self) -> bool {
+        !self.preserves(DiagLevel::Lexical)
     }
 
-    pub fn valid_syntactic(&self) -> bool {
-        self.validates(DiagLevel::Syntactic)
+    pub fn is_syntactic(&self) -> bool {
+        !self.preserves(DiagLevel::Syntactic)
     }
 
-    pub fn valid_semantic(&self) -> bool {
-        self.validates(DiagLevel::Semantic)
-    }
-
-    pub fn valid_all(&self) -> bool {
-        *self == DiagLevel::None
+    pub fn is_semantic(&self) -> bool {
+        !self.preserves(DiagLevel::Semantic)
     }
 }
 
 impl DiagKind {
-    pub fn level(&self) -> DiagLevel {
-        match self {
-            DiagKind::InvEscSeq(_)          => DiagLevel::None,
+    pub fn level(&self) -> Option<DiagLevel> {
+        Some(match self {
+            DiagKind::InvEscSeq(_)          => return None,
 
             DiagKind::StrayChar(_)          => DiagLevel::Lexical,
             DiagKind::UntermComm            => DiagLevel::Lexical,
@@ -60,12 +55,11 @@ impl DiagKind {
 
             DiagKind::MismatchedRetType(..) => DiagLevel::Semantic,
             DiagKind::UnexpectedRetType(_)  => DiagLevel::Semantic,
-            DiagKind::ExpectedRetType       => DiagLevel::Semantic,
             DiagKind::Redefinition          => DiagLevel::Semantic,
             DiagKind::MismatchedTypes(..)   => DiagLevel::Semantic,
             DiagKind::UndefinedFunc(_)      => DiagLevel::Semantic,
             DiagKind::StrayRet              => DiagLevel::Semantic,
             DiagKind::InvalidCall(..)       => DiagLevel::Semantic,
-        }
+        })
     }
 }

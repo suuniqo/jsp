@@ -28,7 +28,7 @@ impl DiagSpan {
     pub fn new_error(span: Span, msg: &str) -> Self {
         Self {
             span,
-            sever: DiagSever::Note,
+            sever: DiagSever::Error,
             msg: Some(msg.into()),
             highlight: true,
         }

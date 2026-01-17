@@ -1,6 +1,6 @@
 use std::{cell::Ref, fmt, error, rc::Rc};
 
-use crate::{ltype::TypeVar, pool::PoolLookup, span::Span, tracer::{HasTracer, Tracer, Writer, WriterErr}};
+use crate::{diag::DiagLevel, pool::PoolLookup, span::Span, tracer::{HasTracer, Tracer, TracerErr, Writer}, types::TypeVar};
 
 use super::{scope::{Scope, Sym}, SymTableCore, SymTable};
 
@@ -62,8 +62,8 @@ impl<Pool: PoolLookup> SymTable for SymTableTracer<SymTableCore<Pool>> {
         self.inner.search(pool_id)
     }
 
-    fn finish(self: Box<Self>, failure: bool) -> Result<(), Box<dyn error::Error>> {
-        self.trace(failure)?;
+    fn finish(self: Box<Self>, failure: Option<DiagLevel>) -> Result<(), Box<dyn error::Error>> {
+        self.trace(failure.is_some_and(|failure| failure.is_semantic()))?;
 
         Ok(())
     }
@@ -89,7 +89,7 @@ impl<'a, Pool: PoolLookup> fmt::Display for SymTableTracerDisplay<'a, Pool> {
 }
 
 impl<Pool: PoolLookup> Tracer<SymTableCore<Pool>> for SymTableTracer<SymTableCore<Pool>> {
-    fn dump(&mut self) -> Result<(), WriterErr> {
+    fn dump(&mut self) -> Result<(), TracerErr> {
         let display = SymTableTracerDisplay {
             trace: &self.trace,
             pool: self.inner.pool(),

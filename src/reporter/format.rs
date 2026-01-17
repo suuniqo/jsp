@@ -583,9 +583,6 @@ impl<'a, 'b, Pool: PoolLookup> fmt::Display for Fmt<'a, 'b, Pool, DiagKind> {
             DiagKind::UnexpectedRetType(_) => write!(f, "{}unexpected {}return type{} in a void function",
                 Style::Reset, Style::Bold, Style::Reset
             ),
-            DiagKind::ExpectedRetType => write!(f, "{}no {}return statements{} in a non-void function",
-                Style::Reset, Style::Bold, Style::Reset
-            ),
             DiagKind::Redefinition => write!(f, "{}identifier already defined", Style::Reset),
             DiagKind::MismatchedTypes(..) => write!(f, "{}mismatched types", Style::Reset),
             DiagKind::UndefinedFunc(lexeme) => write!(f, "{}call to undefined function `{}{}{}`",

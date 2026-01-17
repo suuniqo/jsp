@@ -8,38 +8,16 @@ use crate::metasym::MetaSym;
 
 use super::gram::{Gram, Action, Term, NotTerm, GramSym};
 
-#[derive(Debug)]
-pub enum FixAction {
-    Shift(TokenKind, usize),
-    Reduce(usize),
-}
+mod fix;
 
-#[derive(Debug)]
-pub struct Fix {
-    pub cost: usize,
-    pub skips: usize,
-    pub actions: Vec<FixAction>,
-}
+pub use fix::{Fix, FixAction};
 
-impl Fix {
-    fn insert(cost: usize, actions: Vec<FixAction>) -> Self {
-        Self { cost, skips: 0, actions }
-    }
-
-    fn delete(cost: usize, skips: usize) -> Self {
-        Self { cost, skips, actions: Vec::new() }
-    }
-
-    fn replace(cost: usize, actions: Vec<FixAction>) -> Self {
-        Self { cost, skips: 1, actions }
-    }
-}
 
 type LexerChained<'t, 'l> = iter::Chain<&'l mut (dyn Lexer + 'l), iter::Once<Token>>;
 
-pub struct Heuristic;
+pub struct Heur;
 
-impl<'t, 'l> Heuristic {
+impl<'t, 'l> Heur {
     pub fn expected(stack: &[usize]) -> HashSet<MetaSym> {
         let paths: Vec<(usize, Vec<usize>)> = (0..TokenKind::COUNT)
             .filter_map(|i| {
@@ -115,7 +93,7 @@ impl<'t, 'l> Heuristic {
             }
 
             // sort and extract by sync score
-            candidates.sort_by(|a, b| {
+            let (i, ..) = candidates.iter().max_by(|a, b| {
                 let kind_a = TokenKind::from_idx(a.0);
                 let kind_b = TokenKind::from_idx(b.0);
 
@@ -129,19 +107,16 @@ impl<'t, 'l> Heuristic {
                 } else {
                     cmp
                 }
-            });
-
-            // ensure insertion never is empty
-            let (i, ..) = candidates.pop()?;
+            })?;
 
             let pos = paths
                 .iter()
-                .position(|(j, ..)| *j == i)
+                .position(|(j, ..)| j == i)
                 .expect("will always match");
 
             let (_, new_stack, next_trace) = paths.swap_remove(pos);
 
-            let term = Term::from_idx(i);
+            let term = Term::from_idx(*i);
 
             // update state
             curr_stack = new_stack;
@@ -532,5 +507,4 @@ impl MetaSym {
 
         set
     }
-
 }

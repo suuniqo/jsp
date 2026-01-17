@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::{ltype::Type, metasym::{Insert, Insertion, MetaSym}, pool::PoolLookup, span::Span, token::Token};
+use crate::{types::Type, metasym::{Insert, Insertion, MetaSym}, pool::PoolLookup, span::Span, token::Token};
 
 
 #[derive(Clone)]
@@ -62,9 +62,9 @@ impl DiagHelp {
                 let reference = reference.clone();
 
                 let insertion = if *before {
-                    Insertion(None, syms, Some(reference))
+                    Insertion(syms, None, Some(reference))
                 } else {
-                    Insertion(Some(reference), syms, None)
+                    Insertion(syms, Some(reference), None)
                 }.to_string();
 
                 HelpAction::Insert(token.span.clone(), *before, insertion)

@@ -1,6 +1,6 @@
 use std::error;
 
-use crate::{pool::PoolLookup, tracer::{HasTracer, Tracer, Writer, WriterErr}};
+use crate::{diag::DiagLevel, pool::PoolLookup, tracer::{HasTracer, Tracer, TracerErr, Writer}};
 
 use super::{ParserCore, Parser};
 
@@ -31,15 +31,15 @@ impl<P: Parser> Parser for ParserTracer<P> {
         self.trace.clone()
     }
 
-    fn finish(self: Box<Self>, failure: bool) -> Result<(), Box<dyn error::Error>> {
-        self.trace(failure)?;
+    fn finish(self: Box<Self>, failure: Option<DiagLevel>) -> Result<(), Box<dyn error::Error>> {
+        self.trace(failure.is_some_and(|failure| failure.is_syntactic()))?;
 
         Ok(())
     }
 }
 
 impl<P: Parser> Tracer<P> for ParserTracer<P> {
-    fn dump(&mut self) -> Result<(), WriterErr> {
+    fn dump(&mut self) -> Result<(), TracerErr> {
         let Some(trace) = &self.trace else {
             self.writer.write(format_args!("ascending\n"))?;
             return  Ok(());

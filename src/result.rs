@@ -1,5 +1,7 @@
 use std::process::{ExitCode, Termination};
 
+#[repr(u8)]
+#[derive(PartialEq, Eq)]
 pub enum AnalysisResult {
     Success,
     CodeError,

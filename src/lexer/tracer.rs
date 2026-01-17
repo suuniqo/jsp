@@ -1,6 +1,6 @@
 use std::error;
 
-use crate::{pool::{PoolInterner, PoolLookup}, token::{Token, TokenKind}, tracer::{HasTracer, Tracer, Writer, WriterErr}};
+use crate::{diag::DiagLevel, pool::{PoolInterner, PoolLookup}, token::{Token, TokenKind}, tracer::{HasTracer, Tracer, TracerErr, Writer}};
 
 use super::{LexerCore, Lexer};
 
@@ -37,15 +37,15 @@ impl<L: Lexer> Iterator for LexerTracer<L> {
 }
 
 impl<L: Lexer> Lexer for LexerTracer<L> {
-    fn finish(self: Box<Self>, failure: bool) -> Result<(), Box<dyn error::Error>> {
-        self.trace(failure)?;
+    fn finish(self: Box<Self>, failure: Option<DiagLevel>) -> Result<(), Box<dyn error::Error>> {
+        self.trace(failure.is_some_and(|failure| failure.is_lexical()))?;
 
         Ok(())
     }
 }
 
 impl<L: Lexer> Tracer<L> for LexerTracer<L> {
-    fn dump(&mut self) -> Result<(), WriterErr> {
+    fn dump(&mut self) -> Result<(), TracerErr> {
         self.trace
             .iter()
             .try_for_each(|kind| self.writer.write(format_args!("{}\n", kind)))

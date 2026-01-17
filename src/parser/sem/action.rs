@@ -1,111 +1,20 @@
 use std::collections::{HashSet, VecDeque};
 
 use crate::{
-    diag::{DiagRef, DiagHelp, DiagKind, Diag},
-    ltype::{LangType, Type, TypeVar},
+    diag::{Diag, DiagKind, DiagRef, DiagHelp},
+    types::{TypeId, Type, TypeVar},
     span::Span,
     symtable::SymTable,
-    token::TokenKind
 };
 
-use super::gram::Gram;
+use super::{
+    analyzer::SemAnalyzer,
+    rule::SemRule,
+    attr::Attr,
+};
 
 
-#[derive(Debug, Clone)]
-pub enum Attr {
-    /// Stores found return types with reasons and span
-    Unit(Option<(Vec<TypeVar>, Option<Span>)>, Option<Span>),
-    /// Stores pool id
-    Id(usize, Option<Span>),
-    /// Stores type
-    Type(LangType),
-    /// Stores type and optional pool id
-    Expr(LangType, Option<usize>),
-    /// Stores found parameter types with pool ids and reasons
-    FuncParams(VecDeque<(usize, Option<Span>, TypeVar)>),
-    /// Stores found argument types
-    FuncArgs(VecDeque<(TypeVar, Option<usize>)>),
-}
-
-pub struct SemAnalyzer<'s> {
-    symtable: &'s mut dyn SymTable,
-    stack: Vec<Option<Attr>>,
-}
-
-impl<'s> SemAnalyzer<'s> {
-    pub fn new(symtable: &'s mut dyn SymTable) -> Self {
-        Self {
-            symtable,
-            stack: Vec::new(),
-        }
-    }
-
-    pub fn on_shift(&mut self, kind: TokenKind, span: Option<Span>) {
-        let attr = match kind {
-            TokenKind::Void => Attr::Type(
-                LangType::new_var(Type::Void, span),
-            ),
-            TokenKind::Bool => Attr::Type(
-                LangType::new_var(Type::Bool, span),
-            ),
-            TokenKind::Float => Attr::Type(
-                LangType::new_var(Type::Float, span),
-            ),
-            TokenKind::Int => Attr::Type(
-                LangType::new_var(Type::Int, span),
-            ),
-            TokenKind::Str => Attr::Type(
-                LangType::new_var(Type::Str, span),
-            ),
-
-            TokenKind::True | TokenKind::False => Attr::Expr(
-                LangType::new_var(Type::Bool, span), None
-            ),
-            TokenKind::FloatLit(_) => Attr::Expr(
-                LangType::new_var(Type::Float, span), None
-            ),
-            TokenKind::IntLit(_) => Attr::Expr(
-                LangType::new_var(Type::Int, span), None
-            ),
-            TokenKind::StrLit(_) => Attr::Expr(
-                LangType::new_var(Type::Str, span), None
-            ),
-
-            TokenKind::Id(pool_id) => Attr::Id(
-                pool_id, span,
-            ),
-
-            _ => Attr::Unit(None, span),
-        };
-
-        self.stack.push(Some(attr));
-    }
-    
-    pub fn on_reduce(&mut self, rule: usize) -> Result<(), Vec<DiagRef>> {
-        let (_, rhs) = Gram::RULES[rule];
-
-        let args = self.stack.split_off(self.stack.len() - rhs.len());
-
-        match self.handle_rule(rule, args) {
-            Ok(attr) => {
-                self.stack.push(attr);
-                Ok(())
-            },
-            Err(diag) => {
-                self.stack.push(None);
-                Err(diag)
-            },
-        }
-    }
-
-    fn handle_rule(&mut self, rule_idx: usize, args: Vec<Option<Attr>>) -> Result<Option<Attr>, Vec<DiagRef>> {
-        let mut action = SemAction::new(self, rule_idx);
-
-        action.run(args)
-    }
-}
-
-struct SemAction<'a, 's> {
+pub(super) struct SemAction<'a, 's> {
     analyzer: &'a mut SemAnalyzer<'s>,
     rule: SemRule,
 }
@@ -115,7 +24,7 @@ impl<'a, 's> SemAction<'a, 's> {
     const EXPECTED_IO:  [Type; 3] = [Type::Str, Type::Int, Type::Float];
     const EXPECTED_VAR: [Type; 4] = [Type::Str, Type::Int, Type::Float, Type::Bool];
 
-    fn new(analyzer: &'a mut SemAnalyzer<'s>, rule_idx: usize) -> Self {
+    pub(super) fn new(analyzer: &'a mut SemAnalyzer<'s>, rule_idx: usize) -> Self {
         Self {
             analyzer,
             rule: SemRule::from_idx(rule_idx),
@@ -123,11 +32,11 @@ impl<'a, 's> SemAction<'a, 's> {
     }
 
     fn symtable(&self) -> &dyn SymTable {
-        self.analyzer.symtable
+        self.analyzer.symtable()
     }
 
     fn symtable_mut(&mut self) -> &mut dyn SymTable {
-        self.analyzer.symtable
+        self.analyzer.symtable_mut()
     }
 
     fn recovery_func(&mut self, _args: Vec<Option<Attr>>) {
@@ -144,7 +53,7 @@ impl<'a, 's> SemAction<'a, 's> {
         let [
             _,
             _,
-            Some(Attr::Type(LangType::Var(id_type))),
+            Some(Attr::Type(TypeId::Var(id_type))),
             Some(Attr::Id(pool_id, id_span)),
             _,
             _,
@@ -175,7 +84,7 @@ impl<'a, 's> SemAction<'a, 's> {
         };
     }
 
-    fn run(&mut self, args: Vec<Option<Attr>>) -> Result<Option<Attr>, Vec<DiagRef>> {
+    pub(super) fn run(&mut self, args: Vec<Option<Attr>>) -> Result<Option<Attr>, Vec<DiagRef>> {
         let Some(args) = args.clone().into_iter().collect::<Option<Vec<Attr>>>() else {
             match self.rule {
                 SemRule::Func                                  => self.recovery_func(args),
@@ -243,8 +152,8 @@ impl<'a, 's> SemAction<'a, 's> {
         if let Some(pool_id) = pool_id && let Some(sym) = self.symtable().search(pool_id) && let Some(sym_span) = &sym.span {
             let def_span = {
                 let reason = match &sym.lang_type {
-                    LangType::Var(type_var) => &type_var.reason,
-                    LangType::Func(type_func) => &type_func.ret_type.reason,
+                    TypeId::Var(type_var) => &type_var.reason,
+                    TypeId::Func(type_func) => &type_func.ret_type.reason,
                 };
 
                 if let Some(reason) = reason {
@@ -255,7 +164,11 @@ impl<'a, 's> SemAction<'a, 's> {
             };
 
             if !span.intersect(sym_span) && extra.is_none_or(|extra| !extra.intersect(sym_span)) {
-                diag.add_note(def_span, &format!("defined here as `{}`", found));
+                if sym.implicit {
+                    diag.add_note(def_span, &format!("found `{}` due to this implicit declaration", found));
+                } else {
+                    diag.add_note(def_span, &format!("found `{}` due to this declaration", found));
+                }
             }
         }
 
@@ -355,7 +268,7 @@ impl<'a, 's> SemAction<'a, 's> {
 
         let [
             Attr::Unit(None, _),
-            Attr::Type(LangType::Var(TypeVar { var_type, reason })),
+            Attr::Type(TypeId::Var(TypeVar { var_type, reason })),
             Attr::Id(pool_id, id_span),
             Attr::FuncParams(mut params)
         ] = args else {
@@ -372,7 +285,7 @@ impl<'a, 's> SemAction<'a, 's> {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         });
 
-        let [Attr::Type(LangType::Var(TypeVar { var_type: Type::Void, reason }))] = args else {
+        let [Attr::Type(TypeId::Var(TypeVar { var_type: Type::Void, reason }))] = args else {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
 
@@ -387,7 +300,7 @@ impl<'a, 's> SemAction<'a, 's> {
         });
 
         let [
-            Attr::Type(LangType::Var(TypeVar { var_type, reason })),
+            Attr::Type(TypeId::Var(TypeVar { var_type, reason })),
             Attr::Id(pool_id, id_span),
             Attr::FuncParams(mut params)
         ] = args else {
@@ -423,11 +336,11 @@ impl<'a, 's> SemAction<'a, 's> {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         });
 
-        let [Attr::Type(LangType::Var(TypeVar { var_type: Type::Void, reason }))] = args else {
+        let [Attr::Type(TypeId::Var(TypeVar { var_type: Type::Void, reason }))] = args else {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
 
-        Ok(Attr::Type(LangType::new_var(Type::Void, reason)))
+        Ok(Attr::Type(TypeId::new_var(Type::Void, reason)))
     }
 
     fn func_ret_some(&self, args: Vec<Attr>) -> Result<Attr, DiagRef> {
@@ -435,11 +348,11 @@ impl<'a, 's> SemAction<'a, 's> {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         });
 
-        let [Attr::Type(LangType::Var(TypeVar { var_type, reason }))] = args else {
+        let [Attr::Type(TypeId::Var(TypeVar { var_type, reason }))] = args else {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
 
-        Ok(Attr::Type(LangType::new_var(var_type, reason)))
+        Ok(Attr::Type(TypeId::new_var(var_type, reason)))
     }
 
     fn func_param(&self, args: Vec<Attr>) -> Result<Attr, DiagRef> {
@@ -477,13 +390,13 @@ impl<'a, 's> SemAction<'a, 's> {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         });
 
-        let [Attr::Type(LangType::Var(var_type))] = args else {
+        let [Attr::Type(TypeId::Var(var_type))] = args else {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
 
         self.symtable_mut().add_ret_type(var_type.clone());
 
-        Ok(Attr::Type(LangType::Var(var_type)))
+        Ok(Attr::Type(TypeId::Var(var_type)))
     }
 
     fn func(&mut self, args: Vec<Attr>) -> Result<Attr, DiagRef> {
@@ -493,8 +406,8 @@ impl<'a, 's> SemAction<'a, 's> {
 
         let [
             Attr::Unit(None, _),
-            Attr::Type(LangType::Var(ret_type)),
-            Attr::Id(_, id_span),
+            Attr::Type(TypeId::Var(ret_type)),
+            Attr::Id(..),
             Attr::Unit(None, _),
             Attr::Unit(None, _),
             Attr::Unit(ret_types, _),
@@ -502,6 +415,8 @@ impl<'a, 's> SemAction<'a, 's> {
         ] = args else {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
+
+        dbg!(&ret_types);
 
         self.symtable_mut().pop_scope();
 
@@ -563,17 +478,6 @@ impl<'a, 's> SemAction<'a, 's> {
                     return Err(diag)
                 }
             }
-        } else if ret_type.var_type != Type::Void
-            && let Some(id_span) = id_span
-            && let Some(rt_reason) = ret_type.reason {
-
-            let mut diag = Diag::make(DiagKind::ExpectedRetType, id_span, false);
-
-            diag.add_note(rt_reason.clone(), "expected due to it's return type");
-
-            diag.add_help(DiagHelp::RepRetType(Type::Void, rt_reason));
-
-            return Err(diag);
         }
 
         Ok(Attr::Unit(None, None))
@@ -584,7 +488,7 @@ impl<'a, 's> SemAction<'a, 's> {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
 
-        Ok(Attr::Expr(LangType::new_var(Type::Void, None), None))
+        Ok(Attr::Expr(TypeId::new_var(Type::Void, None), None))
     }
 
     fn stmnt_ret_some(&self, args: Vec<Attr>) -> Result<Attr, DiagRef> {
@@ -592,11 +496,11 @@ impl<'a, 's> SemAction<'a, 's> {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         });
 
-        let [Attr::Expr(LangType::Var(expr_type), pool_id)] = args else {
+        let [Attr::Expr(TypeId::Var(expr_type), pool_id)] = args else {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
 
-        Ok(Attr::Expr(LangType::Var(expr_type), pool_id))
+        Ok(Attr::Expr(TypeId::Var(expr_type), pool_id))
     }
 
     fn decl_zone_var(&self, args: Vec<Attr>) -> Result<Attr, DiagRef> {
@@ -612,11 +516,11 @@ impl<'a, 's> SemAction<'a, 's> {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         });
 
-        let [Attr::Type(LangType::Var(var_type))] = args else {
+        let [Attr::Type(TypeId::Var(var_type))] = args else {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
 
-        Ok(Attr::Type(LangType::Var(var_type)))
+        Ok(Attr::Type(TypeId::Var(var_type)))
     }
 
     fn stmnt_block_do_while(&self, args: Vec<Attr>) -> Result<Attr, DiagRef> {
@@ -631,7 +535,7 @@ impl<'a, 's> SemAction<'a, 's> {
             Attr::Unit(None, _),
             Attr::Unit(None, _),
             Attr::Unit(None, _),
-            Attr::Expr(LangType::Var(expr_type), pool_id),
+            Attr::Expr(TypeId::Var(expr_type), pool_id),
             Attr::Unit(None, _),
             Attr::Unit(None, _),
         ] = args else {
@@ -653,10 +557,10 @@ impl<'a, 's> SemAction<'a, 's> {
         let [
             Attr::Unit(None, _),
             Attr::Unit(None, _),
-            Attr::Type(LangType::Var(id_type)),
+            Attr::Type(TypeId::Var(id_type)),
             Attr::Id(pool_id, id_span),
             Attr::Unit(None, _),
-            Attr::Expr(LangType::Var(expr_type), expr_pool_id),
+            Attr::Expr(TypeId::Var(expr_type), expr_pool_id),
             Attr::Unit(None, _),
         ] = args else {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
@@ -683,7 +587,7 @@ impl<'a, 's> SemAction<'a, 's> {
                 Some(reason.clone())
             );
 
-            diag.add_note(reason, "expected because of this");
+            diag.add_note(reason, &format!("expected `{}` because of this", id_type.var_type));
 
             return Err(diag);
         }
@@ -699,7 +603,7 @@ impl<'a, 's> SemAction<'a, 's> {
         let [
             Attr::Unit(None, _),
             Attr::Unit(None, _),
-            Attr::Type(LangType::Var(id_type)),
+            Attr::Type(TypeId::Var(id_type)),
             Attr::Id(pool_id, id_span),
             Attr::Unit(None, _),
         ] = args else {
@@ -723,7 +627,7 @@ impl<'a, 's> SemAction<'a, 's> {
         let [
             Attr::Unit(None, _),
             Attr::Unit(None, _),
-            Attr::Expr(LangType::Var(expr_type), pool_id),
+            Attr::Expr(TypeId::Var(expr_type), pool_id),
             Attr::Unit(None, _),
             Attr::Unit(ret_types, _),
         ] = args else {
@@ -764,7 +668,7 @@ impl<'a, 's> SemAction<'a, 's> {
 
         let [
             Attr::Unit(None, _),
-            Attr::Expr(LangType::Var(expr_type), pool_id),
+            Attr::Expr(TypeId::Var(expr_type), pool_id),
             Attr::FuncArgs(mut args),
         ] = args else {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
@@ -789,7 +693,7 @@ impl<'a, 's> SemAction<'a, 's> {
         });
 
         let [
-            Attr::Expr(LangType::Var(expr_type), pool_id),
+            Attr::Expr(TypeId::Var(expr_type), pool_id),
             Attr::FuncArgs(mut args),
         ] = args else {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
@@ -807,7 +711,7 @@ impl<'a, 's> SemAction<'a, 's> {
 
         let [
             Attr::Unit(None, span_ret),
-            Attr::Expr(LangType::Var(mut ret_type), _),
+            Attr::Expr(TypeId::Var(mut ret_type), _),
             Attr::Unit(None, span_semi),
         ] = args else {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
@@ -846,7 +750,7 @@ impl<'a, 's> SemAction<'a, 's> {
                 return Ok(Attr::Unit(None, None));
             };
 
-            let LangType::Var(sym_type) = &sym.lang_type else {
+            let TypeId::Var(sym_type) = &sym.lang_type else {
                 return Err(self.mismatched_types(span.clone(), Type::Func, Self::EXPECTED_IO.into(), Some(pool_id), None));
             };
 
@@ -877,7 +781,7 @@ impl<'a, 's> SemAction<'a, 's> {
 
         let [
             Attr::Unit(None, write_span),
-            Attr::Expr(LangType::Var(expr_type), pool_id),
+            Attr::Expr(TypeId::Var(expr_type), pool_id),
             Attr::Unit(None, _),
         ] = args else {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
@@ -934,7 +838,7 @@ impl<'a, 's> SemAction<'a, 's> {
             return Ok(None);
         };
 
-        let LangType::Func(func_type) = &sym.lang_type else {
+        let TypeId::Func(func_type) = &sym.lang_type else {
             if let Some(span) = id_span && let Some(call_span) = call_span {
                 let mut diag = self.mismatched_types(
                     span,
@@ -944,7 +848,7 @@ impl<'a, 's> SemAction<'a, 's> {
                     Some(call_span.clone()),
                 );
 
-                diag.add_note(call_span.clone(), "call expression requires a function");
+                diag.add_note(call_span.clone(), "variables can't be called");
 
                 if expr {
                     diag.add_help(DiagHelp::DelCall(call_span));
@@ -1046,7 +950,7 @@ impl<'a, 's> SemAction<'a, 's> {
         let [
             Attr::Id(pool_id, id_span),
             Attr::Unit(None, andassign_span),
-            Attr::Expr(LangType::Var(expr_type), expr_pool_id),
+            Attr::Expr(TypeId::Var(expr_type), expr_pool_id),
             Attr::Unit(None, _),
         ] = args else {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
@@ -1086,7 +990,7 @@ impl<'a, 's> SemAction<'a, 's> {
             return Ok(Attr::Unit(None, None));
         };
 
-        let LangType::Var(var_type) = &sym.lang_type else {
+        let TypeId::Var(var_type) = &sym.lang_type else {
             if let Some(span) = id_span {
                 return Err(self.mismatched_types(span, Type::Func, vec![Type::Bool], Some(pool_id), None));
             }
@@ -1119,7 +1023,7 @@ impl<'a, 's> SemAction<'a, 's> {
         let [
             Attr::Id(pool_id, id_span),
             Attr::Unit(None, _),
-            Attr::Expr(LangType::Var(expr_type), expr_pool_id),
+            Attr::Expr(TypeId::Var(expr_type), expr_pool_id),
             Attr::Unit(None, _),
         ] = args else {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
@@ -1153,7 +1057,7 @@ impl<'a, 's> SemAction<'a, 's> {
             return Ok(Attr::Unit(None, None))
         }
 
-        let LangType::Var(var_type) = &sym.lang_type else {
+        let TypeId::Var(var_type) = &sym.lang_type else {
             if let Some(curr_span) = id_span && let Some(old_span) = &sym.span {
                 return Err(self.redefinition(curr_span, old_span.clone(), pool_id));
             }
@@ -1176,7 +1080,7 @@ impl<'a, 's> SemAction<'a, 's> {
             let msg = if sym.implicit {
                 "expected `int` due to this implicit declaration".into()
             } else {
-                format!("expected `{}` due to explicit declaration", var_type.var_type)
+                format!("expected `{}` due to it's declaration", var_type.var_type)
             };
 
             diag.add_note(reason.clone(), &msg);
@@ -1199,13 +1103,13 @@ impl<'a, 's> SemAction<'a, 's> {
         let Some(sym) = self.symtable().search(pool_id) else {
             if let Some(span) = id_span {
                 let _ = self.symtable_mut().push_global(pool_id, TypeVar::new(Type::Int, Some(span.clone())), Some(span.clone()));
-                return Ok(Some(Attr::Expr(LangType::new_var(Type::Int, Some(span)), Some(pool_id))));
+                return Ok(Some(Attr::Expr(TypeId::new_var(Type::Int, Some(span)), Some(pool_id))));
             }
 
-            return Ok(Some(Attr::Expr(LangType::new_var(Type::Int, None), Some(pool_id))));
+            return Ok(Some(Attr::Expr(TypeId::new_var(Type::Int, None), Some(pool_id))));
         };
 
-        let LangType::Var(var_type) = &sym.lang_type else {
+        let TypeId::Var(var_type) = &sym.lang_type else {
             if let Some(span) = &id_span {
                 let mut diag = self.mismatched_types(span.clone(), Type::Func, Self::EXPECTED_VAR.into(), Some(pool_id), None);
 
@@ -1217,7 +1121,7 @@ impl<'a, 's> SemAction<'a, 's> {
             return Ok(None);
         };
 
-        Ok(Some(Attr::Expr(LangType::new_var(var_type.var_type, id_span), Some(pool_id))))
+        Ok(Some(Attr::Expr(TypeId::new_var(var_type.var_type, id_span), Some(pool_id))))
     }
 
     fn expr_map(&self, args: Vec<Attr>) -> Result<Attr, DiagRef> {
@@ -1225,11 +1129,11 @@ impl<'a, 's> SemAction<'a, 's> {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         });
 
-        let [Attr::Expr(LangType::Var(var_type), pool_id)] = args else {
+        let [Attr::Expr(TypeId::Var(var_type), pool_id)] = args else {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
 
-        Ok(Attr::Expr(LangType::Var(var_type), pool_id))
+        Ok(Attr::Expr(TypeId::Var(var_type), pool_id))
     }
 
 
@@ -1240,7 +1144,7 @@ impl<'a, 's> SemAction<'a, 's> {
 
         let [
             Attr::Unit(None, start_span),
-            Attr::Expr(LangType::Var(expr_type), pool_id),
+            Attr::Expr(TypeId::Var(expr_type), pool_id),
             Attr::Unit(None, end_span),
         ] = args else {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
@@ -1252,7 +1156,7 @@ impl<'a, 's> SemAction<'a, 's> {
             None
         };
 
-        Ok(Attr::Expr(LangType::new_var(expr_type.var_type, span), pool_id))
+        Ok(Attr::Expr(TypeId::new_var(expr_type.var_type, span), pool_id))
     }
 
     fn expr_call(&self, args: Vec<Attr>) -> Result<Option<Attr>, Vec<DiagRef>> {
@@ -1276,7 +1180,7 @@ impl<'a, 's> SemAction<'a, 's> {
         };
 
         self.eval_call(call_start, call_end, id_span, pool_id, args, true).map(|func_info| {
-            func_info.map(|ret_type| Attr::Expr(LangType::new_var(ret_type, full_span), Some(pool_id)))
+            func_info.map(|ret_type| Attr::Expr(TypeId::new_var(ret_type, full_span), Some(pool_id)))
         })
     }
 
@@ -1286,9 +1190,9 @@ impl<'a, 's> SemAction<'a, 's> {
         });
 
         let [
-            Attr::Expr(LangType::Var(expr_type1), pool_id1),
+            Attr::Expr(TypeId::Var(expr_type1), pool_id1),
             Attr::Unit(None, oper_span),
-            Attr::Expr(LangType::Var(expr_type2), pool_id2),
+            Attr::Expr(TypeId::Var(expr_type2), pool_id2),
         ] = args else {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
@@ -1328,7 +1232,7 @@ impl<'a, 's> SemAction<'a, 's> {
             None
         };
 
-        Ok(Attr::Expr(LangType::new_var(out_type.unwrap_or(expr_type1.var_type), span), None))
+        Ok(Attr::Expr(TypeId::new_var(out_type.unwrap_or(expr_type1.var_type), span), None))
     }
 
     fn expr_oper_bin_num(&self, args: Vec<Attr>) -> Result<Attr, DiagRef> {
@@ -1350,7 +1254,7 @@ impl<'a, 's> SemAction<'a, 's> {
 
         let [
             Attr::Unit(None, oper_span),
-            Attr::Expr(LangType::Var(expr_type), pool_id),
+            Attr::Expr(TypeId::Var(expr_type), pool_id),
         ] = args else {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
@@ -1372,7 +1276,7 @@ impl<'a, 's> SemAction<'a, 's> {
             None
         };
 
-        Ok(Attr::Expr(LangType::new_var(expr_type.var_type, span), None))
+        Ok(Attr::Expr(TypeId::new_var(expr_type.var_type, span), None))
 
     }
 
@@ -1382,101 +1286,5 @@ impl<'a, 's> SemAction<'a, 's> {
 
     fn expr_oper_unr_num(&self, args: Vec<Attr>) -> Result<Attr, DiagRef> {
         self.expr_oper_unr(args, Self::EXPECTED_NUM.into(), "expected due to this arithmetic operator")
-    }
-}
-
-#[derive(Debug)]
-enum SemRule {
-    Axiom,
-    Lambda,
-    BlockMore,
-    FuncBlockStmnt,
-    FuncParamStop,
-    FuncParamMore,
-    FuncParamNone,
-    FuncParamSome,
-    FuncRetNone,
-    FuncRetSome,
-    FuncParam,
-    FuncName,
-    FuncRettype,
-    Func,
-    DeclZoneVar,
-    TypeMap,
-    StmntRetNone,
-    StmntRetSome,
-    StmntBlockDoWhile,
-    StmntBlockDeclAssign,
-    StmntBlockDecl,
-    StmntBlockIf,
-    Stmnt,
-    FuncArgStop,
-    FuncArgMore,
-    FuncArgNone,
-    FuncArgSome,
-    StmntRet,
-    StmntRead,
-    StmntWrite,
-    StmntCall,
-    StmntAndassign,
-    StmntAssign,
-    ExprId,
-    ExprMap,
-    ExprWrap,
-    ExprCall,
-    ExprOperBinNum,
-    ExprOperBinCmp,
-    ExprOperBinBool,
-    ExprOperUnrBool,
-    ExprOperUnrNum,
-}
-
-impl SemRule {
-    pub const fn from_idx(idx: usize) -> Self {
-        match idx {
-            0 => SemRule::Axiom,
-            1 | 4 => SemRule::Lambda,
-            2 | 3 => SemRule::BlockMore,
-            5  => SemRule::FuncBlockStmnt,
-            6  => SemRule::FuncParamStop,
-            7  => SemRule::FuncParamMore,
-            8  => SemRule::FuncParamNone,
-            9  => SemRule::FuncParamSome,
-            10 => SemRule::FuncRetNone,
-            11 => SemRule::FuncRetSome,
-            12 => SemRule::FuncParam,
-            13 => SemRule::FuncName,
-            14 => SemRule::FuncRettype,
-            15 => SemRule::Func,
-            16 => SemRule::StmntRetNone,
-            17 => SemRule::StmntRetSome,
-            18 => SemRule::DeclZoneVar,
-            19..=22 => SemRule::TypeMap,
-            23 => SemRule::StmntBlockDoWhile,
-            24 => SemRule::StmntBlockDeclAssign,
-            25 => SemRule::StmntBlockDecl,
-            26 => SemRule::StmntBlockIf,
-            27 => SemRule::Stmnt,
-            28 => SemRule::FuncArgStop,
-            29 => SemRule::FuncArgMore,
-            30 => SemRule::FuncArgNone,
-            31 => SemRule::FuncArgSome,
-            32 => SemRule::StmntRet,
-            33 => SemRule::StmntRead,
-            34 => SemRule::StmntWrite,
-            35 => SemRule::StmntCall,
-            36 => SemRule::StmntAndassign,
-            37 => SemRule::StmntAssign,
-            38 => SemRule::ExprId,
-            39..=43 | 46 | 48 | 50 | 52 | 54 | 56 => SemRule::ExprMap,
-            44 => SemRule::ExprWrap,
-            45 => SemRule::ExprCall,
-            49 | 51 => SemRule::ExprOperBinNum,
-            53 | 55 => SemRule::ExprOperBinCmp,
-            57 => SemRule::ExprOperBinBool,
-            47 => SemRule::ExprOperUnrBool,
-            58 | 59 => SemRule::ExprOperUnrNum,
-            _ => panic!("unexpected invalid rule index")
-        }
     }
 }

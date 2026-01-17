@@ -23,9 +23,9 @@ fn get_style() -> Styles {
     styles=get_style(),
 )]
 pub struct Config {
-    /// Source file to compile
-    #[arg(value_name = "SOURCE", required = true)]
-    pub source: String,
+    /// Source files to process
+    #[arg(value_name = "SOURCES", required = true)]
+    pub sources: Vec<String>,
 
     /// Dump lexer trace (stdout by default)
     #[arg(long, short = 'l', value_name = "FILE")]

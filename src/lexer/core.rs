@@ -8,7 +8,7 @@ use crate::target::Target;
 use crate::token::{Token, TokenKind};
 use crate::span::Span;
 
-use super::{Lexer, win::Window};
+use super::{Lexer, window::Window};
 
 
 #[derive(Clone)]

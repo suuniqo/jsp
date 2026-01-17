@@ -40,11 +40,6 @@ impl fmt::Display for Type {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TypeFunc {
-    pub ret_type: TypeVar,
-    pub param_type: Rc<[TypeVar]>,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TypeVar {
@@ -58,6 +53,13 @@ impl TypeVar {
     }
 }
 
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TypeFunc {
+    pub ret_type: TypeVar,
+    pub param_type: Rc<[TypeVar]>,
+}
+
 impl TypeFunc {
     pub fn new(ret_type: TypeVar, arg_type: &[TypeVar]) -> Self {
         Self {
@@ -69,27 +71,27 @@ impl TypeFunc {
 
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum LangType {
+pub enum TypeId {
     Var(TypeVar),
     Func(TypeFunc),
 }
 
-impl LangType {
+impl TypeId {
     pub fn new_var(langtype: Type, reason: Option<Span>) -> Self {
         Self::Var(TypeVar::new(langtype, reason))
     }
 
     pub fn size(&self) -> usize {
         match self {
-            LangType::Var(var) => var.var_type.size(),
-            LangType::Func(_) => 0,
+            TypeId::Var(var) => var.var_type.size(),
+            TypeId::Func(_) => 0,
         }
     }
 
     pub fn main_type(&self) -> Type {
         match self {
-            LangType::Var(type_var) => type_var.var_type,
-            LangType::Func(_) => Type::Func,
+            TypeId::Var(type_var) => type_var.var_type,
+            TypeId::Func(_) => Type::Func,
         }
     }
 }

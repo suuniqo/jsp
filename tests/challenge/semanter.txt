@@ -59,4 +59,6 @@ function int repeat(int x, float x) {
     let int hola = a;
 }
 
-do { return doom; } while (!doom);
+function int empty(int a) {}
+
+do { return doom; } while (!true);

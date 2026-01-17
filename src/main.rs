@@ -1,22 +1,20 @@
-use std::{cell::RefCell, rc::Rc, error};
+use std::error;
 
 use crate::{
     cli::Config,
     style::Style,
+
     result::AnalysisResult,
+    factory::Factory,
 
-    pool::StrPool,
     target::Target,
-    reporter::Reporter,
-
-    lexer::{Lexer, LexerCore},
-    parser::{Parser, ParserCore},
-    symtable::{SymTable, SymTableCore},
 };
 
 mod cli;
 mod style;
+
 mod result;
+mod factory;
 
 mod pool;
 mod target;
@@ -31,62 +29,51 @@ mod diag;
 mod span;
 mod tracer;
 
-mod ltype;
+mod types;
 mod metasym;
 
 
-fn dump_err(err: impl error::Error) {
+fn dump_err(err: &dyn error::Error) {
     eprintln!("{}error: {}{}", Style::Red, Style::Reset, err)
 }
 
-fn analyze(config: Config) -> AnalysisResult {
-    let target = match Target::from_path(&config.source) {
-        Ok(target) => target,
-        Err(err) => {
-            dump_err(err);
-            return AnalysisResult::IOError;
-        }
-    };
+fn analyze(target: &Target, config: &Config) -> AnalysisResult {
+    let pool = Factory::pool();
 
-    let pool = Rc::new(RefCell::new(StrPool::new()));
+    let reporter = Factory::reporter(target, pool.clone(), config.quiet);
 
-    let reporter = Rc::new(RefCell::new(Reporter::new(&target, pool.clone(), config.quiet)));
-
-    let mut lexer = <dyn Lexer>::make(
-        &config.lexer_trace,
-        LexerCore::new(Rc::clone(&reporter), Rc::clone(&pool), &target),
+    let mut lexer = Factory::lexer(
+        &config.lexer_trace, reporter.clone(), pool.clone(), target,
     );
 
-    let mut symtable = <dyn SymTable>::make(
-        &config.symtb_trace,
-        SymTableCore::new(pool)
+    let mut symtable = Factory::symtable(
+        &config.symtb_trace, pool,
     );
 
-    let mut parser = <dyn Parser>::make(
-        &config.parse_trace,
-        ParserCore::new(Rc::clone(&reporter), lexer.as_mut(), symtable.as_mut()),
+    let mut parser = Factory::parser(
+        &config.parse_trace, reporter.clone(), lexer.as_mut(), symtable.as_mut(),
     );
 
     parser.parse();
 
-    let level = reporter.borrow().finish();
+    let failure = reporter.borrow().finish();
 
-    if let Err(err) = parser.finish(level.valid_syntactic()) {
+    if let Err(err) = parser.finish(failure) {
         dump_err(err.as_ref());
         return AnalysisResult::IOError;
     }
 
-    if let Err(err) = symtable.finish(level.valid_semantic()) {
+    if let Err(err) = symtable.finish(failure) {
         dump_err(err.as_ref());
         return AnalysisResult::IOError;
     }
 
-    if let Err(err) = lexer.finish(level.valid_lexical()) {
+    if let Err(err) = lexer.finish(failure) {
         dump_err(err.as_ref());
         return AnalysisResult::IOError;
     }
 
-    if level.valid_all() {
+    if failure.is_none() {
         AnalysisResult::Success
     } else {
         AnalysisResult::CodeError
@@ -94,5 +81,24 @@ fn analyze(config: Config) -> AnalysisResult {
 }
 
 fn main() -> AnalysisResult {
-    analyze(Config::build())
+    let config = Config::build();
+
+    let mut result  = AnalysisResult::Success;
+    let mut sources = config.sources.iter();
+
+    while let Some(path) = sources.next()
+        && result == AnalysisResult::Success
+    {
+        let target = match Target::from_path(path) {
+            Ok(target) => target,
+            Err(err) => {
+                dump_err(&err);
+                return AnalysisResult::IOError;
+            }
+        };
+
+        result = analyze(&target, &config);
+    }
+
+    result
 }

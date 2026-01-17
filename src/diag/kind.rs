@@ -1,6 +1,6 @@
 use std::{collections::HashSet, rc::Rc};
 
-use crate::{metasym::{MetaSym, Quoted}, ltype::Type, token::TokenKind};
+use crate::{metasym::{MetaSym, Quoted}, types::Type, token::TokenKind};
 
 
 #[derive(Debug, Clone)]
@@ -32,7 +32,6 @@ pub enum DiagKind {
     // semantic analyzer
     MismatchedRetType(Type, Type),
     UnexpectedRetType(Type),
-    ExpectedRetType,
     Redefinition,
     MismatchedTypes(Type, Vec<Type>),
     UndefinedFunc(Rc<str>),
@@ -85,7 +84,6 @@ impl DiagKind {
             DiagKind::EmptyParamList => "empty parameter list".into(),
             DiagKind::MismatchedRetType(found, expected) => format!("expected `{expected}`, found `{found}`"),
             DiagKind::UnexpectedRetType(found) => format!("unexpected `{found}`"),
-            DiagKind::ExpectedRetType => "no return statements found".into(),
             DiagKind::Redefinition => "later redefined".into(),
             DiagKind::MismatchedTypes(found, expected) => {
                 if expected.is_empty() {

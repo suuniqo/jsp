@@ -1,11 +1,11 @@
-use super::WriterErr;
+use super::TracerErr;
 
 
 pub trait Tracer<T> {
-    fn dump(&mut self) -> Result<(), WriterErr>;
+    fn dump(&mut self) -> Result<(), TracerErr>;
 
-    fn trace(mut self: Box<Self>, valid_trace: bool) -> Result<(), WriterErr> {
-        if !valid_trace {
+    fn trace(mut self: Box<Self>, failure: bool) -> Result<(), TracerErr> {
+        if failure {
             return Ok(())
         }
 

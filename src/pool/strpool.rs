@@ -1,4 +1,4 @@
-use std::{rc::Rc, collections::{HashMap, hash_map::Entry}};
+use std::{collections::{HashMap, hash_map::Entry}, rc::Rc};
 
 use super::traits::{PoolLookup, PoolInterner};
 

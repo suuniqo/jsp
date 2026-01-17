@@ -1,6 +1,6 @@
 use std::{io, fs, fmt};
 
-use super::WriterErr;
+use super::TracerErr;
 
 
 pub struct Writer {
@@ -13,7 +13,7 @@ impl Writer {
         Self { path: path.map(|str| str.into()), file: None }
     }
 
-    pub fn write(&mut self, args: fmt::Arguments) -> Result<(), WriterErr> {
+    pub fn write(&mut self, args: fmt::Arguments) -> Result<(), TracerErr> {
         let file = match &mut self.file {
             Some(file) => file,
             None => {
@@ -24,7 +24,7 @@ impl Writer {
                         .create(true)
                         .truncate(true)
                         .open(path)
-                        .map_err(|e| WriterErr::Io((e, path.to_string())))?
+                        .map_err(|e| TracerErr::Io((e, path.to_string())))?
                     )
                 } else {
                     Box::new(io::stdout())
@@ -35,7 +35,7 @@ impl Writer {
         };
 
         write!(file, "{}", args)
-            .map_err(WriterErr::Write)?;
+            .map_err(TracerErr::Write)?;
 
         Ok(())
     }
