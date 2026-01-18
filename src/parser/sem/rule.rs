@@ -14,6 +14,7 @@ pub(super) enum SemRule {
     FuncName,
     FuncRettype,
     Func,
+    FuncDecl,
     DeclZoneVar,
     TypeMap,
     StmntRetNone,
@@ -88,7 +89,8 @@ impl SemRule {
             53 | 55 => SemRule::ExprOperBinCmp,
             57 => SemRule::ExprOperBinBool,
             47 => SemRule::ExprOperUnrBool,
-            58 | 59 => SemRule::ExprOperUnrNum,
+            59 | 60 => SemRule::ExprOperUnrNum,
+            58 => SemRule::FuncDecl,
             _ => panic!("unexpected invalid rule index")
         }
     }

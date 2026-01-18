@@ -41,13 +41,13 @@ impl<P: Parser> Parser for ParserTracer<P> {
 impl<P: Parser> Tracer<P> for ParserTracer<P> {
     fn dump(&mut self) -> Result<(), TracerErr> {
         let Some(trace) = &self.trace else {
-            self.writer.write(format_args!("ascending\n"))?;
+            self.writer.write(format_args!("Ascending\n"))?;
             return  Ok(());
         };
 
         let len = trace.len();
 
-        self.writer.write(format_args!("ascending"))?;
+        self.writer.write(format_args!("Ascending"))?;
 
         trace.iter()
              .enumerate()

@@ -27,17 +27,6 @@ impl Scope {
         }
     }
 
-    pub fn id(&self) -> Option<usize> {
-        self.id
-    }
-
-    pub fn change_type(&mut self, pool_id: usize, lang_type: TypeId) {
-        let pos = self.map.get(&pool_id)
-            .expect("failed to fetch an id to change type");
-
-        self.vec[*pos].lang_type = lang_type;
-    }
-
     pub fn intern(&mut self, pool_id: usize, lang_type: TypeId, span: Option<Span>, implicit: bool) -> (bool, Sym) {
         match self.map.entry(pool_id) {
             Entry::Occupied(entry) => (false, self.vec[*entry.get()].clone()),

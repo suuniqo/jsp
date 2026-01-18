@@ -9,7 +9,7 @@ pub type Rule = (NotTerm, &'static [GramSym]);
 pub struct Gram;
 
 impl Gram {
-    pub const LEN: usize = 60;
+    pub const LEN: usize = 61;
 
     pub const RULES: [Rule; Self::LEN] = [
         (NotTerm::PP, &[GramSym::N(NotTerm::P)]),
@@ -34,7 +34,7 @@ impl Gram {
         (NotTerm::F2, &[GramSym::T(Term::Id)]),
         (NotTerm::F1, &[GramSym::N(NotTerm::H)]),
 
-        (NotTerm::F, &[GramSym::T(Term::Func), GramSym::N(NotTerm::F1), GramSym::N(NotTerm::F2), GramSym::N(NotTerm::F3), GramSym::T(Term::LBrack), GramSym::N(NotTerm::C), GramSym::T(Term::RBrack)]),
+        (NotTerm::F, &[GramSym::T(Term::Func), GramSym::N(NotTerm::FF), GramSym::T(Term::LBrack), GramSym::N(NotTerm::C), GramSym::T(Term::RBrack)]),
 
         (NotTerm::X, &[]),
         (NotTerm::X, &[GramSym::N(NotTerm::E)]),
@@ -91,6 +91,8 @@ impl Gram {
 
         (NotTerm::E, &[GramSym::N(NotTerm::R)]),
         (NotTerm::E, &[GramSym::N(NotTerm::E), GramSym::T(Term::And), GramSym::N(NotTerm::R)]),
+
+        (NotTerm::FF, &[GramSym::N(NotTerm::F1), GramSym::N(NotTerm::F2), GramSym::N(NotTerm::F3)]),
 
         // So that draco works with unary operators
         (NotTerm::EE, &[GramSym::T(Term::Sum), GramSym::N(NotTerm::EE)]),

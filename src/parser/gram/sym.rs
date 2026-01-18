@@ -21,6 +21,7 @@ pub enum NotTerm {
     T,
     M,
     F,
+    FF,
     F1,
     F2,
     F3,
@@ -50,6 +51,7 @@ impl fmt::Display for NotTerm {
             NotTerm::T => "type",
             NotTerm::M => return write!(f, ""),
             NotTerm::F => "function",
+            NotTerm::FF => "function signature",
             NotTerm::F1 => "type",
             NotTerm::F2 => "name",
             NotTerm::F3 => return write!(f, "(parameters)"),
@@ -333,6 +335,7 @@ impl MetaSym {
 
 
             NotTerm::F1
+            | NotTerm::FF
             | NotTerm::H => Self::FuncType,
 
             NotTerm::F3

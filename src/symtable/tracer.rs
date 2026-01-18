@@ -30,8 +30,8 @@ impl<Pool: PoolLookup> SymTable for SymTableTracer<SymTableCore<Pool>> {
         }
     }
 
-    fn push_func(&mut self, pool_id: usize, span: Option<Span>) -> (bool, Sym) {
-        self.inner.push_func(pool_id, span)
+    fn push_func(&mut self, pool_id: usize, params: &[TypeVar], ret_type: TypeVar, span: Option<Span>) -> (bool, Sym) {
+        self.inner.push_func(pool_id, params, ret_type, span)
     }
 
     fn push_local(&mut self, pool_id: usize, vtype: TypeVar, span: Option<Span>) -> (bool, Sym) {
@@ -40,14 +40,6 @@ impl<Pool: PoolLookup> SymTable for SymTableTracer<SymTableCore<Pool>> {
 
     fn push_global(&mut self, pool_id: usize, vtype: TypeVar, span: Option<Span>) -> (bool, Sym) {
         self.inner.push_global(pool_id, vtype, span)
-    }
-
-    fn add_params(&mut self, params: &[TypeVar]) {
-        self.inner.add_params(params);
-    }
-
-    fn add_ret_type(&mut self, ret_type: TypeVar) {
-        self.inner.add_ret_type(ret_type);
     }
 
     fn scopes(&self) -> usize {

@@ -24,16 +24,6 @@ impl Sym {
         }
     }
 
-    pub fn explicit(lang_type: TypeId, offset: usize, pool_id: usize, span: Option<Span>) -> Self {
-        Self {
-            pool_id,
-            offset,
-            lang_type,
-            implicit: false,
-            span,
-        }
-    }
-
     pub fn fmt(&self, f: &mut fmt::Formatter<'_>, pool: &impl PoolLookup) -> fmt::Result {
         match &self.lang_type {
             TypeId::Var(var) => writeln!(

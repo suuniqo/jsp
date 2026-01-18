@@ -111,6 +111,7 @@ impl<'a, 's> SemAction<'a, 's> {
             SemRule::FuncName             => self.func_name(args),
             SemRule::FuncRettype          => self.func_rettype(args),
             SemRule::Func                 => self.func(args),
+            SemRule::FuncDecl             => return self.func_decl(args).map(Some),
             SemRule::StmntRetNone         => self.stmnt_ret_none(args),
             SemRule::StmntRetSome         => self.stmnt_ret_some(args),
             SemRule::DeclZoneVar          => self.decl_zone_var(args),
@@ -289,9 +290,7 @@ impl<'a, 's> SemAction<'a, 's> {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
 
-        self.symtable_mut().add_params([TypeVar::new(Type::Void, reason)].as_slice());
-
-        Ok(Attr::Unit(None, None))
+        Ok(Attr::Type(TypeId::new_var(Type::Void, reason)))
     }
 
     fn func_param_some(&mut self, args: Vec<Attr>) -> Result<Attr, Vec<DiagRef>> {
@@ -309,26 +308,7 @@ impl<'a, 's> SemAction<'a, 's> {
 
         params.push_front((pool_id, id_span, TypeVar::new(var_type, reason)));
 
-        let mut arg_type = Vec::new();
-        let mut diags = Vec::new();
-
-        for (pool_id, sp, var_type) in params.into_iter() {
-            arg_type.push(var_type.clone());
-
-            let (success, sym) = self.symtable_mut().push_local(pool_id, var_type, sp.clone());
-
-            if !success && let Some(curr_span) = sp && let Some(old_span) = sym.span {
-                diags.push(self.redefinition(curr_span, old_span, pool_id));
-            }
-        }
-
-        self.symtable_mut().add_params(&arg_type);
-
-        if !diags.is_empty() {
-            return Err(diags);
-        }
-
-        Ok(Attr::Unit(None, None))
+        Ok(Attr::FuncParams(params))
     }
 
     fn func_ret_none(&self, args: Vec<Attr>) -> Result<Attr, DiagRef> {
@@ -376,12 +356,6 @@ impl<'a, 's> SemAction<'a, 's> {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
 
-        let (is_new_insertion, sym) = self.symtable_mut().push_func(pool_id, id_span.clone());
-
-        if !is_new_insertion && let Some(curr_span) = &id_span && let Some(old_span) = sym.span {
-            return Err(self.redefinition(curr_span.clone(), old_span, pool_id));
-        }
-
         Ok(Attr::Id(pool_id, id_span))
     }
 
@@ -394,29 +368,80 @@ impl<'a, 's> SemAction<'a, 's> {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
 
-        self.symtable_mut().add_ret_type(var_type.clone());
-
         Ok(Attr::Type(TypeId::Var(var_type)))
     }
 
+    fn func_decl(&mut self, args: Vec<Attr>) -> Result<Attr, Vec<DiagRef>> {
+        let args: [Attr; 3] = args.try_into().unwrap_or_else(|args| {
+            unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
+        });
+
+        let [
+            Attr::Type(TypeId::Var(ret_type)),
+            Attr::Id(pool_id, id_span),
+            params,
+        ] = args else {
+            unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
+        };
+
+        let (param_type, params) = if let Attr::Type(TypeId::Var(void_type)) = params {
+            (vec![void_type], None)
+        } else if let Attr::FuncParams(params) = params {
+            let param_types = params.iter().map(|(.., var_type)| var_type.clone()).collect();
+
+            (param_types, Some(params))
+        } else {
+            unreachable!("invalid param type in func declaration action");
+        };
+
+        let (is_new_insertion, sym) = self.symtable_mut().push_func(
+            pool_id,
+            &param_type,
+            ret_type.clone(),
+            id_span.clone()
+        );
+
+        let mut diags = Vec::new();
+
+        if !is_new_insertion && let Some(curr_span) = &id_span && let Some(old_span) = sym.span {
+            diags.push(self.redefinition(curr_span.clone(), old_span, pool_id));
+        }
+
+        if let Some(params) = params {
+            let mut arg_type = Vec::new();
+
+            for (pool_id, sp, var_type) in params.into_iter() {
+                arg_type.push(var_type.clone());
+
+                let (success, sym) = self.symtable_mut().push_local(pool_id, var_type, sp.clone());
+
+                if !success && let Some(curr_span) = sp && let Some(old_span) = sym.span {
+                    diags.push(self.redefinition(curr_span, old_span, pool_id));
+                }
+            }
+        }
+
+        if !diags.is_empty() {
+            return Err(diags);
+        }
+
+        Ok(Attr::Type(TypeId::Var(ret_type)))
+    }
+
     fn func(&mut self, args: Vec<Attr>) -> Result<Attr, DiagRef> {
-        let args: [Attr; 7] = args.try_into().unwrap_or_else(|args| {
+        let args: [Attr; 5] = args.try_into().unwrap_or_else(|args| {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         });
 
         let [
             Attr::Unit(None, _),
             Attr::Type(TypeId::Var(ret_type)),
-            Attr::Id(..),
-            Attr::Unit(None, _),
             Attr::Unit(None, _),
             Attr::Unit(ret_types, _),
             Attr::Unit(None, _),
         ] = args else {
             unreachable!("invalid args in {:?} rule: {:?}", self.rule, args);
         };
-
-        dbg!(&ret_types);
 
         self.symtable_mut().pop_scope();
 

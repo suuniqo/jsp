@@ -9,7 +9,6 @@ pub struct SymTableCore<Pool: PoolLookup> {
     pool: Rc<RefCell<Pool>>,
     scopes: Vec<Scope>,
     curr_idx: usize,
-    scope_func: Option<(Sym, bool)>,
 }
 
 impl<Pool: PoolLookup> SymTableCore<Pool> {
@@ -20,18 +19,11 @@ impl<Pool: PoolLookup> SymTableCore<Pool> {
             pool,
             scopes: vec![Scope::new(0, None)],
             curr_idx: 0,
-            scope_func: None,
         }
     }
 
     fn global_scope_mut(&mut self) -> &mut Scope {
         &mut self.scopes[0]
-    }
-
-    fn curr_scope(&self) -> &Scope {
-        let len = self.scopes.len() - 1;
-
-        &self.scopes[len]
     }
 
     fn curr_scope_mut(&mut self) -> &mut Scope {
@@ -72,26 +64,14 @@ impl<Pool: PoolLookup> SymTable for SymTableCore<Pool> {
         self.scopes.pop();
     }
 
-    fn push_func(&mut self, pool_id: usize, span: Option<Span>) -> (bool, Sym) {
+    fn push_func(&mut self, pool_id: usize, params: &[TypeVar], ret_type: TypeVar, span: Option<Span>) -> (bool, Sym) {
         if self.pool().lookup(pool_id).is_none() {
             unreachable!("tried to push function with invalid pool id");
         }
 
-        let Some(TypeId::Func(func_type)) = self.scope_func.as_ref().map(|sym| sym.0.lang_type.clone()) else {
-            unreachable!("scope func has type typevar");
-        };
+        let func_type = TypeFunc::new(ret_type, params);
 
         let (inserted, sym) = self.curr_scope_mut().intern(pool_id, TypeId::Func(func_type), span.clone(), false);
-
-        if inserted {
-            self.scope_func = Some((sym.clone(), false));
-        } else if let Some(scope_func) = &mut self.scope_func {
-            scope_func.0.pool_id = pool_id;
-            scope_func.0.span = span;
-            scope_func.1 = true;
-        } else {
-            unreachable!("missing func_type during scope insertion");
-        }
 
         self.push_scope(pool_id);
 
@@ -110,39 +90,6 @@ impl<Pool: PoolLookup> SymTable for SymTableCore<Pool> {
         self.push_var(Self::global_scope_mut, vtype, pool_id, span, true)
     }
 
-    fn add_params(&mut self, params: &[TypeVar]) {
-        let pool_id = self.curr_scope().id()
-            .expect("tried changing function type of global scope");
-
-        let Some(scope_func) = &mut self.scope_func else {
-            unreachable!("tried to add parameters to empty func type");
-        };
-
-        let TypeId::Func(func_type) = scope_func.0.lang_type.clone() else {
-            unreachable!("scope func has type typevar");
-        };
-
-        let func_type = TypeFunc::new(func_type.ret_type.clone(), params);
-
-        scope_func.0.lang_type = TypeId::Func(func_type.clone());
-
-        if !scope_func.1 {
-            self.global_scope_mut().change_type(pool_id, TypeId::Func(func_type));
-        }
-    }
-
-    fn add_ret_type(&mut self, ret_type: TypeVar) {
-        self.scope_func = Some((
-            Sym::explicit(
-                TypeId::Func(TypeFunc::new(ret_type, &[])),
-                0,
-                0,
-                None,
-            ),
-            false,
-        ))
-    }
-
     fn scopes(&self) -> usize {
         self.scopes.len()
     }
@@ -152,13 +99,6 @@ impl<Pool: PoolLookup> SymTable for SymTableCore<Pool> {
     }
 
     fn search(&self, pool_id: usize) -> Option<&Sym> {
-        if let Some(id) = self.curr_scope().id()
-            && id == pool_id
-            && let Some(sym) = &self.scope_func
-        {
-            return Some(self.curr_scope().find(pool_id).unwrap_or(&sym.0));
-        }
-
         self.scopes
             .iter()
             .rev()
