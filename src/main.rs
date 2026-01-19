@@ -83,12 +83,9 @@ fn analyze(target: &Target, config: &Config) -> AnalysisResult {
 fn main() -> AnalysisResult {
     let config = Config::build();
 
-    let mut result  = AnalysisResult::Success;
-    let mut sources = config.sources.iter();
+    let mut verdict = AnalysisResult::Success;
 
-    while let Some(path) = sources.next()
-        && result == AnalysisResult::Success
-    {
+    for path in config.sources.iter() {
         let target = match Target::from_path(path) {
             Ok(target) => target,
             Err(err) => {
@@ -97,8 +94,12 @@ fn main() -> AnalysisResult {
             }
         };
 
-        result = analyze(&target, &config);
+        let result = analyze(&target, &config);
+
+        if verdict.is_success() {
+            verdict = result;
+        }
     }
 
-    result
+    verdict
 }

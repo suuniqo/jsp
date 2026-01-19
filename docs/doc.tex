@@ -107,7 +107,7 @@
 
     Además se ha escogido implementar el tratamiento de secuencias de escape (\textit{\textbackslash n} y \textit{\textbackslash t}) y de las \textit{keywords} \textit{true} y \textit{false};
 
-    \section{Diseño del Lexer}
+    \section{Análisis Léxico}
     
     El Analizador Léxico o \textit{Lexer} es uno de los 3 módulos principales del procesador.
 
@@ -170,11 +170,11 @@
 
     Cada tipo de error consta de un mensaje diferente y de una severidad, distinguiéndose \textit{error} de \textit{warning} (que no impediría la compilación del programa).
 
-    El procesador genera mensajes claros con número de línea y columna, muestra la línea afectada y subraya en color la parte errónea.
+    El \textit{Lexer} puede generar nueve excepciones distintas, siendo todas recuperables. De entre ellas, \textit{Carácter inválido} sirve de \textit{fallback}.
 
     Por aclarar, una cadena malformada es aquella que contiene caracteres \textit{ASCII} no gráficos.
 
-    El \textit{Lexer} sólo genera un warning, \textit{Invalid Escape Sequence}. Como se muestra en \hyperref[subsec:acciones-semanticas]{Acciones Semánticas}, al detectar una secuencia de escape inválida no se descartara el \textit{token} cadena, sino que se conserva literalmente (por ejemplo, la secuencia \textit{\textbackslash q}, se sustituye por esos dos mismos caracteres)\footnote{Se ha elegido este comportamiento para que el procesador sea fiel a la \href{https://tc39.es/ecma262/multipage/ecmascript-language-lexical-grammar.html\#sec-literals-string-literals}{documentación oficial de \textit{ECMAScript}}.}.
+    Sólo se emite un \textit{warning}, \textit{Secuencia de Escape inválida}. Como se muestra en \hyperref[subsec:acciones-semanticas]{Acciones Semánticas}, al detectar una secuencia incorrecta no se descartara el \textit{token} cadena, sino que se conserva literalmente (por ejemplo, la secuencia \textit{\textbackslash q}, se sustituye por esos dos mismos caracteres)\footnote{Se ha elegido este comportamiento para que el procesador sea fiel a la \href{https://tc39.es/ecma262/multipage/ecmascript-language-lexical-grammar.html\#sec-literals-string-literals}{documentación oficial de \textit{ECMAScript}}.}.
 
     \renewcommand{\arraystretch}{1.42}
     \begin{table}[H]
@@ -190,8 +190,8 @@
             Overflow de Cadena & \textit{error} \\
             Overflow de Entero & \textit{error} \\
             Overflow de Real & \textit{error} \\
-            Formato de Real Inválido & \textit{error} \\
-            Secuencia de Escape Inválida & \textit{warning} \\
+            Formato de Real inválido & \textit{error} \\
+            Secuencia de Escape inválida & \textit{warning} \\
             \bottomrule
         \end{tabular}
         \label{tab:err-lexer}
@@ -506,27 +506,27 @@
     \begin{description}
         \item[MALFORMED\_STR] Si en el estado $23$ o $24$ se recibe un carácter \textit{ASCII} no gráfico
             \begin{lstlisting}[language=C]
- error("Malformed string literal")
+ reporter.emit(MalformedStrLit)
             \end{lstlisting}
 
         \item[UNTERM\_STR] Si en el estado $23$ o $24$ se recibe \textit{EOF}
             \begin{lstlisting}[language=C]
- error("Unterminated string literal")
+ reporter.emit(UntermStrLit)
             \end{lstlisting}
 
         \item[INV\_FLOAT\_FMT] Si en el estado $19$ no se puede transitar
             \begin{lstlisting}[language=C]
- error("Invalid float literal format")
+ reporter.emit(InvFloatFmt)
             \end{lstlisting}
 
         \item[UNTERM\_COMM] Si en el estado $27$ o $28$ no se puede transitar
             \begin{lstlisting}[language=C]
- error("Unterminated comment")
+ reporter.emit(UntermComment)
             \end{lstlisting}
 
         \item[INV\_CHAR] Ante cualquier error no manejado en el resto de acciones
             \begin{lstlisting}[language=C]
- error("Illegal character")
+ reporter.emit(StrayChar)
             \end{lstlisting}
     \end{description}
 
@@ -634,7 +634,7 @@
         \item[GEN\_DEC] En la transición $21$:$22$
             \begin{lstlisting}[language=C]
  if (num > 3.4028235e38) {
-     error("Float literal out of range")
+     reporter.emit(FloatOverflow)
  } else {
      gen_token(FloatLit, num)
  }
@@ -656,7 +656,7 @@
         \item[GEN\_INT] En la transición $18$:$20$
             \begin{lstlisting}[language=C]
  if (num > 32767) {
-     error("Integer literal out of range")
+     reporter.emit(IntOverflow)
  } else {
      gen_token(IntLit, num)
  }
@@ -694,7 +694,7 @@
      case 'n' -> lex.concat('\n')
      case 't' -> lex.concat('\t')
      default  -> {
-         warning("Invalid sequence")
+         reporter.warn(InvEscSeq)
          lex.concat('\\')
          lex.concat(chr)
          len := len + 1
@@ -711,7 +711,7 @@
         \item[GEN\_STR] En la transición $23$:$25$
             \begin{lstlisting}[language=C]
  if (len > 64) {
-     error("String is too long")
+     reporter.emit(StrOverflow)
  } else {
      gen_token(StrLit, lex)
  }
@@ -738,7 +738,7 @@
 
     \newpage
 
-    \section{Diseño de la Tabla de Símbolos}
+    \section{La Tabla de Símbolos}
 
     Se trata de un tipo abstracto de datos encargado de gestionar la información relevante a los identificadores del programa. Todos los módulos del procesador van a necesitar acceder a ella con distintos propósitos por lo que es importante que tanto la inserción como la consulta de datos sea eficiente.
 
@@ -774,7 +774,7 @@
     
     De esta manera, se puede comprender una tabla de símbolos como una \textit{stack} de ámbitos (es decir, tablas de símbolos locales), dónde el Analizador Semántico será el encargado de apilar y desapilar ámbitos al entrar y salir de funciones respectivamente.
 
-    \section{Diseño del Parser}
+    \section{Análisis Sintáctico}
     El siguiente gran módulo del procesador es el Analizador Sintáctico o \textit{Parser}. El \textit{Parser} consume los \textit{tokens} del \textit{Lexer} y los utiliza para producir el árbol sintáctico abstracto o \textit{AST}.
 
     El \textit{AST} es una \textit{TAD} que representa la estructura sintáctica del fichero fuente, dónde cada nodo corresponde a una construcción sintáctica del lenguaje.
@@ -788,14 +788,14 @@
     Se define la gramática del \textit{Parser} como la tupla $G = (T, N, P, R)$, dónde:
     \begin{flalign*}
         T &= \{ \textnormal{Todo \textit{token} definido por el \textit{Lexer}} \} && \\
-        N &= \{ E, R, RR, U, UU, EE, V, S, L, Q, X, B, T, M, F, F1, F2, F3, H, A, K, C, P \} &&
+        N &= \{ E, R, RR, U, UU, EE, V, S, L, Q, X, B, T, M, F, FF, F1, F2, F3, H, A, K, C, P \} &&
     \end{flalign*}
-
     $R$ se compone de:
     \begin{flalign*}
         P &\to B P \:\mid\: F P \:\mid\: \lambda && \\
         C &\to B C \:\mid\: \lambda && \\
-        F &\to \:\textnormal{Func}\: F1 F2 F3 \:\textnormal{LBrack}\: C \:\textnormal{RBrack}\: && \\
+        F &\to \:\textnormal{Func}\: FF \:\textnormal{LBrack}\: C \:\textnormal{RBrack}\: && \\
+        FF &\to F1 \:F2 \:F3 && \\
         F1 &\to H && \\
         F2 &\to \:\textnormal{Id}\: && \\
         F3 &\to \:\textnormal{LParen}\: A \:\textnormal{RParen}\: && \\
@@ -822,9 +822,7 @@
 
     $G$ se trata de una gramática de contexto libre y el lenguaje que genera, $L(G)$, está compuesto por la estructura de todos los programas sintácticamente correctos.
 
-    De este modo, un fichero fuente sintácticamente correcto se puede interpretar como una palabra $w \in L(G)$ y visto así, el \textit{AST} se trata justamente del árbol de derivación de $w$, por lo que es fácil de obtener a partir de la secuencia de reglas aplicadas por el \textit{Parser} para reducir $w$ al axioma $S$.
-
-    Está secuencia de reglas se llama el \textit{parse} de un programa, y los próximos apartados se centran en como hallarlo.
+    De este modo, un fichero fuente sintácticamente correcto se puede interpretar como una palabra $w \in L(G)$ y visto así, el \textit{AST} se trata justamente del árbol de derivación de $w$, por lo que es fácil de obtener a partir de la secuencia de reglas aplicadas por el \textit{Parser} para reducir $w$ al axioma $S$. Está secuencia de reglas se llama el \textit{parse} de un programa, y los próximos apartados se centran en como hallarlo.
 
     \subsection{Autómata}
 
@@ -856,21 +854,21 @@
 \hline
 \textbf{4} &  &  &  & s22 & s21 & s19 & s20 & s15 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{5} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s23 &  &  &  &  &  &  &  &  &  \\
+\textbf{5} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s24 &  &  &  &  &  &  &  &  &  \\
 \hline
 \textbf{6} &  &  &  & r18 & r18 & r18 & r18 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{7} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s25 &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{7} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s26 &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
 \textbf{8} & r27 & r27 &  &  &  &  &  &  & r27 & r27 & r27 & r27 & r27 &  &  &  &  &  & r27 &  &  &  &  &  &  &  & r27 &  &  &  &  &  &  &  & r27 \\
 \hline
-\textbf{9} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  & r16 & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
+\textbf{9} &  &  &  &  &  &  &  &  &  &  &  &  &  & s31 & s30 & s33 & s34 & s32 & s29 &  &  &  & r16 & s35 &  &  &  & s43 & s44 &  &  & s37 &  &  &  \\
 \hline
-\textbf{10} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s44 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{10} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s45 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{11} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
+\textbf{11} &  &  &  &  &  &  &  &  &  &  &  &  &  & s31 & s30 & s33 & s34 & s32 & s29 &  &  &  &  & s35 &  &  &  & s43 & s44 &  &  & s37 &  &  &  \\
 \hline
-\textbf{12} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s48 & s47 &  &  & s46 &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{12} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s49 & s48 &  &  & s47 &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
 \textbf{13} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r2 \\
 \hline
@@ -882,7 +880,7 @@
 \hline
 \textbf{17} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r14 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{18} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s49 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{18} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s50 &  &  &  &  &  &  &  &  &  \\
 \hline
 \textbf{19} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r19 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
@@ -892,195 +890,197 @@
 \hline
 \textbf{22} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r22 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{23} & s7 & s5 &  &  &  &  &  &  & s6 &  & s9 & s10 & s11 &  &  &  &  &  & s12 &  &  &  &  &  &  &  & r4 &  &  &  &  &  &  &  &  \\
+\textbf{23} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s51 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{24} &  &  &  & s22 & s21 & s19 & s20 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{24} & s7 & s5 &  &  &  &  &  &  & s6 &  & s9 & s10 & s11 &  &  &  &  &  & s12 &  &  &  &  &  &  &  & r4 &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{25} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
+\textbf{25} &  &  &  & s22 & s21 & s19 & s20 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{26} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r17 &  &  &  &  &  &  &  & s55 &  &  &  &  \\
+\textbf{26} &  &  &  &  &  &  &  &  &  &  &  &  &  & s31 & s30 & s33 & s34 & s32 & s29 &  &  &  &  & s35 &  &  &  & s43 & s44 &  &  & s37 &  &  &  \\
 \hline
-\textbf{27} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s56 &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{27} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r17 &  &  &  &  &  &  &  & s57 &  &  &  &  \\
 \hline
-\textbf{28} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r38 & r38 & s57 & r38 &  &  & r38 &  & r38 & r38 &  & r38 & r38 &  \\
+\textbf{28} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s58 &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{29} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r39 & r39 &  & r39 &  &  & r39 &  & r39 & r39 &  & r39 & r39 &  \\
+\textbf{29} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r38 & r38 & s59 & r38 &  &  & r38 &  & r38 & r38 &  & r38 & r38 &  \\
 \hline
-\textbf{30} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r40 & r40 &  & r40 &  &  & r40 &  & r40 & r40 &  & r40 & r40 &  \\
+\textbf{30} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r39 & r39 &  & r39 &  &  & r39 &  & r39 & r39 &  & r39 & r39 &  \\
 \hline
-\textbf{31} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r41 & r41 &  & r41 &  &  & r41 &  & r41 & r41 &  & r41 & r41 &  \\
+\textbf{31} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r40 & r40 &  & r40 &  &  & r40 &  & r40 & r40 &  & r40 & r40 &  \\
 \hline
-\textbf{32} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r42 & r42 &  & r42 &  &  & r42 &  & r42 & r42 &  & r42 & r42 &  \\
+\textbf{32} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r41 & r41 &  & r41 &  &  & r41 &  & r41 & r41 &  & r41 & r41 &  \\
 \hline
-\textbf{33} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r43 & r43 &  & r43 &  &  & r43 &  & r43 & r43 &  & r43 & r43 &  \\
+\textbf{33} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r42 & r42 &  & r42 &  &  & r42 &  & r42 & r42 &  & r42 & r42 &  \\
 \hline
-\textbf{34} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
+\textbf{34} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r43 & r43 &  & r43 &  &  & r43 &  & r43 & r43 &  & r43 & r43 &  \\
 \hline
-\textbf{35} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r46 & r46 &  & r46 &  &  & r46 &  & r46 & r46 &  & r46 & r46 &  \\
+\textbf{35} &  &  &  &  &  &  &  &  &  &  &  &  &  & s31 & s30 & s33 & s34 & s32 & s29 &  &  &  &  & s35 &  &  &  & s43 & s44 &  &  & s37 &  &  &  \\
 \hline
-\textbf{36} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
+\textbf{36} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r46 & r46 &  & r46 &  &  & r46 &  & r46 & r46 &  & r46 & r46 &  \\
 \hline
-\textbf{37} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r48 & r48 &  & r48 &  &  & r48 &  & r48 & r48 &  & r48 & r48 &  \\
+\textbf{37} &  &  &  &  &  &  &  &  &  &  &  &  &  & s31 & s30 & s33 & s34 & s32 & s29 &  &  &  &  & s35 &  &  &  & s43 & s44 &  &  & s37 &  &  &  \\
 \hline
-\textbf{38} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r50 & r50 &  & r50 &  &  & r50 &  & s60 & r50 &  & r50 & r50 &  \\
+\textbf{38} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r48 & r48 &  & r48 &  &  & r48 &  & r48 & r48 &  & r48 & r48 &  \\
 \hline
-\textbf{39} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r52 & r52 &  & r52 &  &  & s61 &  &  & r52 &  & r52 & r52 &  \\
+\textbf{39} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r50 & r50 &  & r50 &  &  & r50 &  & s62 & r50 &  & r50 & r50 &  \\
 \hline
-\textbf{40} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r54 & r54 &  & r54 &  &  &  &  &  & r54 &  & s62 & r54 &  \\
+\textbf{40} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r52 & r52 &  & r52 &  &  & s63 &  &  & r52 &  & r52 & r52 &  \\
 \hline
-\textbf{41} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r56 & r56 &  & r56 &  &  &  &  &  & r56 &  &  & s63 &  \\
+\textbf{41} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r54 & r54 &  & r54 &  &  &  &  &  & r54 &  & s64 & r54 &  \\
 \hline
-\textbf{42} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
+\textbf{42} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r56 & r56 &  & r56 &  &  &  &  &  & r56 &  &  & s65 &  \\
 \hline
-\textbf{43} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
+\textbf{43} &  &  &  &  &  &  &  &  &  &  &  &  &  & s31 & s30 & s33 & s34 & s32 & s29 &  &  &  &  & s35 &  &  &  & s43 & s44 &  &  & s37 &  &  &  \\
 \hline
-\textbf{44} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s66 &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{44} &  &  &  &  &  &  &  &  &  &  &  &  &  & s31 & s30 & s33 & s34 & s32 & s29 &  &  &  &  & s35 &  &  &  & s43 & s44 &  &  & s37 &  &  &  \\
 \hline
-\textbf{45} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s67 &  &  &  &  &  &  &  & s55 &  &  &  &  \\
+\textbf{45} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s68 &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{46} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 & r30 &  &  & s42 & s43 &  &  & s36 &  &  &  \\
+\textbf{46} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s69 &  &  &  &  &  &  &  & s57 &  &  &  &  \\
 \hline
-\textbf{47} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
+\textbf{47} &  &  &  &  &  &  &  &  &  &  &  &  &  & s31 & s30 & s33 & s34 & s32 & s29 &  &  &  &  & s35 & r30 &  &  & s43 & s44 &  &  & s37 &  &  &  \\
 \hline
-\textbf{48} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
+\textbf{48} &  &  &  &  &  &  &  &  &  &  &  &  &  & s31 & s30 & s33 & s34 & s32 & s29 &  &  &  &  & s35 &  &  &  & s43 & s44 &  &  & s37 &  &  &  \\
 \hline
-\textbf{49} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r13 &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{49} &  &  &  &  &  &  &  &  &  &  &  &  &  & s31 & s30 & s33 & s34 & s32 & s29 &  &  &  &  & s35 &  &  &  & s43 & s44 &  &  & s37 &  &  &  \\
 \hline
-\textbf{50} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s72 &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{50} & s7 & s5 &  &  &  &  &  &  & s6 &  & s9 & s10 & s11 &  &  &  &  &  & s12 &  &  &  &  &  &  &  & r4 &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{51} & s7 & s5 &  &  &  &  &  &  & s6 &  & s9 & s10 & s11 &  &  &  &  &  & s12 &  &  &  &  &  &  &  & r4 &  &  &  &  &  &  &  &  \\
+\textbf{51} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r13 &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{52} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s75 &  &  &  &  &  &  &  &  \\
+\textbf{52} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s75 &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{53} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s76 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{53} & s7 & s5 &  &  &  &  &  &  & s6 &  & s9 & s10 & s11 &  &  &  &  &  & s12 &  &  &  &  &  &  &  & r4 &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{54} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s77 &  &  &  &  &  & s55 &  &  &  &  \\
+\textbf{54} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s78 &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{55} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
+\textbf{55} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s79 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{56} & r32 & r32 &  &  &  &  &  &  & r32 & r32 & r32 & r32 & r32 &  &  &  &  &  & r32 &  &  &  &  &  &  &  & r32 &  &  &  &  &  &  &  & r32 \\
+\textbf{56} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s80 &  &  &  &  &  & s57 &  &  &  &  \\
 \hline
-\textbf{57} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 & r30 &  &  & s42 & s43 &  &  & s36 &  &  &  \\
+\textbf{57} &  &  &  &  &  &  &  &  &  &  &  &  &  & s31 & s30 & s33 & s34 & s32 & s29 &  &  &  &  & s35 &  &  &  & s43 & s44 &  &  & s37 &  &  &  \\
 \hline
-\textbf{58} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s80 &  &  &  &  &  & s55 &  &  &  &  \\
+\textbf{58} & r32 & r32 &  &  &  &  &  &  & r32 & r32 & r32 & r32 & r32 &  &  &  &  &  & r32 &  &  &  &  &  &  &  & r32 &  &  &  &  &  &  &  & r32 \\
 \hline
-\textbf{59} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r47 & r47 &  & r47 &  &  & r47 &  & r47 & r47 &  & r47 & r47 &  \\
+\textbf{59} &  &  &  &  &  &  &  &  &  &  &  &  &  & s31 & s30 & s33 & s34 & s32 & s29 &  &  &  &  & s35 & r30 &  &  & s43 & s44 &  &  & s37 &  &  &  \\
 \hline
-\textbf{60} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
+\textbf{60} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s83 &  &  &  &  &  & s57 &  &  &  &  \\
 \hline
-\textbf{61} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
+\textbf{61} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r47 & r47 &  & r47 &  &  & r47 &  & r47 & r47 &  & r47 & r47 &  \\
 \hline
-\textbf{62} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
+\textbf{62} &  &  &  &  &  &  &  &  &  &  &  &  &  & s31 & s30 & s33 & s34 & s32 & s29 &  &  &  &  & s35 &  &  &  & s43 & s44 &  &  & s37 &  &  &  \\
 \hline
-\textbf{63} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
+\textbf{63} &  &  &  &  &  &  &  &  &  &  &  &  &  & s31 & s30 & s33 & s34 & s32 & s29 &  &  &  &  & s35 &  &  &  & s43 & s44 &  &  & s37 &  &  &  \\
 \hline
-\textbf{64} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r58 & r58 &  & r58 &  &  & r58 &  & r58 & r58 &  & r58 & r58 &  \\
+\textbf{64} &  &  &  &  &  &  &  &  &  &  &  &  &  & s31 & s30 & s33 & s34 & s32 & s29 &  &  &  &  & s35 &  &  &  & s43 & s44 &  &  & s37 &  &  &  \\
 \hline
-\textbf{65} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r59 & r59 &  & r59 &  &  & r59 &  & r59 & r59 &  & r59 & r59 &  \\
+\textbf{65} &  &  &  &  &  &  &  &  &  &  &  &  &  & s31 & s30 & s33 & s34 & s32 & s29 &  &  &  &  & s35 &  &  &  & s43 & s44 &  &  & s37 &  &  &  \\
 \hline
-\textbf{66} & r33 & r33 &  &  &  &  &  &  & r33 & r33 & r33 & r33 & r33 &  &  &  &  &  & r33 &  &  &  &  &  &  &  & r33 &  &  &  &  &  &  &  & r33 \\
+\textbf{66} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r59 & r59 &  & r59 &  &  & r59 &  & r59 & r59 &  & r59 & r59 &  \\
 \hline
-\textbf{67} & r34 & r34 &  &  &  &  &  &  & r34 & r34 & r34 & r34 & r34 &  &  &  &  &  & r34 &  &  &  &  &  &  &  & r34 &  &  &  &  &  &  &  & r34 \\
+\textbf{67} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r60 & r60 &  & r60 &  &  & r60 &  & r60 & r60 &  & r60 & r60 &  \\
 \hline
-\textbf{68} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s85 &  &  & r28 &  &  &  &  &  & s55 &  &  &  &  \\
+\textbf{68} & r33 & r33 &  &  &  &  &  &  & r33 & r33 & r33 & r33 & r33 &  &  &  &  &  & r33 &  &  &  &  &  &  &  & r33 &  &  &  &  &  &  &  & r33 \\
 \hline
-\textbf{69} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s87 &  &  &  &  &  &  &  &  &  &  \\
+\textbf{69} & r34 & r34 &  &  &  &  &  &  & r34 & r34 & r34 & r34 & r34 &  &  &  &  &  & r34 &  &  &  &  &  &  &  & r34 &  &  &  &  &  &  &  & r34 \\
 \hline
-\textbf{70} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s88 &  &  &  &  &  &  &  & s55 &  &  &  &  \\
+\textbf{70} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s88 &  &  & r28 &  &  &  &  &  & s57 &  &  &  &  \\
 \hline
-\textbf{71} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s89 &  &  &  &  &  &  &  & s55 &  &  &  &  \\
+\textbf{71} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s90 &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{72} &  &  &  & s22 & s21 & s19 & s20 & s90 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{72} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s91 &  &  &  &  &  &  &  & s57 &  &  &  &  \\
 \hline
-\textbf{73} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s93 &  &  &  &  &  &  &  &  &  \\
+\textbf{73} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s92 &  &  &  &  &  &  &  & s57 &  &  &  &  \\
 \hline
-\textbf{74} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r5 &  &  &  &  &  &  &  &  \\
+\textbf{74} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s93 &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{75} &  &  & s94 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{75} &  &  &  & s22 & s21 & s19 & s20 & s94 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{76} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s95 &  &  & s96 &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{76} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r58 &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{77} &  &  &  &  &  &  &  &  &  &  & s9 & s10 & s11 &  &  &  &  &  & s12 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{77} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r5 &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{78} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r57 & r57 &  & r57 &  &  &  &  &  & r57 &  &  & s63 &  \\
+\textbf{78} &  &  & s97 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{79} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s98 &  &  &  &  &  &  &  &  &  &  \\
+\textbf{79} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s98 &  &  & s99 &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{80} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r44 & r44 &  & r44 &  &  & r44 &  & r44 & r44 &  & r44 & r44 &  \\
+\textbf{80} &  &  &  &  &  &  &  &  &  &  & s9 & s10 & s11 &  &  &  &  &  & s12 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{81} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r49 & r49 &  & r49 &  &  & r49 &  & r49 & r49 &  & r49 & r49 &  \\
+\textbf{81} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r57 & r57 &  & r57 &  &  &  &  &  & r57 &  &  & s65 &  \\
 \hline
-\textbf{82} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r51 & r51 &  & r51 &  &  & r51 &  & s60 & r51 &  & r51 & r51 &  \\
+\textbf{82} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s101 &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{83} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r53 & r53 &  & r53 &  &  & s61 &  &  & r53 &  & r53 & r53 &  \\
+\textbf{83} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r44 & r44 &  & r44 &  &  & r44 &  & r44 & r44 &  & r44 & r44 &  \\
 \hline
-\textbf{84} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r55 & r55 &  & r55 &  &  &  &  &  & r55 &  & s62 & r55 &  \\
+\textbf{84} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r49 & r49 &  & r49 &  &  & r49 &  & r49 & r49 &  & r49 & r49 &  \\
 \hline
-\textbf{85} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
+\textbf{85} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r51 & r51 &  & r51 &  &  & r51 &  & s62 & r51 &  & r51 & r51 &  \\
 \hline
-\textbf{86} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r31 &  &  &  &  &  &  &  &  &  &  \\
+\textbf{86} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r53 & r53 &  & r53 &  &  & s63 &  &  & r53 &  & r53 & r53 &  \\
 \hline
-\textbf{87} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s100 &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{87} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r55 & r55 &  & r55 &  &  &  &  &  & r55 &  & s64 & r55 &  \\
 \hline
-\textbf{88} & r36 & r36 &  &  &  &  &  &  & r36 & r36 & r36 & r36 & r36 &  &  &  &  &  & r36 &  &  &  &  &  &  &  & r36 &  &  &  &  &  &  &  & r36 \\
+\textbf{88} &  &  &  &  &  &  &  &  &  &  &  &  &  & s31 & s30 & s33 & s34 & s32 & s29 &  &  &  &  & s35 &  &  &  & s43 & s44 &  &  & s37 &  &  &  \\
 \hline
-\textbf{89} & r37 & r37 &  &  &  &  &  &  & r37 & r37 & r37 & r37 & r37 &  &  &  &  &  & r37 &  &  &  &  &  &  &  & r37 &  &  &  &  &  &  &  & r37 \\
+\textbf{89} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r31 &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{90} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r8 &  &  &  &  &  &  &  &  &  &  \\
+\textbf{90} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s103 &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{91} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s101 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{91} & r36 & r36 &  &  &  &  &  &  & r36 & r36 & r36 & r36 & r36 &  &  &  &  &  & r36 &  &  &  &  &  &  &  & r36 &  &  &  &  &  &  &  & r36 \\
 \hline
-\textbf{92} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s102 &  &  &  &  &  &  &  &  &  &  \\
+\textbf{92} & r37 & r37 &  &  &  &  &  &  & r37 & r37 & r37 & r37 & r37 &  &  &  &  &  & r37 &  &  &  &  &  &  &  & r37 &  &  &  &  &  &  &  & r37 \\
 \hline
-\textbf{93} & s7 & s5 &  &  &  &  &  &  & s6 &  & s9 & s10 & s11 &  &  &  &  &  & s12 &  &  &  &  &  &  &  & r4 &  &  &  &  &  &  &  &  \\
+\textbf{93} & r15 & r15 &  &  &  &  &  &  & r15 & r15 & r15 & r15 & r15 &  &  &  &  &  & r15 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r15 \\
 \hline
-\textbf{94} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s104 &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{94} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r8 &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{95} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
+\textbf{95} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s104 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{96} & r25 & r25 &  &  &  &  &  &  & r25 & r25 & r25 & r25 & r25 &  &  &  &  &  & r25 &  &  &  &  &  &  &  & r25 &  &  &  &  &  &  &  & r25 \\
+\textbf{96} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s105 &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{97} & r26 & r26 &  &  &  &  &  &  & r26 & r26 & r26 & r26 & r26 &  &  &  &  &  & r26 &  &  &  &  &  &  &  & r26 &  &  &  &  &  &  &  & r26 \\
+\textbf{97} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s106 &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{98} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r45 & r45 &  & r45 &  &  & r45 &  & r45 & r45 &  & r45 & r45 &  \\
+\textbf{98} &  &  &  &  &  &  &  &  &  &  &  &  &  & s31 & s30 & s33 & s34 & s32 & s29 &  &  &  &  & s35 &  &  &  & s43 & s44 &  &  & s37 &  &  &  \\
 \hline
-\textbf{99} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s85 &  &  & r28 &  &  &  &  &  & s55 &  &  &  &  \\
+\textbf{99} & r25 & r25 &  &  &  &  &  &  & r25 & r25 & r25 & r25 & r25 &  &  &  &  &  & r25 &  &  &  &  &  &  &  & r25 &  &  &  &  &  &  &  & r25 \\
 \hline
-\textbf{100} & r35 & r35 &  &  &  &  &  &  & r35 & r35 & r35 & r35 & r35 &  &  &  &  &  & r35 &  &  &  &  &  &  &  & r35 &  &  &  &  &  &  &  & r35 \\
+\textbf{100} & r26 & r26 &  &  &  &  &  &  & r26 & r26 & r26 & r26 & r26 &  &  &  &  &  & r26 &  &  &  &  &  &  &  & r26 &  &  &  &  &  &  &  & r26 \\
 \hline
-\textbf{101} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s107 &  &  & r6 &  &  &  &  &  &  &  &  &  &  \\
+\textbf{101} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r45 & r45 &  & r45 &  &  & r45 &  & r45 & r45 &  & r45 & r45 &  \\
 \hline
-\textbf{102} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r12 &  &  &  &  &  &  &  &  &  \\
+\textbf{102} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s88 &  &  & r28 &  &  &  &  &  & s57 &  &  &  &  \\
 \hline
-\textbf{103} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s109 &  &  &  &  &  &  &  &  \\
+\textbf{103} & r35 & r35 &  &  &  &  &  &  & r35 & r35 & r35 & r35 & r35 &  &  &  &  &  & r35 &  &  &  &  &  &  &  & r35 &  &  &  &  &  &  &  & r35 \\
 \hline
-\textbf{104} &  &  &  &  &  &  &  &  &  &  &  &  &  & s30 & s29 & s32 & s33 & s31 & s28 &  &  &  &  & s34 &  &  &  & s42 & s43 &  &  & s36 &  &  &  \\
+\textbf{104} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s109 &  &  & r6 &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{105} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s111 &  &  &  &  &  &  &  & s55 &  &  &  &  \\
+\textbf{105} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r12 &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{106} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r29 &  &  &  &  &  &  &  &  &  &  \\
+\textbf{106} &  &  &  &  &  &  &  &  &  &  &  &  &  & s31 & s30 & s33 & s34 & s32 & s29 &  &  &  &  & s35 &  &  &  & s43 & s44 &  &  & s37 &  &  &  \\
 \hline
-\textbf{107} &  &  &  & s22 & s21 & s19 & s20 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{107} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s112 &  &  &  &  &  &  &  & s57 &  &  &  &  \\
 \hline
-\textbf{108} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r9 &  &  &  &  &  &  &  &  &  &  \\
+\textbf{108} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r29 &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{109} & r15 & r15 &  &  &  &  &  &  & r15 & r15 & r15 & r15 & r15 &  &  &  &  &  & r15 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r15 \\
+\textbf{109} &  &  &  & s22 & s21 & s19 & s20 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{110} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s113 &  &  &  &  &  & s55 &  &  &  &  \\
+\textbf{110} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r9 &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{111} & r24 & r24 &  &  &  &  &  &  & r24 & r24 & r24 & r24 & r24 &  &  &  &  &  & r24 &  &  &  &  &  &  &  & r24 &  &  &  &  &  &  &  & r24 \\
+\textbf{111} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s114 &  &  &  &  &  & s57 &  &  &  &  \\
 \hline
-\textbf{112} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s114 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{112} & r24 & r24 &  &  &  &  &  &  & r24 & r24 & r24 & r24 & r24 &  &  &  &  &  & r24 &  &  &  &  &  &  &  & r24 &  &  &  &  &  &  &  & r24 \\
 \hline
-\textbf{113} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s115 &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{113} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s115 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{114} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s107 &  &  & r6 &  &  &  &  &  &  &  &  &  &  \\
+\textbf{114} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s116 &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{115} & r23 & r23 &  &  &  &  &  &  & r23 & r23 & r23 & r23 & r23 &  &  &  &  &  & r23 &  &  &  &  &  &  &  & r23 &  &  &  &  &  &  &  & r23 \\
+\textbf{115} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & s109 &  &  & r6 &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{116} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r7 &  &  &  &  &  &  &  &  &  &  \\
+\textbf{116} & r23 & r23 &  &  &  &  &  &  & r23 & r23 & r23 & r23 & r23 &  &  &  &  &  & r23 &  &  &  &  &  &  &  & r23 &  &  &  &  &  &  &  & r23 \\
 \hline
-    \end{longtable}
+\textbf{117} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & r7 &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\end{longtable}
 }
 
 \newpage
@@ -1088,246 +1088,248 @@
 {
         \renewcommand{\arraystretch}{1.1}
         \footnotesize
-        \setlength{\tabcolsep}{4.81pt}
-        \begin{longtable}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+        \setlength{\tabcolsep}{4.4pt}
+        \begin{longtable}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
         \caption{Tabla de Goto}
         \label{tab:goto} \\
 \hline
-& $\mathbf{E}$ & $\mathbf{R}$ & $\mathbf{RR}$ & $\mathbf{U}$ & $\mathbf{UU}$ & $\mathbf{EE}$ & $\mathbf{V}$ & $\mathbf{S}$ & $\mathbf{L}$ & $\mathbf{Q}$ & $\mathbf{X}$ & $\mathbf{B}$ & $\mathbf{T}$ & $\mathbf{M}$ & $\mathbf{F}$ & $\mathbf{F1}$ & $\mathbf{F2}$ & $\mathbf{F3}$ & $\mathbf{H}$ & $\mathbf{A}$ & $\mathbf{K}$ & $\mathbf{C}$ & $\mathbf{P}$ \\
+& $\mathbf{E}$ & $\mathbf{R}$ & $\mathbf{RR}$ & $\mathbf{U}$ & $\mathbf{UU}$ & $\mathbf{EE}$ & $\mathbf{V}$ & $\mathbf{S}$ & $\mathbf{L}$ & $\mathbf{Q}$ & $\mathbf{X}$ & $\mathbf{B}$ & $\mathbf{T}$ & $\mathbf{M}$ & $\mathbf{F}$ & $\mathbf{FF}$ & $\mathbf{F1}$ & $\mathbf{F2}$ & $\mathbf{F3}$ & $\mathbf{H}$ & $\mathbf{A}$ & $\mathbf{K}$ & $\mathbf{C}$ & $\mathbf{P}$ \\
 \hline
-\textbf{0} &  &  &  &  &  &  &  & 8 &  &  &  & 3 &  &  & 2 &  &  &  &  &  &  &  & 1 \\
+\textbf{0} &  &  &  &  &  &  &  & 8 &  &  &  & 3 &  &  & 2 &  &  &  &  &  &  &  &  & 1 \\
 \hline
-\textbf{1} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{1} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{2} &  &  &  &  &  &  &  & 8 &  &  &  & 3 &  &  & 2 &  &  &  &  &  &  &  & 13 \\
+\textbf{2} &  &  &  &  &  &  &  & 8 &  &  &  & 3 &  &  & 2 &  &  &  &  &  &  &  &  & 13 \\
 \hline
-\textbf{3} &  &  &  &  &  &  &  & 8 &  &  &  & 3 &  &  & 2 &  &  &  &  &  &  &  & 14 \\
+\textbf{3} &  &  &  &  &  &  &  & 8 &  &  &  & 3 &  &  & 2 &  &  &  &  &  &  &  &  & 14 \\
 \hline
-\textbf{4} &  &  &  &  &  &  &  &  &  &  &  &  & 16 &  &  & 18 &  &  & 17 &  &  &  &  \\
+\textbf{4} &  &  &  &  &  &  &  &  &  &  &  &  & 16 &  &  & 18 & 23 &  &  & 17 &  &  &  &  \\
 \hline
-\textbf{5} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{5} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{6} &  &  &  &  &  &  &  &  &  &  &  &  &  & 24 &  &  &  &  &  &  &  &  &  \\
+\textbf{6} &  &  &  &  &  &  &  &  &  &  &  &  &  & 25 &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{7} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{7} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{8} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{8} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{9} & 26 & 41 & 40 & 39 & 38 & 37 & 35 &  &  &  & 27 &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{9} & 27 & 42 & 41 & 40 & 39 & 38 & 36 &  &  &  & 28 &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{10} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{10} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{11} & 45 & 41 & 40 & 39 & 38 & 37 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{11} & 46 & 42 & 41 & 40 & 39 & 38 & 36 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{12} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{12} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{13} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{13} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{14} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{14} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{15} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{15} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{16} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{16} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{17} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{17} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{18} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & 50 &  &  &  &  &  &  \\
+\textbf{18} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{19} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{19} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{20} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{20} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{21} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{21} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{22} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{22} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{23} &  &  &  &  &  &  &  & 8 &  &  &  & 51 &  &  &  &  &  &  &  &  &  & 52 &  \\
+\textbf{23} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & 52 &  &  &  &  &  &  \\
 \hline
-\textbf{24} &  &  &  &  &  &  &  &  &  &  &  &  & 53 &  &  &  &  &  &  &  &  &  &  \\
+\textbf{24} &  &  &  &  &  &  &  & 8 &  &  &  & 53 &  &  &  &  &  &  &  &  &  &  & 54 &  \\
 \hline
-\textbf{25} & 54 & 41 & 40 & 39 & 38 & 37 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{25} &  &  &  &  &  &  &  &  &  &  &  &  & 55 &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{26} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{26} & 56 & 42 & 41 & 40 & 39 & 38 & 36 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{27} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{27} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{28} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{28} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{29} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{29} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{30} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{30} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{31} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{31} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{32} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{32} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{33} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{33} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{34} & 58 & 41 & 40 & 39 & 38 & 37 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{34} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{35} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{35} & 60 & 42 & 41 & 40 & 39 & 38 & 36 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{36} &  &  &  &  &  & 59 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{36} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{37} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{37} &  &  &  &  &  & 61 & 36 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{38} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{38} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{39} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{39} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{40} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{40} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{41} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{41} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{42} &  &  &  &  &  & 64 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{42} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{43} &  &  &  &  &  & 65 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{43} &  &  &  &  &  & 66 & 36 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{44} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{44} &  &  &  &  &  & 67 & 36 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{45} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{45} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{46} & 68 & 41 & 40 & 39 & 38 & 37 & 35 &  & 69 &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{46} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{47} & 70 & 41 & 40 & 39 & 38 & 37 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{47} & 70 & 42 & 41 & 40 & 39 & 38 & 36 &  & 71 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{48} & 71 & 41 & 40 & 39 & 38 & 37 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{48} & 72 & 42 & 41 & 40 & 39 & 38 & 36 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{49} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{49} & 73 & 42 & 41 & 40 & 39 & 38 & 36 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{50} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & 73 &  &  &  &  &  \\
+\textbf{50} &  &  &  &  &  &  &  & 8 &  &  &  & 53 &  &  &  &  &  &  &  &  &  &  & 74 &  \\
 \hline
-\textbf{51} &  &  &  &  &  &  &  & 8 &  &  &  & 51 &  &  &  &  &  &  &  &  &  & 74 &  \\
+\textbf{51} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{52} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{52} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & 76 &  &  &  &  &  \\
 \hline
-\textbf{53} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{53} &  &  &  &  &  &  &  & 8 &  &  &  & 53 &  &  &  &  &  &  &  &  &  &  & 77 &  \\
 \hline
-\textbf{54} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{54} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{55} &  & 78 & 40 & 39 & 38 & 37 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{55} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{56} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{56} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{57} & 68 & 41 & 40 & 39 & 38 & 37 & 35 &  & 79 &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{57} &  & 81 & 41 & 40 & 39 & 38 & 36 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{58} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{58} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{59} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{59} & 70 & 42 & 41 & 40 & 39 & 38 & 36 &  & 82 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{60} &  &  &  &  &  & 81 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{60} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{61} &  &  &  &  & 82 & 37 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{61} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{62} &  &  &  & 83 & 38 & 37 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{62} &  &  &  &  &  & 84 & 36 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{63} &  &  & 84 & 39 & 38 & 37 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{63} &  &  &  &  & 85 & 38 & 36 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{64} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{64} &  &  &  & 86 & 39 & 38 & 36 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{65} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{65} &  &  & 87 & 40 & 39 & 38 & 36 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{66} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{66} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{67} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{67} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{68} &  &  &  &  &  &  &  &  &  & 86 &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{68} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{69} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{69} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{70} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{70} &  &  &  &  &  &  &  &  &  & 89 &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{71} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{71} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{72} &  &  &  &  &  &  &  &  &  &  &  &  & 91 &  &  &  &  &  &  & 92 &  &  &  \\
+\textbf{72} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{73} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{73} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{74} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{74} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{75} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{75} &  &  &  &  &  &  &  &  &  &  &  &  & 95 &  &  &  &  &  &  &  & 96 &  &  &  \\
 \hline
-\textbf{76} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{76} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{77} &  &  &  &  &  &  &  & 97 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{77} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{78} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{78} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{79} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{79} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{80} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{80} &  &  &  &  &  &  &  & 100 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{81} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{81} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{82} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{82} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{83} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{83} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{84} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{84} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{85} & 99 & 41 & 40 & 39 & 38 & 37 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{85} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{86} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{86} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{87} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{87} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{88} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{88} & 102 & 42 & 41 & 40 & 39 & 38 & 36 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{89} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{89} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{90} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{90} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{91} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{91} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{92} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{92} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{93} &  &  &  &  &  &  &  & 8 &  &  &  & 51 &  &  &  &  &  &  &  &  &  & 103 &  \\
+\textbf{93} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{94} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{94} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{95} & 105 & 41 & 40 & 39 & 38 & 37 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{95} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{96} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{96} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{97} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{97} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{98} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{98} & 107 & 42 & 41 & 40 & 39 & 38 & 36 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{99} &  &  &  &  &  &  &  &  &  & 106 &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{99} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{100} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{100} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{101} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & 108 &  &  \\
+\textbf{101} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{102} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{102} &  &  &  &  &  &  &  &  &  & 108 &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{103} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{103} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{104} & 110 & 41 & 40 & 39 & 38 & 37 & 35 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{104} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & 110 &  &  \\
 \hline
-\textbf{105} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{105} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{106} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{106} & 111 & 42 & 41 & 40 & 39 & 38 & 36 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{107} &  &  &  &  &  &  &  &  &  &  &  &  & 112 &  &  &  &  &  &  &  &  &  &  \\
+\textbf{107} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{108} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{108} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{109} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{109} &  &  &  &  &  &  &  &  &  &  &  &  & 113 &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{110} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{110} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{111} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{111} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{112} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{112} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{113} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{113} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{114} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & 116 &  &  \\
+\textbf{114} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
-\textbf{115} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{115} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & 117 &  &  \\
 \hline
-\textbf{116} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\textbf{116} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\hline
+\textbf{117} &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \hline
         \end{longtable}
 }
@@ -1359,34 +1361,686 @@
 
     Como no han habido colisiones durante la construcción de la tabla, se confirma que $G' \in SLR(1)$. Por tanto, se va a poder implementar el \textit{Parser} $LR(1)$ exitosamente con la gramática escogida.
 
+\begin{multicols}{2}
     \subsection{Errores}
 
-    Por ahora sólo se ha lanza un tipo de error en el \textit{Parser}\footnote{Tras implementar el Analizador Semántico, se podrán enriquecer los errores del \textit{Parser} con mayor facilidad y se añadirán más tipos.}, \textit{Token Inesperado}.
-    Sin embargo, su mensaje varía según la celda en la que se lance, tomando el formato:
+    El \textit{Parser} emite 10 excepciones diferentes, dónde \textit{Token inesperado} sirve de \textit{fallback}.
+
+    Cabe destacar que \textit{Token inesperado}, a pesar de ser la excepción genérica del \textit{Parser}, es dinámica, es decir, su mensaje varía según la celda en la que se lance, tomando el formato:
 
     \begin{center}
-        \emph{"expected <opción 1>, <opción 2>, $\dots$, <opción n-1> or <opción n> before <token inesperado>"}
+        \emph{"expected <opciones> before <token inesperado>"}
     \end{center}
 
-    \renewcommand{\arraystretch}{1.0}
+    La lista de \textit{tokens} esperados se obtiene realizando una busqueda en anchura en las tablas por cada \textit{token} con una celda no vacía en la fila del fallo.
+
+    Los \textit{tokens} que desplazan siempre serán válidos, pero hay casos en los que un \textit{token} reduce una o varias veces pero acaba terminando en error, por lo que es necesario simular cada uno de ellos hasta llegar a un desplazamiento o a un error.
+
+El \textit{Parser} también es capaz de recuperarse de cualquier error, aunque este proceso es más complejo que en el \textit{Lexer}. En la sección del \hyperref[sec:gestor-errores]{Gestor de Errores} se explicará en mayor detalle pero, a alto nivel, al llegar a una celda de error se intentará resincronizar la pila de estados a través de inserciones, sustituciones o eliminaciones.
+
+No obstante, aunque en la práctica nunca lo hará, la resincronización puede llegar a fallar, en cuyo caso se termina el análisis. De hecho, el \textit{Parser} es el único módulo que puede interrumpir la ejecución del programa prematuramente, es decir, antes de procesar el fichero fuente por completo.
+
+    \columnbreak
+
+    \renewcommand{\arraystretch}{2.30}
     \begin{table}[H]
         \caption{Listado de errores del \textit{Parser}}
-        \begin{tabular}{L{0.54\linewidth} L{0.40\linewidth}}
+        \begin{tabular}{L{0.54\linewidth} L{0.36\linewidth}}
             \toprule
             \textbf{Error} & \textbf{Severidad} \\
             \midrule
-            Token Inesperado & \textit{error} \\
+            Token inesperado & \textit{error} \\
+            Delimitador desparejado & \textit{error} \\
+            Delimitador sin cerrar & \textit{error} \\
+            Palabra reservadada usada como identificador & \textit{error} \\
+            Punto y coma ausente & \textit{error} \\
+            Coma sobrante en la lista de parámetros de una función & \textit{error} \\
+            Coma sobrante en la lista de argumentos en una llamada & \textit{error} \\
+            Tipo ausente en declaración & \textit{error} \\
+            Tipo de retorno ausente & \textit{error} \\
+            Lista de parámetros ausente & \textit{error} \\
+            Lista de parámetros vacía & \textit{error} \\
             \bottomrule
         \end{tabular}
         \label{tab:err-parser}
     \end{table}
 
-    La lista de \textit{tokens} esperados se obtiene realizando una busqueda en profundidad en las tablas por cada \textit{token} con una celda no vacía en la fila del fallo. Los \textit{tokens} que desplazan siempre serán válidos, pero hay casos en los que un \textit{token} reduce una o varias veces pero acaba terminando en error, por lo que es necesario simular cada uno de ellos hasta llegar a un desplazamiento.
+\end{multicols}
 
-    \section{Diseño del Semanter}
+    \section{Análisis Semántico}
 
-    \section{Diseño del Gestor de Errores}
-    Se detallará en la entrega final.
+El último módulo del procesador es el Analizador Semántico, que se encarga de asegurar que el programa sea coherente más allá de las reglas sintácticas. Hace comprobaciones de tipo, se asegura de que no hay redeclaraciones, comprueba que se llama a las funciones con el número correcto de parámetros, etc.
+
+En realidad, en este procesador, el Analizador Semántico es un submódulo del \textit{Parser}, ya que sigue la estrategia de \textit{Traducción dirigida por la sintaxis} o \textit{TDS}. Esta consiste en asociar una serie de acciones semánticas a cada regla de la gramática y ciertos atributos a algunos de sus símbolos, construyendo lo que se llama una \textit{Gramática de Atributos}.
+
+El producto final del Analizador Semántico será la Tabla de Símbolos, que irá rellenando con las variables y funciones que encuentre, así como sus respectivos atributos, a medida que se analice el fichero fuente.
+
+\begin{multicols}{2}
+    \subsection{Errores}
+
+    El \textit{Analizador Semántico} puede producir 6 excepciones distintas.
+
+    La excepción \textit{Tipo inesperado} sirve la función de error de tipo genérico, que se emitirá siempre que se espere un tipo concreto y se encuentre otro. De nuevo, su mensaje es dinámico y cambia según el tipo esperado y el encontrado.
+
+    Como en los módulos anteriores, todas los errores son recuperables. Esta recuperación se hace a través de los tipos especiales \textit{type\_error} y \textit{type\_ok}, que se propagan a través del \textit{AST}.
+
+    \columnbreak
+
+    \renewcommand{\arraystretch}{1.70}
+    \begin{table}[H]
+        \caption{Listado de errores del \textit{Analizador Semántico}}
+        \begin{tabular}{L{0.54\linewidth} L{0.36\linewidth}}
+            \toprule
+            \textbf{Error} & \textbf{Severidad} \\
+            \midrule
+            Tipo de retorno incorrecto & \textit{error} \\
+            Identificador redeclarado & \textit{error} \\
+            Tipo inesperado & \textit{error} \\
+            Función sin declarar  & \textit{error} \\
+            Retorno fuera de función & \textit{error} \\
+            LLamada incorrecta & \textit{error} \\
+            \bottomrule
+        \end{tabular}
+        \label{tab:err-sem}
+    \end{table}
+
+\end{multicols}
+
+\subsection{Acciones Semánticas}
+
+Como el \textit{Parser} de este procesador es de tipo $LR(1)$, es decir, construye el \textit{AST} desde las hojas hasta la raiz, las acciones semánticas se ejecutarán cada vez que el \textit{Parser} realice una reducción. De este modo cada regla de la gramática tendrá una única regla asociada a ella.
+
+A continuación se muestran las acciones semánticas del Analizador Semántico. Cabe destacar que esto es una simplificación, ya que muchas acciones, en particular aquellas relacionadas con la gestión de errores, son mucho más complejas en realidad.
+
+En cuanto a la notación se ha optado por un \textit{Esquema de Traducción} (\textit{EdT}). Por motivos de legibilidad, las acciones no se escriben intercaladas en la producción, sino como un bloque de código inmediatamente posterior.
+
+Esto supondría un problema de no ser porque en este trabajo todas las acciones semánticas se ejecutan al reducir, y ninguna producción contiene acciones intercaladas. Por tanto toda producción se ajusta al siguiente esquema:
+
+$$
+X \to \alpha \:\{ \textnormal{acción} \}
+$$
+
+Y, en consecuencia, cada bloque de código que aparece tras una producción debe interpretarse de este modo, es decir, como una acción sintetizada al final de la producción.
+
+La primera acción que se ejecuta es la creación de la tabla de símbolos. Esta es la única acción que no se puede asociar a ninguna regla, ya que por ser el \textit{Parser} ascendente, no se sabe cual será la primera regla en reducirse:
+
+    \begin{lstlisting}[language=C]
+symtable = symtable_make()
+
+scope_global = scope_make()
+scope_global.despl = 0
+
+symtable.scopes.push(scope_global)
+    \end{lstlisting}
+
+El resto de acciones serán:
+
+\begin{enumerate}
+    \item $PP \to P$
+    \begin{lstlisting}[language=C]
+symtable_free(symtable)
+    \end{lstlisting}
+    \item $P \to B P$
+\begin{lstlisting}[language=C]
+P.type = if B.ret_type == null
+    then type_ok
+else type_error
+\end{lstlisting}
+    \item $P \to F P$
+    \item $P \to \lambda$
+    \item $C \to B C_1$
+    \begin{lstlisting}[language=C]
+C.ret_type = if B.ret_type == C1.ret_type
+    then B.ret_type
+else if B.ret_type  == null 
+    then C1.ret_type
+else if C1.ret_type == null
+    then B.ret_type
+else type_error
+    \end{lstlisting}
+    \item $C \to \lambda$
+    \begin{lstlisting}[language=C]
+B.ret_type = null
+    \end{lstlisting}
+    \item $F \to \textnormal{Func}\: FF \:\textnormal{LBrack}\: C \:\textnormal{RBrack}$
+    \begin{lstlisting}[language=C]
+scope_local = symtable.scopes.pop()
+scope_free(scope_local)
+
+F.type = if C.ret_type == null
+    || (C.ret_type != type_error && C.ret_type == FF.ret_type)
+        then type_ok
+else type_error
+    \end{lstlisting}
+    \item $FF \to F1 \:F2 \:F3$
+    \begin{lstlisting}[language=C]
+scope_local = scope_make()
+scope_local.despl = 0
+
+scope_local.add_type(F2.pos, F3.type -> F1.type)
+scope_local.add_label(F2.pos, label_make())
+
+if F3.params != null {
+    for (type, pos) in (F3.type, F3.params) {
+        scope_local.add_type(pos, type)
+        scope_local.add_despl(pos, scope_local.despl)
+
+        scope_local.despl += type.size
+    }
+}
+
+symtable.scopes.push(scope_local)
+    \end{lstlisting}
+\newpage
+    \item $F1 \to H$
+    \begin{lstlisting}[language=C]
+F1.type = H.type
+    \end{lstlisting}
+    \item $F2 \to \textnormal{Id}$
+    \begin{lstlisting}[language=C]
+F2.pos = Id.pos
+    \end{lstlisting}
+    \item $F3 \to \textnormal{LParen}\: A \:\textnormal{RParen}$
+    \begin{lstlisting}[language=C]
+F3.type = A.type
+F3.params = A.params
+    \end{lstlisting}
+    \item $H \to T$
+    \begin{lstlisting}[language=C]
+H.type = T.type
+    \end{lstlisting}
+    \item $H \to \textnormal{Void}$
+    \begin{lstlisting}[language=C]
+H.type = type_void
+    \end{lstlisting}
+    \item $A \to T \:\textnormal{Id}\: K$
+    \begin{lstlisting}[language=C]
+A.type = T.type x K.type
+A.params = Id.pos x K.params
+    \end{lstlisting}
+    \item $A \to \textnormal{Void}$
+    \begin{lstlisting}[language=C]
+A.type = type_void
+A.params = null
+    \end{lstlisting}
+    \item $K \to \textnormal{Comma}\: T \:\textnormal{Id}\: K_1$
+    \begin{lstlisting}[language=C]
+K.type = T.type x K1.type
+K.params = Id.pos x K1.params
+    \end{lstlisting}
+    \item $K \to \lambda$
+    \item $B \to \textnormal{If}\: \:\textnormal{LParen}\: E \:\textnormal{RParen}\: S$
+    \begin{lstlisting}[language=C]
+B.ret_type = S.ret_type
+
+B.type = if E.type == type_bool 
+    then type_ok
+else type_error
+    \end{lstlisting}
+    \item $B \to \textnormal{Do}\: \:\textnormal{LBrack}\: C \:\textnormal{RBrack}\: \:\textnormal{While}\: \:\textnormal{LParen}\: E \:\textnormal{RParen}\: \:\textnormal{Semi}$
+    \begin{lstlisting}[language=C]
+B.ret_type = C.ret_type
+
+B.type = if E.type == type_bool
+    then type_ok
+else type_error
+    \end{lstlisting}
+    \item $B \to S$
+    \begin{lstlisting}[language=C]
+B.type = S.type
+B.ret_type = S.ret_type
+    \end{lstlisting}
+\newpage
+    \item $B \to \textnormal{Let}\: M T \:\textnormal{Id}\: \:\textnormal{Semi}$
+    \begin{lstlisting}[language=C]
+scope = symtable.scopes.peek()
+
+scope.add_type(Id.pos, T.type)
+scope.add_despl(Id.pos, T.type.size)
+
+scope.despl += T.type.size
+    \end{lstlisting}
+    \item $B \to \textnormal{Let}\: M T \:\textnormal{Id}\: \:\textnormal{Assign}\: E \:\textnormal{Semi}\:$
+    \begin{lstlisting}[language=C]
+scope = symtable.scopes.peek()
+
+scope.add_type(Id.pos, T.type)
+scope.add_despl(Id.pos, T.type.size)
+
+scope.despl += T.type.size
+
+B.type = if E.type == T.type
+    then type_ok
+else type_error
+    \end{lstlisting}
+    \item $M \to \lambda$
+    \item $T \to \textnormal{Int}\:$
+    \begin{lstlisting}[language=C]
+T.type = type_int
+T.type.size = 1
+    \end{lstlisting}
+    \item $T \to \textnormal{Float}\:$
+    \begin{lstlisting}[language=C]
+T.type = type_float
+T.type.size = 2
+    \end{lstlisting}
+    \item $T \to \textnormal{Bool}\:$
+    \begin{lstlisting}[language=C]
+T.type = type_bool
+T.type.size = 1
+    \end{lstlisting}
+    \item $T \to \textnormal{Str}\:$
+    \begin{lstlisting}[language=C]
+T.type = type_str
+T.type.size = 64
+    \end{lstlisting}
+    \item $S \to \textnormal{Write}\: E \:\textnormal{Semi}\:$
+    \begin{lstlisting}[language=C]
+S.type = if E.type in {type_int, type_float, type_str}
+    then type_ok
+else type_error
+    \end{lstlisting}
+
+\newpage
+
+    \item $S \to \textnormal{Read}\: \:\textnormal{Id}\: \:\textnormal{Semi}\:$
+    \begin{lstlisting}[language=C]
+scope = symtable.scopes.peek()
+type = scope.search_type(Id.pos)
+
+if type == null {
+    scope.add_type(Id.pos, type_int)
+    scope.add_despl(Id.pos, scope.despl)
+
+    scope.despl += 1
+    type = type_int
+}
+
+S.type = if type in {type_int, type_float, type_str}
+    then type_ok
+else type_error
+    \end{lstlisting}
+    \item $S \to \textnormal{Ret}\: X \:\textnormal{Semi}\:$
+    \begin{lstlisting}[language=C]
+S.ret_type = X.type
+    \end{lstlisting}
+    \item $S \to \textnormal{Id}\: \:\textnormal{Assign}\: E \:\textnormal{Semi}\:$
+    \begin{lstlisting}[language=C]
+scope = symtable.scopes.peek()
+type = scope.search_type(Id.pos)
+
+if type == null {
+    scope.add_type(Id.pos, type_int)
+    scope.add_despl(Id.pos, scope.despl)
+
+    scope.despl += 1
+    type = type_int
+}
+
+S.type = if type == E.type
+    then type_ok
+else type_error
+    \end{lstlisting}
+    \item $S \to \textnormal{Id}\: \:\textnormal{AndAssign}\: E \:\textnormal{Semi}\:$
+    \begin{lstlisting}[language=C]
+scope = symtable.scopes.peek()
+type = scope.search_type(Id.pos)
+
+if type == null {
+    scope.add_type(Id.pos, type_int)
+    scope.add_despl(Id.pos, scope.despl)
+
+    scope.despl += 1
+    type = type_int
+}
+
+S.type = if type == E.type && type == type_bool
+    then type_ok
+else type_error
+    \end{lstlisting}
+\newpage
+    \item $S \to \textnormal{Id}\: \:\textnormal{LParen}\: L \:\textnormal{RParen}\: \:\textnormal{Semi}\:$
+    \begin{lstlisting}[language=C]
+type = symtable.scopes.peek().search_type(Id.pos)
+
+S.type = if type == null
+    then type_error
+else if type == L.type -> ret_type
+    then type_ok
+else type_error
+    \end{lstlisting}
+    \item $L \to E Q$
+    \begin{lstlisting}[language=C]
+L.type = E.type x Q.type
+    \end{lstlisting}
+    \item $L \to \lambda$
+    \begin{lstlisting}[language=C]
+L.type = type_void
+    \end{lstlisting}
+    \item $Q \to \textnormal{Comma}\: E Q_1$
+    \begin{lstlisting}[language=C]
+Q.type = E.type x Q1.type
+    \end{lstlisting}
+    \item $Q \to \lambda$
+    \begin{lstlisting}[language=C]
+Q.type = null
+    \end{lstlisting}
+    \item $X \to E$
+    \begin{lstlisting}[language=C]
+X.type = E.type
+    \end{lstlisting}
+    \item $X \to \lambda$
+    \begin{lstlisting}[language=C]
+X.type = type_void
+    \end{lstlisting}
+    \item $E \to E_1 \:\textnormal{And}\: R$
+    \begin{lstlisting}[language=C]
+E.type = if E1.type == R.type && E1.type == type_bool
+    then type_bool
+else type_error
+    \end{lstlisting}
+    \item $E \to R$
+    \begin{lstlisting}[language=C]
+E.type = R.type
+    \end{lstlisting}
+    \item $R \to R_1 \:\textnormal{Eq}\: RR$
+    \begin{lstlisting}[language=C]
+R.type = if R1.type in {type_int, type_float} && R1.type == RR.type
+    then type_bool
+else type_error
+    \end{lstlisting}
+    \item $R \to RR$
+    \begin{lstlisting}[language=C]
+R.type = RR.type
+    \end{lstlisting}
+\newpage
+    \item $RR \to RR_1 \:\textnormal{Lt}\: U$
+    \begin{lstlisting}[language=C]
+RR.type = if RR1.type in {type_int, type_float} && RR1.type == U.type
+    then type_bool
+else type_error
+    \end{lstlisting}
+    \item $RR \to U$
+    \begin{lstlisting}[language=C]
+RR.type = U.type
+    \end{lstlisting}
+    \item $U \to U_1 \:\textnormal{Sum}\: UU$
+    \begin{lstlisting}[language=C]
+U.type = if U1.type in {type_int, type_float} && U1.type == UU.type
+    then U1.type
+else type_error
+    \end{lstlisting}
+    \item $U \to UU$
+    \begin{lstlisting}[language=C]
+U.type = UU.type
+    \end{lstlisting}
+    \item $UU \to UU_1 \:\textnormal{Mul}\: EE$
+    \begin{lstlisting}[language=C]
+UU.type = if UU1.type in {type_int, type_float} && UU1.type == EE.type
+    then UU1.type
+else type_error
+    \end{lstlisting}
+    \item $UU \to EE$
+    \begin{lstlisting}[language=C]
+UU.type = EE.type
+    \end{lstlisting}
+    \item $EE \to \textnormal{Not}\: EE_1$
+    \begin{lstlisting}[language=C]
+EE.type = if EE1.type == type_bool
+    then type_bool
+else type_error
+    \end{lstlisting}
+    \item $EE \to \textnormal{Sub}\: EE_1$
+    \begin{lstlisting}[language=C]
+EE.type = if EE1.type in {type_int, type_float}
+    then EE1.type
+else type_error
+    \end{lstlisting}
+    \item $EE \to \textnormal{Sum}\: EE_1$
+    \begin{lstlisting}[language=C]
+EE.type = if EE1.type in {type_int, type_float}
+    then EE1.type
+else type_error
+    \end{lstlisting}
+    \item $EE \to V$
+    \begin{lstlisting}[language=C]
+EE.type = V.type
+    \end{lstlisting}
+\newpage
+    \item $V \to \textnormal{Id}\: \:\textnormal{LParen}\: L \:\textnormal{RParen}\:$
+    \begin{lstlisting}[language=C]
+type = symtable.scopes.peek().search_type(Id.pos)
+
+V.type = if type == null
+    then type_error
+else if type == L.type -> ret_type
+    then ret_type
+else type_error
+    \end{lstlisting}
+    \item $V \to \textnormal{LParen}\: E \:\textnormal{RParep}\:$
+    \begin{lstlisting}[language=C]
+V.type = E.type
+    \end{lstlisting}
+    \item $V \to \textnormal{IntLit}\:$
+    \begin{lstlisting}[language=C]
+V.type = type_int
+V.type.size = 1
+    \end{lstlisting}
+    \item $V \to \textnormal{FloatLit}\:$
+    \begin{lstlisting}[language=C]
+V.type = type_float
+V.type.size = 2
+    \end{lstlisting}
+    \item $V \to \textnormal{StrLit}\:$
+    \begin{lstlisting}[language=C]
+V.type = type_str
+V.type.size = 64
+    \end{lstlisting}
+    \item $V \to \textnormal{True}\:$
+    \begin{lstlisting}[language=C]
+V.type = type_bool
+V.type.size = 1
+    \end{lstlisting}
+    \item $V \to \textnormal{False}\:$
+    \begin{lstlisting}[language=C]
+V.type = type_bool
+V.type.size = 1
+    \end{lstlisting}
+    \item $V \to \textnormal{Id}\:$
+    \begin{lstlisting}[language=C]
+scope = symtable.scopes.peek()
+type = scope.search_type(Id.pos)
+
+if type == null {
+    scope.add_type(Id.pos, type_int)
+    scope.add_despl(Id.pos, scope.despl)
+
+    scope.despl += 1
+    type = type_int
+}
+
+V.type = type
+    \end{lstlisting}
+\end{enumerate}
+
+\newpage
+
+
+    \section{Gestión de Errores}
+    \label{sec:gestor-errores}
+
+    El Gestor de Errores, es el componente más importante de un procesador de cara a la \textit{UX}. Es fundamental emitir errores que sean claros y se entiendan con facilidad.
+
+    Es por esto que se han decidido seguir estas pautas durante el diseño del Gestor de Errores:
+
+    \begin{itemize}
+        \item Todo error debe entenderse por sí mismo, es decir, en su mensaje debe estar toda la información necesaria para saber porque ha ocurrido, sin necesidad de consultar el fichero fuente.
+
+        \item Los errores deben ser localizables en el fichero fuente, es decir, se debe proporcionar como mínimo el número de línea y columna de cada error, así como de su contexto.
+
+        \item El gestor de errores debe ser conservador en la clasificación de los errores. Solo se emitirán diagnósticos específicos cuando el tipo de error pueda determinarse de forma inequívoca. Se intentará minimizar el uso de heurísticas y suposiciones para refinar el diagnóstico, ya que un diagnóstico incorrecto es inaceptable, incluso si solo falla 1 de cada 100 veces.
+    \end{itemize}
+
+    Además, el Gestor de Errores va a ser capaz de generar sugerencias en determinados errores. Es decir, como corregirlos a través de sustituciones, inserciones o eliminaciones de texto.
+
+    \subsection{Estructura de un Diagnóstico}
+
+    Cada diagnóstico va a estar formado por varios componentes, que juntos sirven la función de maximizar la claridad de cada error:
+
+    \begin{itemize}
+        \item Mensaje principal: Descripción general del error, que incluye el nombre del fichero, así como el número de línea y columna dónde se produce.
+
+        \item Rango del error: Fragmento del fichero en el que se localiza el error, subrayado y resaltado de color rojo en la línea correspondiente, y acompañado de una nota con información más específica sobre el problema detectado.
+
+        \item Rangos de notas: Otros intervalos del fichero, subrayados y resaltados de color azul, que aportan contexto adicional para la comprensión del error.
+
+        \item Sugerencia: Cuando es posible determinar con certeza como corregir el error, se emite un breve mensaje que indica como modificar el fichero para resolver el fallo.
+    \end{itemize}
+
+    Para ilustrar la importancia de todos estos elementos, se considera un error del \textit{Parser}: \textit{Delimitador Desemparejado}. Este error ocurre cuando un paréntesis abierto se cierra con una llave o vicebersa.
+
+    Usando sólo el mensaje principal y el rango del error, el diagnóstico quedaría así:
+
+\begin{figure}[H]
+    \includegraphics[width=1.0\textwidth]{images/diag-example/diag-example-1.png}
+    \label{fig:diag-example-1}
+\end{figure}
+\vspace{-3em}
+
+Este diagnóstico está bastante incompleto. Permite localizar el error pero sólo parcialmente, ya que muestra el delimitador cerrado desemparejado pero no el abierto. Esto también significa que el diagnóstico no se puede entender por sí mismo, el usuario tendría que abrir el fichero y ver porqué la llave está desemparejada y con que.
+
+Para remediar esto, el \textit{Parser} mantiene una pila con todos los delimitadores abiertos sin cerrar, por lo que se puede acceder fácilmente a la información que falta:
+
+\vspace{-1em}
+\begin{figure}[H]
+    \includegraphics[width=0.98\textwidth]{images/diag-example/diag-example-2.png}
+    \label{fig:diag-example-2}
+\end{figure}
+\vspace{-2em}
+
+Además, este error casi siempre ocurre porque el usuario se ha olvidado de cerrar el delimitador abierto. Por ello, el delimitador cerrado desemparejado suele corresponder a otro delimitador abierto anterior que, en caso de encontrarse, puede proporcionar aún más contexto:
+
+\vspace{-1em}
+\begin{figure}[H]
+    \includegraphics[width=0.98\textwidth]{images/diag-example/diag-example-3.png}
+    \label{fig:diag-example-3}
+\end{figure}
+\vspace{-2em}
+
+Ahora el error es mucho más claro. Es localizable y también comprensible sin necesidad de consultar el fichero fuente. Además, con todo este contexto, es fácil ver que el error se puede arreglar cerrando el paréntesis abierto de la línea 25, por lo que es posible añadir una sugerencia:
+
+\vspace{-1em}
+\begin{figure}[H]
+    \includegraphics[width=0.98\textwidth]{images/diag-example/diag-example-4.png}
+    \label{fig:diag-example-4}
+\end{figure}
+\vspace{-2em}
+
+Todo este proceso se lleva a cabo de forma automática durante la generación de los diagnósticos del procesador. Gracias a la información mantenida por el \textit{Parser}, se crean diagnósticos dinámicos y enriquecidos por su contexto. Esto permite emitir errores más informativos, robustos y accionables, capaces de guiar al usuario directamente hacia la causa del problema y su posible corrección.
+
+\subsection{Recuperación de Errores}
+
+Como se ha comentado a lo largo de la memoria, todos los módulos del procesador implementan recuperación de errores con el fin de reportar la mayor cantidad de errores por ejecución, minimizando el número de ejecuciones del procesador necesarias para corregir por completo el fichero fuente.
+
+La estrategia de recuperación varía según el módulo:
+
+\subsubsection{Recuperación del Lexer}
+
+El \textit{Lexer} tiene la recuperación de errores más sencilla de todas. Al encontrar un error, el Analizador Léxico intenta emitit un \textit{token} ficticio que ayuda a que tanto el \textit{Parser} como el Analizador Semántico generen diagnósticos más coherentes.
+
+Por ejemplo, si ocurre un error de \textit{Overflow de Entero}, como se sabe que el usuario quería escrbir una constante de tipo entero, se emite un \textit{token} constante entera sin valor. Se emite un \textit{token} ficticio en todos los diagnósticos del \textit{Lexer} menos en \textit{Carácter inválido}, en la que simplemente se salta el carácter y se continua analizando.
+
+Las ventajas de esta estrategia frente a no emitir ningún \textit{token} ficticio y continuar el análisis sin intervención pueden observarse en el siguiente fragmento:
+
+    \begin{lstlisting}
+let float real = 9238923.;
+
+real = 3;
+    \end{lstlisting}
+
+Que produce los siguientes diagnósticos: 
+
+\vspace{-1em}
+\begin{figure}[H]
+    \includegraphics[width=1.0\textwidth]{images/recovery/lexer/recovery-lexer.png}
+    \label{fig:recovery-lexer}
+\end{figure}
+\vspace{-3em}
+
+Gracias a que se genera el \textit{token} fantasma, a pesar de producir un error, se puede detectar el error semántico en la declaración, ya que el usuario, hubiese \textit{overflow} o no, estaba intentando asignar a una variable de tipo \textit{string} una constante entera. Además si no se hubiese generado este \textit{token}, el procesador habría emitido también errores sintácticos aparentemente sin sentido, ya que al omitir el \textit{token} constante entera el \textit{Parser} habría encontrado un \textit{token} $=$ seguido de un punto y coma.
+
+\newpage
+
+\subsubsection{Recuperación del Parser}
+
+Como se comentó brevemente en la sección de errores del \textit{Parser}, cuando el Analizador Sintáctico encuentra un error, intenta encontrar una secuencia de cambios que permita resincronizar la pila de estados con el \textit{token} que lo provocó.
+
+Para ello se realiza una búsqueda heurística en anchura por el autómata $LR(1)$. Cada error se intenta corregir mediante una secuencia de inserciones, una secuencia de eliminaciones o una sustitución. Cada arreglo se puntua según el número de inserciones y/o eliminaciones que conlleva, y se selecciona la solución con la puntuación más baja.
+
+Si no se encuentra una corrección adecuada, o si el arreglo resultara demasiado costoso o inconsistente, se emite el error y se interrumpe la ejecución del procesador.
+
+La clasificación de los errores se realiza analizando los contenidos de la pila de estados junto al \textit{token} que produjo el error. Esta estrategia se ha escogido frente a una clasificación manual basada en las celdas de las tablas de acción y \textit{goto} por su flexibilidad. Una clasificación manual resulta demasiado laboriosa, ya que no solo hay cientos de celdas en las tablas, sino que cualquier modificación de la gramática obligaría a rehacer rehacer por completo el manejo de los errores.
+
+A continuación se muetran un ejemplo de cada tipo de recuperación: Por inserción, eliminación y sustitución.
+
+\vspace{-1em}
+\begin{figure}[H]
+    \includegraphics[width=0.88\textwidth]{images/recovery/parser/recovery-parser-ins.png}
+    \label{fig:recovery-parser-ins}
+\end{figure}
+\vspace{-3em}
+
+\vspace{-1em}
+\begin{figure}[H]
+    \includegraphics[width=0.88\textwidth]{images/recovery/parser/recovery-parser-del.png}
+    \label{fig:recovery-parser-del}
+\end{figure}
+\vspace{-3em}
+
+\vspace{-1em}
+\begin{figure}[H]
+    \includegraphics[width=0.88\textwidth]{images/recovery/parser/recovery-parser-rep.png}
+    \label{fig:recovery-parser-rep}
+\end{figure}
+\vspace{-3em}
+
+\subsubsection{Recuperación del Analizador Semántico}
+
+La recuperación de este módulo ya se vio en parte en sus acciones semánticas. Al encontrar un error se propaga el tipo especial \textit{tipo\_error}, que permite continuar el análisis y la emisión de más excepciones cuando se reducen conjuntos de símbolos sin errores.
+
+Es importante también como se comporta cuando ocurren errores sintácticos. Se considera el siguiente fragmento:
+
+    \begin{lstlisting}
+let var = ;
+
+var = "hola";
+    \end{lstlisting}
+
+    El analizador sintáctico para recuperar los errores de ese fichero insertará un tipo tras el \textit{let} y una expresión tras el $=$ en la primera línea. Sin embargo, estas inserciones no tienen porque ser coherentes semánticamente y desde luego no tienen porque ser compatibles con la tercera línea. Por ello, si el Analizador Semántico ve que los \textit{tokens} que produjeron el error son ficticios, no emite ningún diagnóstico y simplemente asigna \textit{tipo\_error} y continua. Habrá que esperar a que se corrijan los errores sintácticos para emitir los semánticos:
+
+\vspace{-1em}
+\begin{figure}[H]
+    \includegraphics[width=0.9\textwidth]{images/recovery/sem/recovery-sem-1.png}
+    \label{fig:recovery-sem-1}
+\end{figure}
+\vspace{-4em}
+
+Sin embargo, si el fragmento fuese el siguiente:
+
+    \begin{lstlisting}
+int var = 3;
+
+var = "hola";
+    \end{lstlisting}
+
+Ahora sí que se emitirán diagnósticos ya que se sabe que el tipo de \textit{var} es \textit{int}, aunque la sentencia genere un error:
+
+\vspace{-1em}
+\begin{figure}[H]
+    \includegraphics[width=0.9\textwidth]{images/recovery/sem/recovery-sem-2.png}
+    \label{fig:recovery-sem-2}
+\end{figure}
+\vspace{-3em}
 
 %----------------------------------------------------------------------------------------
 %   APPENDICES

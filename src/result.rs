@@ -8,6 +8,12 @@ pub enum AnalysisResult {
     IOError,
 }
 
+impl AnalysisResult {
+    pub fn is_success(&self) -> bool {
+        *self == AnalysisResult::Success
+    }
+}
+
 impl Termination for AnalysisResult {
     fn report(self) -> ExitCode {
         ExitCode::from(match self {
