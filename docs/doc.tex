@@ -817,7 +817,7 @@
         U &\to U \:\textnormal{Sum}\: UU \:\mid\: UU && \\
         UU &\to UU \:\textnormal{Mul}\: EE \:\mid\: EE && \\
         EE &\to \:\textnormal{Not}\: EE \:\mid\: \:\textnormal{Sub}\: EE \:\mid\: \:\textnormal{Sum}\: EE \:\mid\: V && \\
-        V &\to \:\textnormal{Id}\: \:\textnormal{LParen}\: L \:\textnormal{RParen}\: \:\mid\: \:\textnormal{LParen}\: E \:\textnormal{RParep}\: \:\mid\: \:\textnormal{IntLit}\: \:\mid\: \:\textnormal{FloatLit}\: \:\mid\: \:\textnormal{StrLit}\: \:\mid\: \:\textnormal{True}\: \:\mid\: \:\textnormal{False}\: \:\mid\: \:\textnormal{Id}\: &&
+        V &\to \:\textnormal{Id}\: \:\textnormal{LParen}\: L \:\textnormal{RParen}\: \:\mid\: \:\textnormal{LParen}\: E \:\textnormal{RParen}\: \:\mid\: \:\textnormal{IntLit}\: \:\mid\: \:\textnormal{FloatLit}\: \:\mid\: \:\textnormal{StrLit}\: \:\mid\: \:\textnormal{True}\: \:\mid\: \:\textnormal{False}\: \:\mid\: \:\textnormal{Id}\: &&
     \end{flalign*}
 
     $G$ se trata de una gramática de contexto libre y el lenguaje que genera, $L(G)$, está compuesto por la estructura de todos los programas sintácticamente correctos.
@@ -1482,9 +1482,8 @@ symtable_free(symtable)
     \end{lstlisting}
     \item $P \to B P$
 \begin{lstlisting}[language=C]
-P.type = if B.ret_type == null
-    then type_ok
-else type_error
+if B.ret_type != null
+    then error()
 \end{lstlisting}
     \item $P \to F P$
     \item $P \to \lambda$
@@ -1500,7 +1499,7 @@ else type_error
     \end{lstlisting}
     \item $C \to \lambda$
     \begin{lstlisting}[language=C]
-B.ret_type = null
+C.ret_type = null
     \end{lstlisting}
     \item $F \to \textnormal{Func}\: FF \:\textnormal{LBrack}\: C \:\textnormal{RBrack}$
     \begin{lstlisting}[language=C]
@@ -1817,7 +1816,7 @@ else if type == L.type -> ret_type
     then ret_type
 else type_error
     \end{lstlisting}
-    \item $V \to \textnormal{LParen}\: E \:\textnormal{RParep}\:$
+    \item $V \to \textnormal{LParen}\: E \:\textnormal{RParen}\:$
     \begin{lstlisting}[language=C]
 V.type = E.type
     \end{lstlisting}
@@ -3235,185 +3234,190 @@ global table #0:
 \end{center}
     \subsection{Casos Incorrectos}
     \begin{description}
-        \item[unterm.javascript] Fichero con errores de sentencias incompletas.
+        \item[lexer.javascript] Fichero con errores mayoritariamente léxicos
             \begin{lstlisting}[basicstyle=\footnotesize]
 /* unterminated declaration */
 let int = 2;
 
-/* unfinished strings */
-let string foo = "im not finishing this string
-let string bar = "im not finishing this one either\
+$ /* illegal */
+
+let int max_plus_one = 32768;
+/* unfinished variables */
+let float x = 478234.;
 let string rep = "last one\q
 
-/* unfinished float */
-let float x = 478234.
-
-/*** * / * ///** / this comment is finished /* /* ***/
+let int a = 3;
 /*** this one is not ** ****** *** /*
+            \end{lstlisting}
 
-function int main {
-    let string useless = "this variable won't be recognised";
-    return 0;
+            \textbf{Diagnósticos:}
+\vspace{-2em}
+\begin{figure}[H]
+    \includegraphics[width=0.95\textwidth]{images/diags/diags-lexer.png}
+    \label{fig:diags-lexer}
+\end{figure}
+\newpage
+
+        \item[parser.javascript] Fichero con errores mayoritariamente sintácticos
+            \begin{lstlisting}[basicstyle=\footnotesize]
+/* declaraciones incorrectas */
+let y = 10;
+let let int x = 100;
+let int z = 2 + ; 
+
+/* funciones incorrectas */
+function int func(void) {
+        write(c
+}
+function void if() {}
+function chao(int a) {}
+
+void wellwell(void) {}
+
+/* mas sustituciones y eliminaciones */
+a == 4;
+
+b = 4,
+
+function int chachi(int) { }
+
+chachi(hola,);
+            \end{lstlisting}
+
+            \textbf{Diagnósticos:}
+\vspace{-2em}
+\begin{figure}[H]
+    \includegraphics[width=1.0\textwidth]{images/diags/diags-parser-1.png}
+    \label{fig:diags-parser-1}
+\end{figure}
+\newpage
+\begin{figure}[H]
+    \includegraphics[width=1.0\textwidth]{images/diags/diags-parser-2.png}
+    \label{fig:diags-parser-2}
+\end{figure}
+\newpage
+
+\newpage
+
+        \item[sem.javascript] Fichero con errores mayoritariamente semánticos
+            \begin{lstlisting}[basicstyle=\footnotesize]
+asdf &= true;
+
+extra = "hi";
+let float asdf = 3 + first;
+first = "hello";
+
+read sec;
+sec = 5.0;
+
+let boolean hey = true && third;
+let boolean a = false;
+
+function int oper(int a, float b, string c) {
+        let int hey = 3;
+        hey = hey + 4;
+
+        a = 5;
+        let int a = 5;
+
+        yo = oper(1, 2, 3, 4);
+        read troll;
+
+        let float oper = 3.0;
+
+        oper(1, 1.0, "1");
+
+        oper = 2.0;
+
+        return oper(c, hey, a);
 }
             \end{lstlisting}
 
             \textbf{Diagnósticos:}
+\vspace{-2em}
+\begin{figure}[H]
+    \includegraphics[width=0.95\textwidth]{images/diags/diags-sem-1.png}
+    \label{fig:diags-sem-1}
+\end{figure}
+\newpage
+\begin{figure}[H]
+    \includegraphics[width=1.0\textwidth]{images/diags/diags-sem-2.png}
+    \label{fig:diags-sem-2}
+\end{figure}
+\newpage
+
+        \item[lex\_plus\_parse.javascript] Fichero con errores mayoritariamente léxicos y sintácticos
             \begin{lstlisting}[basicstyle=\footnotesize]
-unterm.javascript:5:18: error: missing terminating character '"' on string literal
-    |
-  5 | let string foo = "im not finishing this string
-    |                  ^ started here
-    |
-unterm.javascript:6:18: error: missing terminating character '"' on string literal
-    |
-  6 | let string bar = "im not finishing this one either\
-    |                  ^ started here
-    |
-unterm.javascript:7:27: warning: unknown escape sequence '\q'
-    |
-  7 | let string rep = "last one\q
-    |                           ^^ interpreted as \\q
-    |
-unterm.javascript:7:18: error: missing terminating character '"' on string literal
-    |
-  7 | let string rep = "last one\q
-    |                  ^ started here
-    |
-unterm.javascript:10:15: error: expected digit after '.' in float literal
-    |
- 10 | let float x = 478234.
-    |               ^^^^^^^ perhaps you meant '478234.0'
-    |
-unterm.javascript:13:1: error: unterminated block comment
-    |
- 13 | /*** this one is not ** ****** *** /*
-    | ^^ started here
-    |
-unterm.javascript:2:9: error: expected 'identifier' before '='
-    |
-  2 | let int = 2;
-    |         ^ before this token
-    |
-            \end{lstlisting}
-            \newpage
-        
-        \item[overflow.javascript] Fichero con errores de constantes fuera del rango admitido.
-            \begin{lstlisting}[basicstyle=\footnotesize]
-/* parse error, missing type */
-function hello() {}
+if (condition) write "no parenthesis";
 
-/* string with 64 characters */
-let string foo = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+let int int a = 5.;
 
-/* string with 65 characters */
-let string bar = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+do { }
 
-/* max int16 */
-let int imax = 32767;
-let int imax_plus_one = 32768;
+let int a = 4;
 
-/* max float */
-let float fmax = 340282346638528859811704183484516925440.0;
-let float fmax_plus_more = 3402823466385288598117041834845169254382923892341.0;
-let float lots_of_decimals = 0.2347028349820934809218409238845290380928;
+function void(void) {return;}
+
+do {
+    return 5;
+} while(5);
+
+let string a = "Hello^[
             \end{lstlisting}
 
             \textbf{Diagnósticos:}
-            \begin{lstlisting}[basicstyle=\scriptsize]
-overflow.javascript:8:18: error: string literal is too long
-    |
-  8 | let string bar = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
-    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ length is 65 but maximum is 64
-    |
-overflow.javascript:12:25: error: integer literal out of range for 16-byte type
-    |
- 12 | let int imax_plus_one = 32768;
-    |                         ^^^^^ maximum is 32767
-    |
-overflow.javascript:16:28: error: float literal out of range for 32-byte type
-    |
- 16 | let float fmax_plus_more = 3402823466385288598117041834845169254382923892341.0;
-    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ maximum is 3.4028235e38
-    |
-overflow.javascript:2:10: error: expected 'int', 'float', 'string', 'boolean' or 'void' before 'hello'
-    |
-  2 | function hello() {}
-    |          ^^^^^ before this token
-    |
-            \end{lstlisting}
-            \newpage
+\vspace{-2em}
+\begin{figure}[H]
+    \includegraphics[width=1.0\textwidth]{images/diags/diags-plus-1.png}
+    \label{fig:diags-plus-1}
+\end{figure}
+\newpage
+\begin{figure}[H]
+    \includegraphics[width=1.0\textwidth]{images/diags/diags-plus-2.png}
+    \label{fig:diags-plus-2}
+\end{figure}
+\newpage
 
-        \item[noise.javascript] Fichero de ruido, repleto de errores diferentes.
+        \item[challenge.javascript] Fichero con todo tipo de errores
             \begin{lstlisting}[basicstyle=\footnotesize]
-if condition write "no parenthesis";
-123.45.67 12abc 123456. 78
-"bad\escape" "no closing quote
-/* nested comment */ /* comment */ /* unclosed comment*/
-=!= &== != <=> &&|!!
-"unterminated string again /* unclosed comment            
-"bad string with \x illegal escape" "" ""empty""
-"Hello^[World"
-/* final comment */ /* another unclosed
+let lol_sum = oper();
+let string troll = "3o4";
+a = true?,
+
+function void call2(void) {
+        return;
+        return false;
+        return;
+        return 1 == blop;
+}
+let int a = 0.;
+
+if (cond) write "hello";
+function void noop(void) { return; return; return; }
+doom = noop(pram1, pram2, pram3);
+
+function int repeat(int x, float x) {
+        x = 5.0;
+        return repeat(x);
+        let int hola = a;
+}
+
+do { return doom; } while (!true);
+/*
             \end{lstlisting}
 
             \textbf{Diagnósticos:}
-            \begin{lstlisting}[basicstyle=\footnotesize]
-noise.javascript:2:7: error: illegal character '.' in program
-    |
-  2 | 123.45.67 12abc 123456. 78
-    |       ^ here
-    |
-noise.javascript:2:17: error: expected digit after '.' in float literal
-    |
-  2 | 123.45.67 12abc 123456. 78
-    |                 ^^^^^^^ perhaps you meant '123456.0'
-    |
-noise.javascript:3:5: warning: unknown escape sequence '\e'
-    |
-  3 | "bad\escape" "no closing quote
-    |     ^^ interpreted as \\e
-    |
-noise.javascript:3:14: error: missing terminating character '"' on string literal
-    |
-  3 | "bad\escape" "no closing quote
-    |              ^ started here
-    |
-noise.javascript:5:14: error: illegal character '>' in program
-    |
-  5 | =!= &== != <=> &&|!!
-    |              ^ here
-    |
-noise.javascript:5:18: error: illegal character '|' in program
-    |
-  5 | =!= &== != <=> &&|!!
-    |                  ^ here
-    |
-noise.javascript:6:1: error: missing terminating character '"' on string literal
-    |
-  6 | "unterminated string again /* unclosed comment
-    | ^ started here
-    |
-noise.javascript:7:18: warning: unknown escape sequence '\x'
-    |
-  7 | "bad string with \x illegal escape" "" ""empty""
-    |                  ^^ interpreted as \\x
-    |
-noise.javascript:8:7: error: malformed string literal, contains control character '\u{1b}'
-    |
-  8 | "Hello\u{1b}World"
-    |       ^^^^^^ remove this character
-    |
-noise.javascript:9:21: error: unterminated block comment
-    |
-  9 | /* final comment */ /* another unclosed
-    |                     ^^ started here
-    |
-noise.javascript:1:4: error: expected '(' before 'condition'
-    |
-  1 | if condition write "no parenthesis";
-    |    ^^^^^^^^^ before this token
-    |
-            \end{lstlisting}
+\vspace{-2em}
+\begin{figure}[H]
+    \includegraphics[width=0.95\textwidth]{images/diags/diags-challenge-1.png}
+    \label{fig:diags-challenge-1}
+\end{figure}
+\newpage
+\begin{figure}[H]
+    \includegraphics[width=1.0\textwidth]{images/diags/diags-challenge-2.png}
+    \label{fig:diags-challenge-2}
+\end{figure}
+\newpage
     \end{description}
 
 \end{appendices}
