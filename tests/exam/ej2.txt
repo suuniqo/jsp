@@ -1,0 +1,55 @@
+/** No se debe cambiar el ejemplo hasta que lo indique el profesor **/
+let float ff;
+let  boolean bb ;
+let string s ;
+let int a ;
+
+a= a > 88 + 3;
+
+function int RR (void n, boolean _)	
+{
+	let  boolean log;
+	log= n < a < 5;
+	read kk;
+	if (_ && log)	return ff;
+	return n - RR (n - 1, bb);	
+}
+
+let string  _s_;
+
+RR = 1;
+
+function void write (string s, int RR, string pp)	
+{
+	read s;
+	let boolean s_;
+	write"hola;
+	write a;
+	write RR;	read s;
+	if (bb)return ;
+	write (4 + a + (0032765 + (8 +)));
+}
+
+kk=888:88;
+_s_ = "++++++Helloooooooooooooooooooooooooooooooooooooooooooooooooooooooooo";
+
+function string cadena ()
+{
+	let string kk ;
+	write (4.0 + ff + (00.00 + (0.888888888888 + ff)));
+	while (a-- > 99 || bb) 
+	{writ ('"{9}"', RR(s, bb), kk);
+		let		string for;
+		for=_s_;
+		if (bb) if(bb) 
+			return s;
+	}
+		return "";
+		
+// fin function */
+
+	s= cadena(kk);
+	a= RR (a, bb);
+	kk = writ (kk,99.,_s_);
+	return s;
+

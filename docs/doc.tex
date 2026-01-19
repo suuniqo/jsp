@@ -1907,7 +1907,7 @@ V.type = type
 \end{figure}
 \vspace{-3em}
 
-Este diagnóstico está bastante incompleto. Permite localizar el error pero sólo parcialmente, ya que muestra el delimitador cerrado desemparejado pero no el abierto. Esto también significa que el diagnóstico no se puede entender por sí mismo, el usuario tendría que abrir el fichero y ver porqué la llave está desemparejada y con que.
+Este diagnóstico está bastante incompleto. Permite localizar el error pero sólo parcialmente, ya que muestra el delimitador cerrado desemparejado pero no el abierto. Esto también significa que el diagnóstico no se puede entender por sí mismo, el usuario tendría que abrir el fichero y ver porqué la llave está desemparejada y con qué.
 
 Para remediar esto, el \textit{Parser} mantiene una pila con todos los delimitadores abiertos sin cerrar, por lo que se puede acceder fácilmente a la información que falta:
 
@@ -1936,7 +1936,7 @@ Ahora el error es mucho más claro. Es localizable y también comprensible sin n
 \end{figure}
 \vspace{-2em}
 
-Todo este proceso se lleva a cabo de forma automática durante la generación de los diagnósticos del procesador. Gracias a la información mantenida por el \textit{Parser}, se crean diagnósticos dinámicos y enriquecidos por su contexto. Esto permite emitir errores más informativos, robustos y accionables, capaces de guiar al usuario directamente hacia la causa del problema y su posible corrección.
+Todo este proceso se lleva a cabo de forma automática durante la generación de los diagnósticos del procesador. Gracias a la información mantenida por el \textit{Parser}, se crean diagnósticos dinámicos y enriquecidos por su contexto. Ésto permite emitir errores más informativos, robustos y accionables, capaces de guiar al usuario directamente hacia la causa del problema y su posible corrección.
 
 \subsection{Recuperación de Errores}
 
@@ -1948,14 +1948,14 @@ La estrategia de recuperación varía según el módulo:
 
 El \textit{Lexer} tiene la recuperación de errores más sencilla de todas. Al encontrar un error, el Analizador Léxico intenta emitit un \textit{token} ficticio que ayuda a que tanto el \textit{Parser} como el Analizador Semántico generen diagnósticos más coherentes.
 
-Por ejemplo, si ocurre un error de \textit{Overflow de Entero}, como se sabe que el usuario quería escrbir una constante de tipo entero, se emite un \textit{token} constante entera sin valor. Se emite un \textit{token} ficticio en todos los diagnósticos del \textit{Lexer} menos en \textit{Carácter inválido}, en la que simplemente se salta el carácter y se continua analizando.
+Por ejemplo, si ocurre un error de \textit{Overflow de Entero}, como se sabe que el usuario quería escrbir una constante de tipo entero, se emite un \textit{token} constante entera sin valor. Se emite un \textit{token} ficticio en todos los diagnósticos del \textit{Lexer} menos en \textit{Carácter inválido}, en la que simplemente se salta el carácter y se continúa analizando.
 
 Las ventajas de esta estrategia frente a no emitir ningún \textit{token} ficticio y continuar el análisis sin intervención pueden observarse en el siguiente fragmento:
 
     \begin{lstlisting}
-let float real = 9238923.;
+let int a = 3;
 
-real = 3;
+let string real = 92389233892;
     \end{lstlisting}
 
 Que produce los siguientes diagnósticos: 
@@ -2016,7 +2016,7 @@ let var = ;
 var = "hola";
     \end{lstlisting}
 
-    El analizador sintáctico para recuperar los errores de ese fichero insertará un tipo tras el \textit{let} y una expresión tras el $=$ en la primera línea. Sin embargo, estas inserciones no tienen porque ser coherentes semánticamente y desde luego no tienen porque ser compatibles con la tercera línea. Por ello, si el Analizador Semántico ve que los \textit{tokens} que produjeron el error son ficticios, no emite ningún diagnóstico y simplemente asigna \textit{tipo\_error} y continua. Habrá que esperar a que se corrijan los errores sintácticos para emitir los semánticos:
+    El analizador sintáctico para recuperar los errores de ese fichero insertará un tipo tras el \textit{let} y una expresión tras el $=$ en la primera línea. Sin embargo, estas inserciones no tienen porque ser coherentes semánticamente y desde luego no tienen porque ser compatibles con la tercera línea. Por ello, si el Analizador Semántico ve que los \textit{tokens} que produjeron el error son ficticios, no emite ningún diagnóstico y simplemente asigna \textit{tipo\_error} y continúa. Habrá que esperar a que se corrijan los errores sintácticos para emitir los semánticos:
 
 \vspace{-1em}
 \begin{figure}[H]
@@ -2084,7 +2084,7 @@ function int fib(int n) {
 \end{lstlisting}
 \begin{multicols}{4}
 \textbf{Fichero de \textit{tokens}:}
-\begin{lstlisting}[basicstyle=\footnotesize]
+\begin{lstlisting}[basicstyle=\normalsize]
 <Func, >
 <Int, >
 <Id, 0>
@@ -2164,22 +2164,38 @@ function int fib(int n) {
 <Semi, >
 <RBrack, >
             \end{lstlisting}
-            \textbf{Tabla de símbolos:}
-            \begin{lstlisting}[basicstyle=\footnotesize]
-table #0:
-* 'fib'
-* 'n'
-* 'a'
-* 'b'
-* 'c'
-                \end{lstlisting}
             \end{multicols}
+\newpage
 
                 \textbf{Parse:}
-                \begin{lstlisting}[basicstyle=\footnotesize]
+                \begin{lstlisting}[basicstyle=\normalsize]
 ascending 23 12 15 14 23 7 10 13 40 48 52 54 56 58 45 48 52 54 56 59 60 45 48 52 54 56 58 60 18 34 28 40 48 52 54 56 58 45 48 52 54 56 59 60 45 48 52 54 56 58 60 18 34 28 19 23 45 48 52 54 56 58 60 26 19 23 45 48 52 54 56 58 60 26 19 23 40 48 52 54 40 48 52 55 56 58 60 26 40 48 52 54 56 58 60 39 29 40 48 52 54 56 58 60 39 29 40 48 52 54 45 48 51 52 55 56 58 60 39 29 5 6 6 6 6 40 48 52 54 56 45 48 52 54 57 58 60 46 48 49 52 54 56 58 60 24 40 48 52 54 56 58 60 18 34 29 5 6 6 6 6 6 6 16 2 3 1
                 \end{lstlisting}
 
+            \textbf{Tabla de símbolos:}
+            \begin{lstlisting}[basicstyle=\normalsize]
+ fib table #1:
+* lexema: 'n'
+  + tipo: 'int'
+  + despl: 0
+* lexema: 'a'
+  + tipo: 'int'
+  + despl: 1
+* lexema: 'b'
+  + tipo: 'int'
+  + despl: 2
+* lexema: 'c'
+  + tipo: 'int'
+  + despl: 3
+
+global table #0:
+* lexema: 'fib'
+  + etiqFuncion: '__tag_fib__'
+  + tipo: 'function'
+    + tipoRetorno: 'int'
+    + numParam: 1
+      + tipoParam01: 'int'
+               \end{lstlisting}
 \newpage
 
 \begin{center}
@@ -2277,7 +2293,7 @@ let int n=0;read n;let int res=factorial(n);write(res);
             \end{lstlisting}
             \begin{multicols}{3}
                 \textbf{Fichero de \textit{tokens}:}
-                \begin{lstlisting}[basicstyle=\footnotesize]
+                \begin{lstlisting}[basicstyle=\normalsize]
 <Func, >
 <Int, >
 <Id, 0>
@@ -2364,20 +2380,38 @@ let int n=0;read n;let int res=factorial(n);write(res);
 <RParen, >
 <Semi, >
                 \end{lstlisting}
-                \textbf{Tabla de símbolos:}
-                \begin{lstlisting}[basicstyle=\footnotesize]
-table #0:
-* 'factorial'
-* 'n'
-* 'res'
-                \end{lstlisting}
             \end{multicols}
+\newpage
 
                 \textbf{Parse:}
-                \begin{lstlisting}[basicstyle=\footnotesize]
+                \begin{lstlisting}[basicstyle=\normalsize]
 ascending 23 12 15 14 23 7 10 13 40 48 52 54 56 58 45 48 52 54 56 59 60 45 48 52 54 56 58 60 18 34 28 40 48 52 54 56 45 48 52 54 57 58 60 40 48 52 54 56 58 60 18 34 28 19 23 40 48 52 54 56 58 60 26 40 48 52 54 45 48 51 52 55 56 58 60 39 29 40 48 52 40 48 53 54 56 58 60 39 29 5 6 6 40 48 52 54 56 45 48 52 54 57 58 60 46 48 49 52 54 56 58 60 24 40 48 52 54 56 58 60 18 34 29 5 6 6 6 6 6 16 19 23 45 48 52 54 56 58 60 26 35 29 19 23 40 48 52 54 56 58 60 30 33 47 48 52 54 56 58 60 26 40 48 52 54 56 58 60 46 48 52 54 56 58 60 36 29 2 4 4 4 4 3 1
                 \end{lstlisting}
 
+                \textbf{Tabla de símbolos:}
+                \begin{lstlisting}[basicstyle=\normalsize]
+factorial table #1:
+* lexema: 'n'
+  + tipo: 'int'
+  + despl: 0
+* lexema: 'res'
+  + tipo: 'int'
+  + despl: 1
+
+global table #0:
+* lexema: 'factorial'
+  + etiqFuncion: '__tag_factorial__'
+  + tipo: 'function'
+    + tipoRetorno: 'int'
+    + numParam: 1
+      + tipoParam01: 'int'
+* lexema: 'n'
+  + tipo: 'int'
+  + despl: 0
+* lexema: 'res'
+  + tipo: 'int'
+  + despl: 1
+                \end{lstlisting}
 \newpage
 
 \begin{center}
@@ -2464,7 +2498,7 @@ let boolean george=true;george&=bool;}/*** / eof /***/
             \end{lstlisting}
             \begin{multicols}{3}
                 \textbf{Fichero de \textit{tokens}:}
-                \begin{lstlisting}[basicstyle=\footnotesize]
+                \begin{lstlisting}[basicstyle=\normalsize]
 <Let, >
 <Int, >
 <Id, 0>
@@ -2579,27 +2613,63 @@ let boolean george=true;george&=bool;}/*** / eof /***/
 <Semi, >
 <RBrack, >
                 \end{lstlisting}
-                \textbf{Tabla de símbolos:}
-                \begin{lstlisting}[basicstyle=\footnotesize]
-table #0:
-* 'global'
-* 'nothing'
-* 'main'
-* 'b'
-* 'd'
-* 'aux'
-* 'foo'
-* 'bar'
-* 'oper'
-* 'bool'
-* 'george'
-                \end{lstlisting}
             \end{multicols}
-    \end{description}
 
+\newpage
                 \textbf{Parse:}
-                \begin{lstlisting}[basicstyle=\footnotesize]
+                \begin{lstlisting}[basicstyle=\normalsize]
 ascending 19 23 45 48 52 54 56 58 60 26 11 15 14 9 13 35 29 40 48 52 54 45 48 51 52 55 56 58 60 39 29 5 6 40 48 52 54 56 45 48 52 54 57 58 60 46 48 49 52 54 56 58 60 24 5 6 6 16 23 12 15 14 22 20 7 8 10 13 19 20 43 48 52 54 56 58 60 26 19 22 44 48 52 54 56 58 60 26 19 23 45 48 52 54 56 58 60 26 19 23 45 48 52 54 45 48 50 51 50 51 50 51 50 51 50 51 50 51 50 51 50 51 52 55 56 58 60 25 19 22 44 48 52 54 56 58 60 26 19 21 41 48 52 54 56 58 60 26 19 21 42 48 52 54 56 58 60 26 40 48 52 54 56 58 60 38 29 5 6 6 6 6 6 6 6 6 16 2 3 3 4 1
+                \end{lstlisting}
+
+                \textbf{Tabla de símbolos:}
+                \begin{lstlisting}[basicstyle=\small]
+nothing table #1:
+
+main table #2:
+* lexema: 'b'
+  + tipo: 'float'
+  + despl: 0
+* lexema: 'd'
+  + tipo: 'string'
+  + despl: 2
+* lexema: 'aux'
+  + tipo: 'string'
+  + despl: 66
+* lexema: 'foo'
+  + tipo: 'float'
+  + despl: 130
+* lexema: 'bar'
+  + tipo: 'int'
+  + despl: 132
+* lexema: 'weird'
+  + tipo: 'int'
+  + despl: 133
+* lexema: 'oper'
+  + tipo: 'float'
+  + despl: 134
+* lexema: 'bool'
+  + tipo: 'boolean'
+  + despl: 136
+* lexema: 'george'
+  + tipo: 'boolean'
+  + despl: 137
+
+global table #0:
+* lexema: 'global'
+  + tipo: 'int'
+  + despl: 0
+* lexema: 'nothing'
+  + etiqFuncion: '__tag_nothing__'
+  + tipo: 'function'
+    + tipoRetorno: 'void'
+    + numParam: 0
+* lexema: 'main'
+  + etiqFuncion: '__tag_main__'
+  + tipo: 'function'
+    + tipoRetorno: 'int'
+    + numParam: 2
+      + tipoParam01: 'float'
+      + tipoParam02: 'string'
                 \end{lstlisting}
 
 \newpage
@@ -2676,6 +2746,493 @@ ascending 19 23 45 48 52 54 56 58 60 26 11 15 14 9 13 35 29 40 48 52 54 45 48 51
 
 \newpage
 
+        \item[syntax.javascript] Fichero con construcciones sintácticas enrevesadas y recursividad.
+            \begin{lstlisting}[language=C, basicstyle=\footnotesize]
+let int a = 9;
+
+/* el lenguaje es sensible a las mayúsculas */
+function int Void(int a) {
+    do {
+        if (a == a)
+            return a;
+    } while (!!!(a < a));
+
+    return a + -a;
+}
+
+/* el lenguaje admite recursividad */
+function int recursive(int a, float b, string c) {
+    return 3 + recursive(
+        3 * (implicit + recursive(6,6.0,"6")),
+        0.00000000000 * 1.1 * 2.2,
+        "."
+    );
+}
+\end{lstlisting}
+\begin{multicols}{4}
+\textbf{Fichero de \textit{tokens}:}
+\begin{lstlisting}[basicstyle=\normalsize]
+<Let, >
+<Int, >
+<Id, 0>
+<Assign, >
+<IntLit, 9>
+<Semi, >
+<Func, >
+<Int, >
+<Id, 1>
+<LParen, >
+<Int, >
+<Id, 0>
+<RParen, >
+<LBrack, >
+<Do, >
+<LBrack, >
+<If, >
+<LParen, >
+<Id, 0>
+<Eq, >
+<Id, 0>
+<RParen, >
+<Ret, >
+<Id, 0>
+<Semi, >
+<RBrack, >
+<While, >
+<LParen, >
+<Not, >
+<Not, >
+<Not, >
+<LParen, >
+<Id, 0>
+<Lt, >
+<Id, 0>
+<RParen, >
+<RParen, >
+<Semi, >
+<Ret, >
+<Id, 0>
+<Sum, >
+<Sub, >
+<Id, 0>
+<Semi, >
+<RBrack, >
+<Func, >
+<Int, >
+<Id, 2>
+<LParen, >
+<Int, >
+<Id, 0>
+<Comma, >
+<Float, >
+<Id, 3>
+<Comma, >
+<Str, >
+<Id, 4>
+<RParen, >
+<LBrack, >
+<Ret, >
+<IntLit, 3>
+<Sum, >
+<Id, 2>
+<LParen, >
+<IntLit, 3>
+<Mul, >
+<LParen, >
+<Id, 5>
+<Sum, >
+<Id, 2>
+<LParen, >
+<IntLit, 6>
+<Comma, >
+<FloatLit, 6>
+<Comma, >
+<StrLit, "6">
+<RParen, >
+<RParen, >
+<Comma, >
+<FloatLit, 0>
+<Mul, >
+<FloatLit, 1>
+<Mul, >
+<FloatLit, 2>
+<Comma, >
+<StrLit, ".">
+<RParen, >
+<Semi, >
+<RBrack, >
+            \end{lstlisting}
+            \end{multicols}
+\newpage
+
+                \textbf{Parse:}
+                \begin{lstlisting}[basicstyle=\normalsize]
+ascending 19 23 44 47 49 51 53 55 57 25 23 12 15 14 23 7 10 13 59 39 47 49 51 53 55 39 47 49 51 53 56 57 39 47 49 51 53 55 57 18 33 27 5 6 39 47 49 51 53 39 47 49 51 54 55 57 45 47 48 48 48 49 51 53 55 57 24 39 47 49 51 39 47 61 49 52 53 55 57 18 33 28 5 6 6 16 23 12 15 14 23 22 20 7 8 8 10 13 59 44 47 49 51 44 47 49 39 47 49 51 44 47 49 51 53 55 57 43 47 49 51 53 55 57 42 47 49 51 53 55 57 29 30 30 32 46 47 49 52 53 55 57 45 47 50 51 53 55 57 43 47 49 43 47 50 43 47 50 51 53 55 57 42 47 49 51 53 55 57 29 30 30 32 46 47 49 52 53 55 57 18 33 28 5 6 16 2 3 3 4 1
+                \end{lstlisting}
+
+            \textbf{Tabla de símbolos:}
+            \begin{lstlisting}[basicstyle=\small]
+Void table #1:
+* lexema: 'a'
+  + tipo: 'int'
+  + despl: 0
+
+recursive table #2:
+* lexema: 'a'
+  + tipo: 'int'
+  + despl: 0
+* lexema: 'b'
+  + tipo: 'float'
+  + despl: 1
+* lexema: 'c'
+  + tipo: 'string'
+  + despl: 3
+
+global table #0:
+* lexema: 'a'
+  + tipo: 'int'
+  + despl: 0
+* lexema: 'Void'
+  + etiqFuncion: '__tag_Void__'
+  + tipo: 'function'
+    + tipoRetorno: 'int'
+    + numParam: 1
+      + tipoParam01: 'int'
+* lexema: 'recursive'
+  + etiqFuncion: '__tag_recursive__'
+  + tipo: 'function'
+    + tipoRetorno: 'int'
+    + numParam: 3
+      + tipoParam01: 'int'
+      + tipoParam02: 'float'
+      + tipoParam03: 'string'
+* lexema: 'implicit'
+  + tipo: 'int'
+  + despl: 1
+               \end{lstlisting}
+
+\newpage
+
+\begin{center}
+\vspace*{\fill}
+\begin{multicols}{2}
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/syntax/vast-1.png}
+    \label{fig:syntax-vast-1}
+\end{figure}
+
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/syntax/vast-2.png}
+    \label{fig:syntax-vast-2}
+\end{figure}
+\end{multicols}
+\vspace*{\fill}
+\end{center}
+
+\newpage
+
+\begin{center}
+\vspace*{\fill}
+\begin{multicols}{2}
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/syntax/vast-3.png}
+    \label{fig:syntax-vast-3}
+\end{figure}
+
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/syntax/vast-4.png}
+    \label{fig:syntax-vast-4}
+\end{figure}
+\end{multicols}
+\vspace*{\fill}
+\end{center}
+
+\newpage
+
+\begin{center}
+\vspace*{\fill}
+\begin{multicols}{2}
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/syntax/vast-5.png}
+    \label{fig:syntax-vast-5}
+\end{figure}
+
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/syntax/vast-6.png}
+    \label{fig:syntax-vast-6}
+\end{figure}
+\end{multicols}
+\vspace*{\fill}
+\end{center}
+
+\newpage
+
+\begin{center}
+\vspace*{\fill}
+\begin{multicols}{2}
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/syntax/vast-7.png}
+    \label{fig:syntax-vast-7}
+\end{figure}
+
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/syntax/vast-8.png}
+    \label{fig:syntax-vast-8}
+\end{figure}
+\end{multicols}
+\vspace*{\fill}
+\end{center}
+
+\newpage
+        \item[hard.javascript] Fichero con múltiples \textit{edge cases} tanto sintácticos como semánticos.
+            \begin{lstlisting}[language=C, basicstyle=\footnotesize]
+read var;
+
+let int a = var + ((23));
+
+function int noreturn(void) {}
+
+function void noop(void) {return;return;return;}
+
+write implicit;
+
+implicit = var + - + - implicit;
+
+function int other_scope(float var) {
+    var = 5.0;
+    var = 6.0;
+}
+
+let string mystr = "mystr";
+
+function int last_try(void) {
+    implicit = 0;
+
+    let float implicit;
+
+    implicit = 0.0;
+}
+\end{lstlisting}
+\begin{multicols}{4}
+\textbf{Fichero de \textit{tokens}:}
+\begin{lstlisting}[basicstyle=\normalsize]
+<Read, >
+<Id, 0>
+<Semi, >
+<Let, >
+<Int, >
+<Id, 1>
+<Assign, >
+<Id, 0>
+<Sum, >
+<LParen, >
+<LParen, >
+<IntLit, 23>
+<RParen, >
+<RParen, >
+<Semi, >
+<Func, >
+<Int, >
+<Id, 2>
+<LParen, >
+<Void, >
+<RParen, >
+<LBrack, >
+<RBrack, >
+<Func, >
+<Void, >
+<Id, 3>
+<LParen, >
+<Void, >
+<RParen, >
+<LBrack, >
+<Ret, >
+<Semi, >
+<Ret, >
+<Semi, >
+<Ret, >
+<Semi, >
+<RBrack, >
+<Write, >
+<Id, 4>
+<Semi, >
+<Id, 4>
+<Assign, >
+<Id, 0>
+<Sum, >
+<Sub, >
+<Sum, >
+<Sub, >
+<Id, 4>
+<Semi, >
+<Func, >
+<Int, >
+<Id, 5>
+<LParen, >
+<Float, >
+<Id, 0>
+<RParen, >
+<LBrack, >
+<Id, 0>
+<Assign, >
+<FloatLit, 5>
+<Semi, >
+<Id, 0>
+<Assign, >
+<FloatLit, 6>
+<Semi, >
+<RBrack, >
+<Let, >
+<Str, >
+<Id, 6>
+<Assign, >
+<StrLit, "mystr">
+<Semi, >
+<Func, >
+<Int, >
+<Id, 7>
+<LParen, >
+<Void, >
+<RParen, >
+<LBrack, >
+<Id, 4>
+<Assign, >
+<IntLit, 0>
+<Semi, >
+<Let, >
+<Float, >
+<Id, 4>
+<Semi, >
+<Id, 4>
+<Assign, >
+<FloatLit, 0>
+<Semi, >
+<RBrack, >
+            \end{lstlisting}
+            \end{multicols}
+\newpage
+
+                \textbf{Parse:}
+                \begin{lstlisting}[basicstyle=\normalsize]
+ascending 34 28 19 23 39 47 49 51 44 47 49 51 53 55 57 45 47 49 51 53 55 57 45 47 49 52 53 55 57 25 23 12 15 14 9 13 59 5 16 11 15 14 9 13 59 17 33 28 17 33 28 17 33 28 5 6 6 6 16 39 47 49 51 53 55 57 35 28 39 47 49 51 39 47 61 60 61 49 52 53 55 57 38 28 23 12 15 14 22 7 10 13 59 43 47 49 51 53 55 57 38 28 43 47 49 51 53 55 57 38 28 5 6 6 16 19 20 42 47 49 51 53 55 57 25 23 12 15 14 9 13 59 44 47 49 51 53 55 57 38 28 19 22 26 43 47 49 51 53 55 57 38 28 5 6 6 6 16 2 3 4 3 4 4 3 3 4 4 1
+                \end{lstlisting}
+
+            \textbf{Tabla de símbolos:}
+            \begin{lstlisting}[basicstyle=\small]
+noreturn table #1:
+
+noop table #2:
+
+other_scope table #3:
+* lexema: 'var'
+  + tipo: 'float'
+  + despl: 0
+
+last_try table #4:
+* lexema: 'implicit'
+  + tipo: 'float'
+  + despl: 0
+
+global table #0:
+* lexema: 'var'
+  + tipo: 'int'
+  + despl: 0
+* lexema: 'a'
+  + tipo: 'int'
+  + despl: 1
+* lexema: 'noreturn'
+  + etiqFuncion: '__tag_noreturn__'
+  + tipo: 'function'
+    + tipoRetorno: 'int'
+    + numParam: 0
+* lexema: 'noop'
+  + etiqFuncion: '__tag_noop__'
+  + tipo: 'function'
+    + tipoRetorno: 'void'
+    + numParam: 0
+* lexema: 'implicit'
+  + tipo: 'int'
+  + despl: 2
+* lexema: 'other_scope'
+  + etiqFuncion: '__tag_other_scope__'
+  + tipo: 'function'
+    + tipoRetorno: 'int'
+    + numParam: 1
+      + tipoParam01: 'float'
+* lexema: 'mystr'
+  + tipo: 'string'
+  + despl: 3
+* lexema: 'last_try'
+  + etiqFuncion: '__tag_last_try__'
+  + tipo: 'function'
+    + tipoRetorno: 'int'
+    + numParam: 0
+               \end{lstlisting}
+    \end{description}
+\newpage
+
+\begin{center}
+\vspace*{\fill}
+\begin{multicols}{2}
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/hard/vast-1.png}
+    \label{fig:hard-vast-1}
+\end{figure}
+
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/hard/vast-2.png}
+    \label{fig:hard-vast-2}
+\end{figure}
+\end{multicols}
+\vspace*{\fill}
+\end{center}
+
+\newpage
+
+\begin{center}
+\vspace*{\fill}
+\begin{multicols}{2}
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/hard/vast-3.png}
+    \label{fig:hard-vast-3}
+\end{figure}
+
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/hard/vast-4.png}
+    \label{fig:hard-vast-4}
+\end{figure}
+\end{multicols}
+\vspace*{\fill}
+\end{center}
+
+\newpage
+
+\begin{center}
+\vspace*{\fill}
+\begin{multicols}{2}
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/hard/vast-5.png}
+    \label{fig:hard-vast-5}
+\end{figure}
+
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{images/hard/vast-6.png}
+    \label{fig:hard-vast-6}
+\end{figure}
+\end{multicols}
+\vspace*{\fill}
+\end{center}
+
+\newpage
+
+\begin{center}
+\vspace*{\fill}
+\begin{figure}[H]
+    \includegraphics[width=1.0\textwidth]{images/hard/vast-7.png}
+    \label{fig:hard-vast-7}
+\end{figure}
+\vspace*{\fill}
+\end{center}
     \subsection{Casos Incorrectos}
     \begin{description}
         \item[unterm.javascript] Fichero con errores de sentencias incompletas.

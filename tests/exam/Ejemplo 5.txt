@@ -1,0 +1,37 @@
+//Cambiad los operadores por los que tengais implementados
+//Poned los comentarios a partir de los dos sitios donde aparece *** con el formato de comentarios que tengais
+//Incorporad un ejemplo de vuestra sentencia compleja (for, while, etc.) en algún punto del programa
+
+let int y1;
+let string z;
+
+function int Func1 (int x, boolean y1)  
+{  let float _w;
+   _w = 11.;
+   z = "hola";
+   return x;
+   //*** 
+   //return y1;
+}
+
+function int Func2 (int z, int n)
+{  
+   n = 13;
+   z = y1 + Func2(4, global);
+   function void hola (void) 
+	{
+   	output entera;
+	}
+   return 5;
+}
+
+read (z); 
+y1 = 24;
+
+// ***
+//y1=2222222;
+//if (4) global=2;
+//z=3+z;
+//z=Func1(6,7,7);
+//return 3;
+//Para Vast, borrar todo y dejar: let boolean a; a=3>2+1;

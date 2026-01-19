@@ -932,7 +932,7 @@ impl<'a, 's> SemAction<'a, 's> {
                     Some(param_reason.clone()),
                 );
 
-                diag.add_note(param_reason.clone(), "expected `{}` due to this parameter type");
+                diag.add_note(param_reason.clone(), &format!("expected `{}` due to this parameter type", param_type.var_type));
 
                 if param_type.var_type == Type::Void && let Some(arg_span) = &arg_span {
                     diag.add_help(DiagHelp::DelArgs(arg_span.clone()));

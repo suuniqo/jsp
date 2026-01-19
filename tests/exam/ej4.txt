@@ -1,0 +1,57 @@
+//** No se debe cambiar el ejemplo hasta que lo indique el profesor **/
+let  string  s;
+let int  a; let float rr;
+let boolean bb ;
+
+
+function  int RR (int n, boolean b, int pp, string)
+{
+	read(kk);
+	let boolean log  ;
+	log= n < rr	;	
+	if (b && log)	return b;
+	return RR (n + 1, bb, a);	
+}
+
+let   string _ss;
+kk=332211;
+
+function void write (string s, int RR)	
+{
+	let boolean _ss;
+	
+	write 
+	"++++Helloooooooooooooooooooooooooooooooooooooooooooooooooooooooo??";
+	RR= (a +3);
+		write(s)
+	;if (bb) return 9.99999999999999999;
+	write RR;		write ( a + ((987 +( 8) +3)));
+}
+
+RR = kk;
+
+function  cadena string(void)
+{
+	if ((rr != 000.091) || bb) 
+	{writ ('{9}', RR(a, bb, 888));
+	let string   do;
+	do= kk;
+	if (bb) if (bb) 
+		return do;
+	}
+	let boolean kk;
+		return "";
+	do= _ss;
+
+
+/* fin func */
+
+s = ";
+a= RR (.5, bb, (9), kk);
+return cadena();
+kk= writ (kk,9);
+
+a@= 9 < a + 3;
+
+
+

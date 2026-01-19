@@ -1,0 +1,98 @@
+//No se debe cambiar el ejemplo hasta que lo indique el profesor **/
+let  string   s;
+let  int  a ;
+let float rr;
+let boolean  bb;
+
+function  RR  int(int n, boolean b)	/* func*/
+{
+	let boolean log;
+	log= b < rr ;
+	read kk;
+	if (b && (log)	
+	return kk;
+	return n * RR (n, bb);	
+}
+
+let string _s1;
+	
+function void
+read (string s, int RR, int for)	
+{
+	write s;
+	write(RR);	read a;		write rr + 9876 + (8 +3);
+	write for;
+	return s;	
+}
+
+let boolean s1 
+;
+
+function string cadena (void)
+{
+	let bool kk  ;
+	if (kk) switch (a)
+	{
+	   case 00: put ('{$}', RR(9, bb), 88); break;
+	   case 9: 
+	   case 8.8: let string else;
+		if (kk) 
+			   break;	   else=s;
+	   case 666: return else;
+	   case 4444: write("viernes"); break;
+	   case 222222: kk= (a < 9) || bb;
+	}
+		return s;
+	else=s1;
+
+
+
+
+	RR = 11;
+
+	write"hola;
+	s = ("+++++Helloooooooooooooooooooooooooooooooooooooooooooooooooooooooooo");
+	a= RR (5, kk, kk);
+	write cadena();
+
+	kk= put (s1, kk, (888));
+	return s;
+	a= 99999.9 < 0.0 + rr;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+																																		$
