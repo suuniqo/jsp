@@ -43,7 +43,8 @@ where
         self.win.consume();
         self.win.consume();
 
-        let span = self.win.span();
+        // save comment opening
+        let opening = self.win.span();
 
         loop {
             self.win.consume_while(|c| c != '*');
@@ -51,7 +52,7 @@ where
             if self.win.peek_two() == ('*', '/') {
                 break;
             } else if self.win.finished() {
-                return Err(Diag::make(DiagKind::UntermComm, span, true));
+                return Err(Diag::make(DiagKind::UntermComm, opening, true));
             }
 
             self.win.consume();
@@ -167,9 +168,9 @@ where
         let mut string = String::new();
 
         loop {
-            match self.win.peek_one() {
-                '\n' => return Err(self.make_unterm_str_diag(string)),
-                '\\' => {
+            match self.win.peek_two() {
+                ('\n', _) | ('\r', '\n') => return Err(self.make_unterm_str_diag(string)),
+                ('\\', _) => {
                     let start = self.win.span().end;
 
                     // consume the '\'
@@ -212,11 +213,11 @@ where
                         string.push(next);
                     }
                 },
-                '"' => {
+                ('"', _) => {
                     self.win.consume();
                     break;
                 },
-                other => {
+                (other, _) => {
                     if self.win.finished() {
                         return Err(self.make_unterm_str_diag(string));
                     }
@@ -244,7 +245,7 @@ where
         let span = self.win.span();
 
         if string.len() > TokenKind::MAX_STR_LEN {
-            Err(Diag::make(DiagKind::OverflowStr(string[..TokenKind::MAX_STR_LEN].to_string()), span, true))
+            Err(Diag::make(DiagKind::OverflowStr(string), span, true))
         } else {
             Ok(Token::new(TokenKind::StrLit(string), span))
         }

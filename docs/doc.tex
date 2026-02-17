@@ -1978,9 +1978,9 @@ Para ello se realiza una búsqueda heurística en anchura por el autómata $LR(1
 
 Si no se encuentra una corrección adecuada, o si el arreglo resultara demasiado costoso o inconsistente, se emite el error y se interrumpe la ejecución del procesador.
 
-La clasificación de los errores se realiza analizando los contenidos de la pila de estados junto al \textit{token} que produjo el error. Esta estrategia se ha escogido frente a una clasificación manual basada en las celdas de las tablas de acción y \textit{goto} por su flexibilidad. Una clasificación manual resulta demasiado laboriosa, ya que no solo hay cientos de celdas en las tablas, sino que cualquier modificación de la gramática obligaría a rehacer rehacer por completo el manejo de los errores.
+La clasificación de los errores se realiza analizando los contenidos de la pila de estados junto al \textit{token} que produjo el error. Esta estrategia se ha escogido frente a una clasificación manual basada en las celdas de las tablas de acción y \textit{goto} por su flexibilidad. Una clasificación manual resulta demasiado laboriosa, ya que no solo hay cientos de celdas en las tablas, sino que cualquier modificación de la gramática obligaría a rehacer por completo el manejo de los errores.
 
-A continuación se muetran un ejemplo de cada tipo de recuperación: Por inserción, eliminación y sustitución.
+A continuación se muestra un ejemplo de cada tipo de recuperación: Por inserción, eliminación y sustitución.
 
 \vspace{-1em}
 \begin{figure}[H]
