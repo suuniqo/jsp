@@ -21,12 +21,9 @@ The compiler includes error recovery across the lexer, parser, and semantic anal
 
 Each module can generate fix suggestions for certain errors, indicating how to insert, delete, or replace code to resolve the issue. These hints show possible minimal changes that correct the detected problem. There are three types:
 
-- Insertion hints
-    ![insertion hint example](.github/assets/fix-ins.png)
-- Deletion hints
-    ![deletion hint example](.github/assets/fix-del.png)
-- Replacement hints
-    ![replacement hint example](.github/assets/fix-rep.png)
+![insertion hint example](.github/assets/fix-ins.png)
+![deletion hint example](.github/assets/fix-del.png)
+![replacement hint example](.github/assets/fix-rep.png)
 
 ## How to use
 
@@ -57,7 +54,7 @@ Each trace is written to the given file. If no file is provided, it prints to `s
 You need an installation of [Rust](https://www.rust-lang.org/tools/install).
 
 ### Build from source
-To generate the binary run on your terminal:
+To generate the binary run the following commands your terminal:
 ```bash
 git clone https://github.com/suuniqo/jsp.git
 cd jsp
