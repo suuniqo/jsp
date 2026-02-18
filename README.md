@@ -14,6 +14,10 @@ A modular and highly efficient language processor for *MyJS* (a custom scripting
 
 ### Error recovery
 
+The compiler includes error recovery across the lexer, parser, and semantic analysis to report as many diagnostics as possible in a single run. The lexer may emit placeholder tokens to keep parsing coherent, while the LR(1) parser attempts minimal-cost fixes (insert/delete/replace) to resynchronize. Semantic analysis propagates an error type to avoid cascaded noise and only reports reliable errors.
+
+![error recovery example](.github/assets/recovery.png)
+
 ### Fix suggestions
 
 ## How to use
@@ -42,12 +46,12 @@ Each trace is written to the given file. If no file is provided, it prints to `s
 ## Benchmark
 
 ## Installation
-## Installation
 
 ### Requirements
-- [Rust](https://www.rust-lang.org/tools/install) (latest stable)
+You need an installation of [Rust](https://www.rust-lang.org/tools/install).
 
 ### Build from source
+To generate the binary run on your terminal:
 ```bash
 git clone https://github.com/suuniqo/jsp.git
 cd jsp

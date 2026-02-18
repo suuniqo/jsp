@@ -1,11 +1,2 @@
-function void fib(n) {}
 
-let boolean temp = false;
-
-function int repeat(int x, float x) {
-    return 0;
-}
-
-let int type_err = a;
-
-function void fib(int m) {}
+do } while(1);
