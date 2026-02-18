@@ -7,7 +7,6 @@ A modular and highly efficient language processor for *MyJS* (a custom scripting
 ## Table of Contents
 - [Features](#features)
 - [How to use](#how-to-use)
-- [Benchmark](#benchmark)
 - [Installation](#installation)
 
 ## Features
@@ -19,6 +18,15 @@ The compiler includes error recovery across the lexer, parser, and semantic anal
 ![error recovery example](.github/assets/recovery.png)
 
 ### Fix suggestions
+
+Each module can generate fix suggestions for certain errors, indicating how to insert, delete, or replace code to resolve the issue. These hints show possible minimal changes that correct the detected problem. There are three types:
+
+- Insertion hints
+    ![insertion hint example](.github/assets/fix-ins.png)
+- Deletion hints
+    ![deletion hint example](.github/assets/fix-del.png)
+- Replacement hints
+    ![replacement hint example](.github/assets/fix-rep.png)
 
 ## How to use
 
@@ -42,8 +50,6 @@ You can inspect what each stage of the processing generates by enabling one or m
 `--symtb-trace [<FILE>]` or `-s [<FILE>]` — dump the generated symbol table
 
 Each trace is written to the given file. If no file is provided, it prints to `stdout`.
-
-## Benchmark
 
 ## Installation
 
